@@ -87,6 +87,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTeklaStructures202
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTeklaStructures2020", "Converters\ConverterTeklaStructures\ConverterTeklaStructures2020\ConverterTeklaStructures2020.csproj", "{08EE146E-9F7A-4C82-B790-688FE4532CA7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConverterTopSolid", "ConverterTopSolid", "{49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid715", "Converters\ConverterTopSolid\ConverterTopSolid715\ConverterTopSolid715.csproj", "{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ConverterTopSolidShared", "Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.shproj", "{4D0F9F8A-2E89-4780-978A-CD92D6D7B844}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Converters\ConverterTeklaStructures\ConverterTeklaStructuresShared\ConverterTeklaStructuresShared.projitems*{08ee146e-9f7a-4c82-b790-688fe4532ca7}*SharedItemsImports = 5
@@ -98,8 +104,10 @@ Global
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{2c68e80f-38f4-41d0-9b38-473031d1b541}*SharedItemsImports = 5
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{2d0f9f8a-2e89-4780-978a-cd92d6d7b843}*SharedItemsImports = 13
 		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{2dcd648d-dca5-4d2a-8b14-ad2cb85d24b0}*SharedItemsImports = 13
+		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{3d91aeca-cd66-4e5b-be43-fbfe6fb76e6c}*SharedItemsImports = 5
 		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{4220c3dc-e198-4084-b74d-85c9b31607f7}*SharedItemsImports = 5
 		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{45ea031d-56a5-4cb3-81dc-af3ef26580e0}*SharedItemsImports = 5
+		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{4d0f9f8a-2e89-4780-978a-cd92d6d7b844}*SharedItemsImports = 13
 		Converters\ConverterDynamo\ConverterDynamoShared\ConverterDynamoShared.projitems*{4f16a993-7d11-4565-a2a5-910899919e00}*SharedItemsImports = 5
 		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{4f16a993-7d11-4565-a2a5-910899919e00}*SharedItemsImports = 5
 		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{5905f0f8-ae1d-473b-87f3-97e40e6cbe55}*SharedItemsImports = 5
@@ -222,6 +230,10 @@ Global
 		{08EE146E-9F7A-4C82-B790-688FE4532CA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08EE146E-9F7A-4C82-B790-688FE4532CA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08EE146E-9F7A-4C82-B790-688FE4532CA7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -265,6 +277,9 @@ Global
 		{7FFDAB72-145D-4490-9892-FAC5F1D72B17} = {98B557B0-CD26-40DE-9703-A27F07A942E3}
 		{ADC53DC0-0592-4F13-B456-65ADCB2164A1} = {98B557B0-CD26-40DE-9703-A27F07A942E3}
 		{08EE146E-9F7A-4C82-B790-688FE4532CA7} = {98B557B0-CD26-40DE-9703-A27F07A942E3}
+		{49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2} = {CCC09288-CE76-4FDB-B0C9-220112F88CD9}
+		{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
+		{4D0F9F8A-2E89-4780-978A-CD92D6D7B844} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DA57EC2E-0A9E-4F59-B1F7-A65F76A74B74}
