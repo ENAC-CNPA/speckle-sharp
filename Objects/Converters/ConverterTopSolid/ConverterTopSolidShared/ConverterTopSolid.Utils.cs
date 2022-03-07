@@ -38,7 +38,7 @@ namespace Objects.Converter.TopSolid
         }
         private void SetUnits(Base geom)
         {
-            geom.units = ModelUnits;
+            //geom.units = ModelUnits;//TODO check this
         }
 
         private double ScaleToNative(double value, string units)

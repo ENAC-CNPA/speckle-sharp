@@ -68,6 +68,8 @@ namespace Objects.Converter.TopSolid
 
         public List<ApplicationPlaceholderObject> ContextObjects { get; set; } = new List<ApplicationPlaceholderObject>();
 
+        public ProgressReport Report => throw new NotImplementedException();
+
         public void SetContextObjects(List<ApplicationPlaceholderObject> objects) => ContextObjects = objects;
 
         public void SetPreviousContextObjects(List<ApplicationPlaceholderObject> objects) => throw new NotImplementedException();
@@ -242,5 +244,9 @@ namespace Objects.Converter.TopSolid
             }
         }
 
+        public void SetConverterSettings(object settings)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
