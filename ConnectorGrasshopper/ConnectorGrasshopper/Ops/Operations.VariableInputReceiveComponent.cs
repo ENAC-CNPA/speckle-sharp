@@ -16,14 +16,12 @@ using Grasshopper.GUI.Canvas;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Attributes;
 using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Types;
 using GrasshopperAsyncComponent;
 using Rhino;
 using Speckle.Core.Api;
 using Speckle.Core.Api.SubscriptionModels;
 using Speckle.Core.Credentials;
-using Speckle.Core.Kits;
 using Speckle.Core.Logging;
 using Speckle.Core.Models;
 using Speckle.Core.Transports;
@@ -511,8 +509,6 @@ namespace ConnectorGrasshopper.Ops
       var receiveComponent = ((VariableInputReceiveComponent)Parent);
       try
       {
-        Tracker.TrackPageview("receive", receiveComponent.AutoReceive ? "auto" : "manual");
-
         InternalProgressAction = dict =>
         {
           //NOTE: progress set to indeterminate until the TotalChildrenCount is correct
@@ -552,6 +548,9 @@ namespace ConnectorGrasshopper.Ops
           Done();
           return;
         }
+
+        Speckle.Core.Logging.Analytics.TrackEvent(client.Account, Speckle.Core.Logging.Analytics.Events.Receive, new Dictionary<string, object>() { { "auto", receiveComponent.AutoReceive } });
+
         var remoteTransport = new ServerTransport(InputWrapper?.GetAccount().Result, InputWrapper?.StreamId);
         remoteTransport.TransportName = "R";
 
@@ -606,7 +605,7 @@ namespace ConnectorGrasshopper.Ops
               streamId = InputWrapper.StreamId,
               commitId = myCommit.id,
               message = myCommit.message,
-              sourceApplication = VersionedHostApplications.Grasshopper
+              sourceApplication = Extras.Utilities.GetVersionedAppName()
             });
           }
           catch
@@ -730,7 +729,7 @@ namespace ConnectorGrasshopper.Ops
       converter?.SetContextDocument(RhinoDoc.ActiveDoc);
       parent.PrevReceivedData = new Dictionary<string, GH_Structure<IGH_Goo>>();
 
-      if (!parent.ExpandOutput)
+      if (!parent.ExpandOutput || (converter != null && converter.CanConvertToNative(ReceivedObject)))
       {
         var tree = Utilities.ConvertToTree(converter, ReceivedObject, Parent.AddRuntimeMessage);
         var receiveComponent = (VariableInputReceiveComponent)this.Parent;
@@ -744,7 +743,7 @@ namespace ConnectorGrasshopper.Ops
         var prop = ReceivedObject[name];
         var treeBuilder = new TreeBuilder(converter) { ConvertToNative = converter != null };
         var data = treeBuilder.Build(prop);
-        var param = Parent.Params.Output.FindIndex(p => p.NickName == name || p.NickName == name.Substring(1));
+        var param = Parent.Params.Output.FindIndex(p => p.Name == name || p.Name == name.Substring(1));
         var ighP = Parent.Params.Output[param];
         if (ighP is SendReceiveDataParam srParam)
         {
@@ -757,8 +756,10 @@ namespace ConnectorGrasshopper.Ops
 
     private List<string> GetOutputList(Base b)
     {
-      if (!((VariableInputReceiveComponent)Parent).ExpandOutput)
+      var receiveComponent = (VariableInputReceiveComponent)Parent;
+      if (!receiveComponent.ExpandOutput || (receiveComponent.Converter != null && receiveComponent.Converter.CanConvertToNative(b)))
         return new List<string> { "Data" };
+
       // Get the full list of output parameters
       var fullProps = new List<string>();
       b?.GetMemberNames().ToList().ForEach(prop =>
@@ -774,14 +775,14 @@ namespace ConnectorGrasshopper.Ops
 
     private bool OutputMismatch() =>
       outputList.Count != Parent.Params.Output.Count
-      || outputList.Where((t, i) => Parent.Params.Output[i].NickName != t).Any();
+      || outputList.Where((t, i) => Parent.Params.Output[i].Name != t).Any();
 
     private bool HasSingleRename()
     {
       var equalLength = outputList.Count == Parent?.Params.Output.Count;
       if (!equalLength) return false;
-      
-      var diffParams = Parent?.Params.Output.Where(param => !outputList.Contains(param.NickName) && !outputList.Contains("@" + param.NickName));
+
+      var diffParams = Parent?.Params.Output.Where(param => !outputList.Contains(param.Name) && !outputList.Contains("@" + param.Name));
       return diffParams.Count() == 1;
     }
     private void AutoCreateOutputs(Base @base)
@@ -793,11 +794,11 @@ namespace ConnectorGrasshopper.Ops
 
       Parent.RecordUndoEvent("Creating Outputs");
       if (HasSingleRename())
-      { 
-        var diffParams = Parent.Params.Output.Where(param => !outputList.Contains(param.NickName));
+      {
+        var diffParams = Parent.Params.Output.Where(param => !outputList.Contains(param.Name));
         var diffOut = outputList
           .Where(name =>
-            !Parent.Params.Output.Select(p => p.NickName)
+            !Parent.Params.Output.Select(p => p.Name)
               .Contains(name));
 
         var newName = diffOut.First();
@@ -810,7 +811,7 @@ namespace ConnectorGrasshopper.Ops
         (renameParam as SendReceiveDataParam).Detachable = isDetached;
         return;
       }
-      
+
       // Check what params must be deleted, and do so when safe.
       var remove = Parent.Params.Output.Select((p, i) =>
       {
