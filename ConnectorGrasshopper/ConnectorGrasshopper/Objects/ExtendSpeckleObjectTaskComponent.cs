@@ -2,14 +2,11 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using ConnectorGrasshopper.Extras;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Types;
-using Logging = Speckle.Core.Logging;
 using Speckle.Core.Models;
+using Logging = Speckle.Core.Logging;
 using Utilities = ConnectorGrasshopper.Extras.Utilities;
 
 namespace ConnectorGrasshopper.Objects
@@ -65,7 +62,6 @@ namespace ConnectorGrasshopper.Objects
         if (DA.Iteration == 0)
         {
           Logging.Analytics.TrackEvent(Logging.Analytics.Events.NodeRun, new Dictionary<string, object>() { { "name", "Expand Object" } });
-          Logging.Tracker.TrackPageview("objects", "extend", "variableinput");
         }
 
         inputData = new Dictionary<string, object>();
@@ -165,6 +161,7 @@ namespace ConnectorGrasshopper.Objects
       myParam.NickName = myParam.Name;
       myParam.Optional = false;
       myParam.ObjectChanged += (sender, e) => { };
+      myParam.Attributes = new GenericAccessParamAttributes(myParam, Attributes);
       return myParam;
     }
 
@@ -175,6 +172,11 @@ namespace ConnectorGrasshopper.Objects
 
     public void VariableParameterMaintenance()
     {
+      Params.Input
+        .Where(param => !(param.Attributes is GenericAccessParamAttributes))
+        .ToList()
+        .ForEach(param => param.Attributes = new GenericAccessParamAttributes(param, Attributes)
+        );
     }
 
     public Base DoWork(Base @base, Dictionary<string, object> inputData)
