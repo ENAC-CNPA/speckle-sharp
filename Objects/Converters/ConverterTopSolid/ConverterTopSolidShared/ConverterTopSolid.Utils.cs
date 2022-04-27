@@ -124,6 +124,19 @@ namespace Objects.Converter.TopSolid
             return points;
         }
 
+        public static PointList ToPointList(List<TKG.D3.Point> list)
+        {
+            //    var count = list.CountU * list.CountV;
+            var points = new PointList();
+
+            foreach (var p in list)
+            {
+                points.Add(p);
+            }
+
+            return points;
+        }
+
         static BSpline ToBSpline(List<double> list)
         {
             //var count = list.CountU * list.CountV;
@@ -139,6 +152,18 @@ namespace Objects.Converter.TopSolid
         static DoubleList ToDoubleList(List<double> list)
         {
             DoubleList tsDblList = new DoubleList(list.Count);
+
+            foreach (var d in list)
+            {
+                tsDblList.Add(d);
+            }
+
+            return tsDblList;
+        }
+
+        static DoubleList ToDoubleList(IEnumerable<double> list)
+        {
+            DoubleList tsDblList = new DoubleList();
 
             foreach (var d in list)
             {

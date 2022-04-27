@@ -478,31 +478,35 @@ namespace Objects.Converter.TopSolid
                 p.units)).ToList()).ToList();
 
 
-            TsBSplineSurface _surface = new TsBSplineSurface();
-            for (int u = 0; u < points.Count; u++)
-            {
-                for (int v = 0; v < points[u].Count; v++)
-                {
-                    _surface.SetCPt(u, v, PointToNative(points[u][v]));
-                    _surface.SetCWt(u, v, points[u][v].weight);
-                    _surface.UBs[u] = surface.knotsU[u];
-                    _surface.VBs[v] = surface.knotsV[v];
-                }
-            }
+            //TsBSplineSurface _surface = new TsBSplineSurface();
+
+            BSpline vBspline = new BSpline(surface.closedV, surface.degreeV, ToDoubleList(surface.knotsV));
+            BSpline UBspline = new BSpline(surface.closedU, surface.degreeU, ToDoubleList(surface.knotsU));
+
+            //for (int u = 0; u < points.Count; u++)
+            //{
+            //    for (int v = 0; v < points[u].Count; v++)
+            //    {
+            //        _surface.SetCPt(u, v, PointToNative(points[u][v]));
+            //        _surface.SetCWt(u, v, points[u][v].weight);
+            //        _surface.UBs[u] = surface.knotsU[u];
+            //        _surface.VBs[v] = surface.knotsV[v];
+            //    }
+            //}
 
             // TODO : Rational option
             if (surface.rational)
             {
-                //TsBSplineSurface bs = new TsBSplineSurface(ToBSpline(surface.knotsU), ToBSpline(surface.knotsV), ToPointList(surface.GetControlPoints()), ToDoubleList(surface.GetControlPoints()));
-                //return bs;
+                TsBSplineSurface bs = new TsBSplineSurface(UBspline, vBspline, ToPointList(points.SelectMany(x => x)), ToDoubleList(points.SelectMany(x => x).Select(x => x.weight)));
+                return bs;
             }
             else
             {
-                //TsBSplineSurface bs = new TsBSplineSurface(bU, bV, cp);
-                //return bs;
+                TsBSplineSurface bs = new TsBSplineSurface(UBspline, vBspline, ToPointList(points.SelectMany(x => x)));
+                return bs;
             }
 
-            return _surface;
+
 
         }
 
@@ -876,6 +880,7 @@ namespace Objects.Converter.TopSolid
             {
                 shape = null;
 
+
                 shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++);
 
                 if (shape == null || shape.IsEmpty)
@@ -910,6 +915,7 @@ namespace Objects.Converter.TopSolid
             // If new problems come, see about the periodicity of the curves.
 
             //TODO check if planar to simplify            
+
             BSplineSurface bsSurface = SurfaceToNative(surface);
 
             if (bsSurface != null && (bsSurface.IsUPeriodic || bsSurface.IsVPeriodic))
@@ -948,10 +954,29 @@ namespace Objects.Converter.TopSolid
             {
                 foreach (var trim in loop.Trims)
                 {
-                    Curve spCurve = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Curve;
-                    var convertedCrv = CurveToNative(spCurve);
-                    listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-                    loops3d.First().Add(convertedCrv);
+
+                    Curve spCurve = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Curve; //TODO check a more general way to cast ICurve to Curve even for lines
+
+                    if (spCurve != null)
+                    {
+                        var convertedCrv = CurveToNative(spCurve);
+                        listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                        loops3d.First().Add(convertedCrv);
+                    }
+
+                    else
+                    {
+                        var spLineCrv = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Line;
+                        if (spLineCrv != null)
+                        {
+                            var convertedCrv = LineToNative(spLineCrv);
+                            listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                            loops3d.First().Add(convertedCrv);
+                        }
+                    }
+
+                    var spCurve2 = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex);
+
                     counter++;
 
                 }

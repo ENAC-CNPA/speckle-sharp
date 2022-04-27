@@ -45,31 +45,31 @@ namespace Objects.Converter.TopSolid
     public partial class ConverterTopSolid
     {
 
-        public Surface SurfaceToSpeckle(TsSurface surfaceEntity, string units = null)
-        {
-            var u = units ?? ModelUnits;
-            TsBSplineSurface surface = surfaceEntity.Geometry.GetBsplineGeometry(Precision.LinearPrecision, false, false, false);
-            Surface _surface = new Geometry.Surface
-            {
-                degreeU = surface.UDegree,
-                degreeV = surface.VDegree,
-                rational = surface.IsRational,
-                closedU = surface.IsUClosed,
-                closedV = surface.IsVClosed,
-                domainU = new Interval(surface.Us, surface.Ue),
-                domainV = new Interval(surface.Vs, surface.Ve),
-                knotsU = GetCorrectKnots(surface.UBs.ToList(), surface.UCptsCount, surface.UDegree),
-                knotsV = GetCorrectKnots(surface.VBs.ToList(), surface.VCptsCount, surface.VDegree)
-            };
+        //public Surface SurfaceToSpeckle(TsSurface surfaceEntity, string units = null)
+        //{
+        //    var u = units ?? ModelUnits;
+        //    TsBSplineSurface surface = surfaceEntity.Geometry.GetBsplineGeometry(Precision.LinearPrecision, false, false, false);
+        //    Surface _surface = new Geometry.Surface
+        //    {
+        //        degreeU = surface.UDegree,
+        //        degreeV = surface.VDegree,
+        //        rational = surface.IsRational,
+        //        closedU = surface.IsUClosed,
+        //        closedV = surface.IsVClosed,
+        //        domainU = new Interval(surface.Us, surface.Ue),
+        //        domainV = new Interval(surface.Vs, surface.Ve),
+        //        knotsU = GetCorrectKnots(surface.UBs.ToList(), surface.UCptsCount, surface.UDegree),
+        //        knotsV = GetCorrectKnots(surface.VBs.ToList(), surface.VCptsCount, surface.VDegree)
+        //    };
 
-            _surface.SetControlPoints(ControlPointsToSpeckle(surface));
-            _surface.units = u;
+        //    _surface.SetControlPoints(ControlPointsToSpeckle(surface));
+        //    _surface.units = u;
 
-            // TODO: Make Shape Display
-            //FacetedShapeMaker.MakeShape(surfaceEntity, surfaceEntity.LevelKey, surfaceEntity.Geometry);
+        //    // TODO: Make Shape Display
+        //    //FacetedShapeMaker.MakeShape(surfaceEntity, surfaceEntity.LevelKey, surfaceEntity.Geometry);
 
-            return _surface;
-        }
+        //    return _surface;
+        //}
 
 
     }
