@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Autodesk.Revit.DB;
-using DB = Autodesk.Revit.DB;
+﻿using Autodesk.Revit.DB;
 using Objects.BuiltElements.Revit;
 using Objects.Geometry;
-using Speckle.Core.Models;
-using Curve = Objects.Geometry.Curve;
 using Speckle.Core.Logging;
+using Speckle.Core.Models;
+using System.Collections.Generic;
+using System.Linq;
+using Curve = Objects.Geometry.Curve;
+using DB = Autodesk.Revit.DB;
 
 namespace Objects.Converter.Revit
 {
@@ -88,7 +88,7 @@ namespace Objects.Converter.Revit
         family = revitWire.get_Parameter(BuiltInParameter.ELEM_FAMILY_PARAM).AsValueString(),
         type = revitWire.get_Parameter(BuiltInParameter.ELEM_TYPE_PARAM).AsValueString(),
         wiringType = revitWire.get_Parameter(BuiltInParameter.RBS_ELEC_WIRE_TYPE).AsValueString(),
-        level = ConvertAndCacheLevel(revitWire.ReferenceLevel.Id)
+        level = ConvertAndCacheLevel(revitWire.ReferenceLevel.Id, revitWire.Document)
       };
 
       // construction geometry for creating the wire on receive (doesn't match geometry points 🙃)
@@ -100,7 +100,7 @@ namespace Objects.Converter.Revit
       // geometry
       var start = ((LocationCurve)revitWire.Location).Curve.GetEndPoint(0);
       speckleWire.segments = new List<ICurve>();
-      var view = (View)Doc.GetElement(revitWire.OwnerViewId);
+      var view = (View)revitWire.Document.GetElement(revitWire.OwnerViewId);
       var segmentList = revitWire.get_Geometry(new Options { View = view }).ToList();
       foreach (var segment in segmentList)
         // transform and convert the geometry segments

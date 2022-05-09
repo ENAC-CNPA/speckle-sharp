@@ -1,8 +1,9 @@
-﻿using System;
-using Autodesk.Revit.DB;
+﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Structure;
 using Objects.BuiltElements;
 using Speckle.Core.Models;
+using System;
+using Objects.BuiltElements.Revit;
 using DB = Autodesk.Revit.DB;
 using Line = Objects.Geometry.Line;
 using Point = Objects.Geometry.Point;
@@ -14,7 +15,7 @@ namespace Objects.Converter.Revit
   {
     public Base LocationToSpeckle(DB.Element revitElement)
     {
-      if (revitElement is FamilyInstance familyInstance)
+      if (revitElement is DB.FamilyInstance familyInstance)
       {
         //vertical columns are point based, and the point does not reflect the actual vertical location
         if (Categories.columnCategories.Contains(familyInstance.Category) ||
@@ -60,18 +61,40 @@ namespace Objects.Converter.Revit
     /// </summary>
     /// <param name="loc"></param>
     /// <returns></returns>
-    private Base TryGetLocationAsCurve(FamilyInstance familyInstance)
+    private Base TryGetLocationAsCurve(DB.FamilyInstance familyInstance)
     {
+#if !REVIT2023
       if (familyInstance.CanHaveAnalyticalModel())
       {
         //no need to apply offset transform
         var analyticalModel = familyInstance.GetAnalyticalModel();
-        if (analyticalModel != null)
+        if (analyticalModel != null && analyticalModel.GetCurve() != null)
         {
           return CurveToSpeckle(analyticalModel.GetCurve()) as Base;
         }
       }
-      var point = PointToSpeckle((familyInstance.Location as LocationPoint).Point);
+
+#else
+      var manager = AnalyticalToPhysicalAssociationManager.GetAnalyticalToPhysicalAssociationManager(Doc);
+
+      if (manager.HasAssociation(familyInstance.Id))
+      {
+        var analyticalModel = Doc.GetElement(AnalyticalToPhysicalAssociationManager.GetAnalyticalToPhysicalAssociationManager(Doc).GetAssociatedElementId(familyInstance.Id)) as AnalyticalMember;
+        //no need to apply offset transform
+        if (analyticalModel != null && analyticalModel.GetCurve() != null)
+        {
+          return CurveToSpeckle(analyticalModel.GetCurve()) as Base;
+        }
+      }
+#endif
+      Point point = familyInstance.Location switch
+      {
+        LocationPoint p => PointToSpeckle(p.Point),
+        LocationCurve c => PointToSpeckle(c.Curve.GetEndPoint(0)),
+        _ => null,
+      };
+      
+
       try
       {
         //apply offset transform and create line

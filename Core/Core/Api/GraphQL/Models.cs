@@ -101,6 +101,7 @@ namespace Speckle.Core.Api
     public string role { get; set; }
     public string createdAt { get; set; }
     public string updatedAt { get; set; }
+    public string favoritedDate { get; set; }
 
     public List<Collaborator> collaborators { get; set; }
     public Branches branches { get; set; }
@@ -119,6 +120,8 @@ namespace Speckle.Core.Api
     /// Set only in the case that you've requested this through <see cref="Client.StreamGetCommits(System.Threading.CancellationToken, string, int)"/>
     /// </summary>
     public Commits commits { get; set; }
+
+    public Activity activity { get; set; }
 
     public SpeckleObject @object { get; set; }
 
@@ -176,6 +179,40 @@ namespace Speckle.Core.Api
     }
   }
 
+  public class Activity
+  {
+    public int totalCount { get; set; }
+    public DateTime cursor { get; set; }
+    public List<ActivityItem> items { get; set; }
+  }
+
+  public class ActivityItem
+  {
+    public string actionType { get; set; }
+    public string userId { get; set; }
+    public string streamId { get; set; }
+    public string resourceId { get; set; }
+    public string resourceType { get; set; }
+    public string time { get; set; }
+    public Info info { get; set; }
+    public string message { get; set; }
+  }
+
+  public class Info
+  {
+    public string message { get; set; }
+    public string sourceApplication { get; set; }
+
+    public InfoCommit commit { get; set; }
+  }
+
+  public class InfoCommit
+  {
+    public string message { get; set; }
+    public string sourceApplication { get; set; }
+    public string branchName { get; set; }
+  }
+
   public class SpeckleObject
   {
     public string id { get; set; }
@@ -219,6 +256,7 @@ namespace Speckle.Core.Api
     //public object profiles { get; set; }
     public string role { get; set; }
     public Streams streams { get; set; }
+    public Streams favoriteStreams { get; set; }
 
     public override string ToString()
     {

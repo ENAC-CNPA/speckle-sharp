@@ -24,9 +24,19 @@ namespace Objects.Converter.Revit
     /// <returns></returns>
     public DB.Level ConvertLevelToRevit(BuiltElements.Level speckleLevel)
     {
+      var docLevels = new FilteredElementCollector(Doc).OfClass(typeof(DB.Level)).ToElements().Cast<DB.Level>();
+      //level by name component
+      if (speckleLevel is RevitLevel speckleRevitLevel && speckleRevitLevel.referenceOnly)
+      {
+        var l = docLevels.FirstOrDefault(x => x.Name == speckleLevel.name);
+        if (l != null)
+          return l;
+      }
+
+
       if (speckleLevel == null) return null;
       var speckleLevelElevation = ScaleToNative((double)speckleLevel.elevation, speckleLevel.units);
-      var docLevels = new FilteredElementCollector(Doc).OfClass(typeof(DB.Level)).ToElements().Cast<DB.Level>();
+
       var hasLevelWithSameName = docLevels.Any(x => x.Name == speckleLevel.name);
       var existingLevelWithSameElevation = docLevels.FirstOrDefault(l => Math.Abs(l.Elevation - (double)speckleLevelElevation) < TOLERANCE);
 
@@ -149,12 +159,12 @@ namespace Objects.Converter.Revit
         return null;
       }
 
-      return ConvertAndCacheLevel(param.AsElementId());
+      return ConvertAndCacheLevel(param.AsElementId(), elem.Document);
     }
 
-    private RevitLevel ConvertAndCacheLevel(ElementId id)
+    private RevitLevel ConvertAndCacheLevel(ElementId id, Document doc)
     {
-      var level = Doc.GetElement(id) as DB.Level;
+      var level = doc.GetElement(id) as DB.Level;
 
       if (level == null) return null;
       if (!Levels.ContainsKey(level.Name))

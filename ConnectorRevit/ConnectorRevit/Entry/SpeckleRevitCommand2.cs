@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+using System.Threading;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.ReactiveUI;
-using DesktopUI2;
 using DesktopUI2.ViewModels;
 using DesktopUI2.Views;
 using Speckle.ConnectorRevit.UI;
-using Stylet.Xaml;
-using Application = Autodesk.Revit.ApplicationServices.Application;
 
 namespace Speckle.ConnectorRevit.Entry
 {
@@ -25,7 +22,7 @@ namespace Speckle.ConnectorRevit.Entry
     public static Window MainWindow { get; private set; }
     public static ConnectorBindingsRevit2 Bindings { get; set; }
     private static Avalonia.Application AvaloniaApp { get; set; }
-    private static UIApplication uiapp;
+    internal static UIApplication uiapp;
 
     public static void InitAvalonia()
     {
@@ -47,12 +44,13 @@ namespace Speckle.ConnectorRevit.Entry
       return Result.Succeeded;
     }
 
-    private void MainWindow_StateChanged(object sender, EventArgs e)
+    public static void CreateOrFocusSpeckle(bool showWindow = true)
     {
-    }
 
-    public static void CreateOrFocusSpeckle()
-    {
+
+
+
+
       if (MainWindow == null)
       {
         var viewModel = new MainWindowViewModel(Bindings);
@@ -61,17 +59,36 @@ namespace Speckle.ConnectorRevit.Entry
           DataContext = viewModel
         };
 
-        Task.Run(() => AvaloniaApp.Run(MainWindow));
+        //massive hack: we start the avalonia main loop and stop it immediately (since it's thread blocking)
+        //to avoid an annoying error when closing revit
+        var cts = new CancellationTokenSource();
+        cts.CancelAfter(100);
+        AvaloniaApp.Run(cts.Token);
+
       }
 
-      MainWindow.Show();
-      MainWindow.Activate();
-
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+      try
       {
-        var parentHwnd = uiapp.MainWindowHandle;
-        var hwnd = MainWindow.PlatformImpl.Handle.Handle;
-        SetWindowLongPtr(hwnd, GWL_HWNDPARENT, parentHwnd);
+        if (showWindow)
+        {
+          MainWindow.Show();
+          MainWindow.Activate();
+
+          //required to gracefully quit avalonia and the skia processes
+          //can also be used to manually do so
+          //https://github.com/AvaloniaUI/Avalonia/wiki/Application-lifetimes
+
+
+          if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+          {
+            var parentHwnd = uiapp.MainWindowHandle;
+            var hwnd = MainWindow.PlatformImpl.Handle.Handle;
+            SetWindowLongPtr(hwnd, GWL_HWNDPARENT, parentHwnd);
+          }
+        }
+      }
+      catch (Exception ex)
+      {
       }
     }
 
@@ -79,7 +96,6 @@ namespace Speckle.ConnectorRevit.Entry
     {
       AvaloniaApp = app;
     }
-
   }
 
 }
