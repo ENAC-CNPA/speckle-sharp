@@ -101,8 +101,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterGrasshopper6", "Co
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterGrasshopper7", "Converters\ConverterRhinoGh\ConverterGrasshopper7\ConverterGrasshopper7.csproj", "{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid716", "Converters\ConverterTopSolid\ConverterTopSolid716\ConverterTopSolid716.csproj", "{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{03bb58ab-1399-4cba-9b2d-8aca75a2e417}*SharedItemsImports = 5
 		Converters\ConverterTeklaStructures\ConverterTeklaStructuresShared\ConverterTeklaStructuresShared.projitems*{08ee146e-9f7a-4c82-b790-688fe4532ca7}*SharedItemsImports = 5
 		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{0bcb32cf-a3cf-4a6a-a9f8-dfe5d85d608c}*SharedItemsImports = 5
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{13f93c20-793c-4f2d-b836-68d7744063df}*SharedItemsImports = 5
@@ -262,6 +265,10 @@ Global
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -312,6 +319,7 @@ Global
 		{4D0F9F8A-2E89-4780-978A-CD92D6D7B844} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
 		{1DC0A8F4-1F14-47E8-8456-9D8E9C0E6CFF} = {1A35077C-2936-4A3D-8D48-65F39F76D999}
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA} = {1A35077C-2936-4A3D-8D48-65F39F76D999}
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DA57EC2E-0A9E-4F59-B1F7-A65F76A74B74}
