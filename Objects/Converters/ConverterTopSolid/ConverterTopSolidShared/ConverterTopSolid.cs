@@ -40,8 +40,6 @@ using TopSolid.Kernel.G.D3.Shapes;
 
 
 
-#if (TOPSOLID715)
-#endif
 
 
 namespace Objects.Converter.TopSolid
@@ -49,7 +47,9 @@ namespace Objects.Converter.TopSolid
     public partial class ConverterTopSolid : ISpeckleConverter
     {
 #if TOPSOLID715
-        public static string TopSolidAppName = Applications.TopSolid715;
+        public static string TopSolidAppName = VersionedHostApplications.TopSolid715;
+#else
+        public static string TopSolidAppName = VersionedHostApplications.TopSolid716;
 #endif
 
         #region ISpeckleConverter props
