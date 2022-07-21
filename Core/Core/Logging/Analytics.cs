@@ -42,7 +42,11 @@ namespace Speckle.Core.Logging
       /// <summary>
       /// Event triggered when an action is executed in Desktop UI, it should contain the name of the action and the host application
       /// </summary>
-      DUIAction
+      DUIAction,
+      /// <summary>
+      /// Event triggered when a node is first created in a visual programming environment, it should contain the name of the action and the host application
+      /// </summary>
+      NodeCreate,
     };
 
 
@@ -94,10 +98,10 @@ namespace Speckle.Core.Logging
     /// <param name="customProperties">Additional parameters to pass to the event</param>
     public static void TrackEvent(Account account, Events eventName, Dictionary<string, object> customProperties = null)
     {
-      if (account == null)
-        TrackEvent("unknown", "https://speckle.xyz/", eventName, customProperties);
-      else
-        TrackEvent(account.userInfo.email, account.serverInfo.url, eventName, customProperties);
+      string email = account?.userInfo?.email ?? "unknown";
+      string url = account?.serverInfo?.url ?? "https://speckle.xyz/";
+
+      TrackEvent(email, url, eventName, customProperties);
     }
 
     /// <summary>
@@ -114,7 +118,7 @@ namespace Speckle.Core.Logging
 
 #if DEBUG
       //only track in prod
-      return;
+      //return;
 #endif
 
       Task.Run(() =>

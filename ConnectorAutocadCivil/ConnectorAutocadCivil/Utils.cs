@@ -11,7 +11,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Colors;
 using Speckle.Core.Models;
-#if (CIVIL2021 || CIVIL2022)
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
 using Autodesk.Aec.ApplicationServices;
 using Autodesk.Aec.PropertyData.DatabaseServices;
 #endif
@@ -29,12 +29,20 @@ namespace Speckle.ConnectorAutocadCivil
     public static string VersionedAppName = VersionedHostApplications.Autocad2022;
     public static string AppName = HostApplications.AutoCAD.Name;
     public static string Slug = HostApplications.AutoCAD.Slug;
+#elif AUTOCAD2023
+    public static string VersionedAppName = VersionedHostApplications.Autocad2023;
+    public static string AppName = HostApplications.AutoCAD.Name;
+    public static string Slug = HostApplications.AutoCAD.Slug;
 #elif CIVIL2021
     public static string VersionedAppName = VersionedHostApplications.Civil2021;
     public static string AppName = HostApplications.Civil.Name;
     public static string Slug = HostApplications.Civil.Slug;
 #elif CIVIL2022
     public static string VersionedAppName = VersionedHostApplications.Civil2022;
+    public static string AppName = HostApplications.Civil.Name;
+    public static string Slug = HostApplications.Civil.Slug;
+#elif CIVIL2023
+    public static string VersionedAppName = VersionedHostApplications.Civil2023;
     public static string AppName = HostApplications.Civil.Name;
     public static string Slug = HostApplications.Civil.Slug;
 #endif
@@ -184,7 +192,7 @@ namespace Speckle.ConnectorAutocadCivil
       return isVisible;
     }
 
-#if CIVIL2021 || CIVIL2022
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
     /// <summary>
     /// Get the property sets of  DBObject
     /// </summary>
@@ -298,7 +306,7 @@ namespace Speckle.ConnectorAutocadCivil
       var insUnits = doc.Database.Insunits;
       string units = (insUnits == UnitsValue.Undefined) ? Units.None : Units.GetUnitsFromString(insUnits.ToString());
 
-#if (CIVIL2021 || CIVIL2022)
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
       if (units == Units.None)
       {
         // try to get the drawing unit instead
@@ -340,6 +348,7 @@ namespace Speckle.ConnectorAutocadCivil
 
     public static void SetStyle(Base styleBase, Entity entity, Dictionary<string, ObjectId> lineTypeDictionary)
     {
+      var units = styleBase["units"] as string;
       var color = styleBase["color"] as int?;
       if (color == null) color = styleBase["diffuse"] as int?; // in case this is from a rendermaterial base
       var lineType = styleBase["linetype"] as string;
@@ -352,8 +361,9 @@ namespace Speckle.ConnectorAutocadCivil
         entity.Transparency = new Transparency(systemColor.A);
       }
 
+      double conversionFactor = (units != null) ? Units.GetConversionFactor(Units.GetUnitsFromString(units), Units.Millimeters) : 1;
       if (lineWidth != null)
-        entity.LineWeight = GetLineWeight((double)lineWidth);
+        entity.LineWeight = GetLineWeight((double)lineWidth * conversionFactor);
 
       if (lineType != null)
         if (lineTypeDictionary.ContainsKey(lineType))

@@ -4,7 +4,7 @@ using Avalonia.Metadata;
 using DesktopUI2.Models;
 using DesktopUI2.Models.Filters;
 using DesktopUI2.Models.Settings;
-using DesktopUI2.Views;
+using DesktopUI2.ViewModels.Share;
 using DesktopUI2.Views.Pages;
 using DesktopUI2.Views.Windows;
 using DynamicData;
@@ -12,6 +12,7 @@ using Material.Icons;
 using Material.Icons.Avalonia;
 using ReactiveUI;
 using Speckle.Core.Api;
+using Speckle.Core.Kits;
 using Speckle.Core.Logging;
 using Splat;
 using System;
@@ -115,6 +116,17 @@ namespace DesktopUI2.ViewModels
       }
     }
 
+    private bool _isRemovingStream;
+
+    public bool IsRemovingStream
+    {
+      get => _isRemovingStream;
+      private set
+      {
+        this.RaiseAndSetIfChanged(ref _isRemovingStream, value);
+      }
+    }
+
     private bool _isExpanded;
 
     public bool IsExpanded
@@ -130,7 +142,7 @@ namespace DesktopUI2.ViewModels
 
     private Client Client { get; }
 
-    public ReactiveCommand<Unit, Unit> GoBack => MainWindowViewModel.RouterInstance.NavigateBack;
+    public ReactiveCommand<Unit, Unit> GoBack => MainViewModel.RouterInstance.NavigateBack;
 
     //If we don't have access to this stream
     public bool NoAccess { get; set; } = false;
@@ -142,6 +154,26 @@ namespace DesktopUI2.ViewModels
       set
       {
         this.RaiseAndSetIfChanged(ref _isReceiver, value);
+      }
+    }
+
+    private bool _autoReceive = false;
+    public bool AutoReceive
+    {
+      get => _autoReceive;
+      set
+      {
+        this.RaiseAndSetIfChanged(ref _autoReceive, value);
+      }
+    }
+
+    private ReceiveMode _selectedReceiveMode;
+    public ReceiveMode SelectedReceiveMode
+    {
+      get => _selectedReceiveMode;
+      set
+      {
+        this.RaiseAndSetIfChanged(ref _selectedReceiveMode, value);
       }
     }
 
@@ -200,6 +232,13 @@ namespace DesktopUI2.ViewModels
       private set => this.RaiseAndSetIfChanged(ref _activity, value);
     }
 
+    private List<CommentViewModel> _comments;
+    public List<CommentViewModel> Comments
+    {
+      get => _comments;
+      private set => this.RaiseAndSetIfChanged(ref _comments, value);
+    }
+
     private FilterViewModel _selectedFilter;
     public FilterViewModel SelectedFilter
     {
@@ -224,11 +263,18 @@ namespace DesktopUI2.ViewModels
       private set => this.RaiseAndSetIfChanged(ref _availableFilters, value);
     }
 
+    private List<ReceiveMode> _receiveModes;
+    public List<ReceiveMode> ReceiveModes
+    {
+      get => _receiveModes;
+      private set => this.RaiseAndSetIfChanged(ref _receiveModes, value);
+    }
+
     private List<ISetting> _settings;
     public List<ISetting> Settings
     {
       get => _settings;
-      private set
+      internal set
       {
         this.RaiseAndSetIfChanged(ref _settings, value);
         this.RaisePropertyChanged("HasSettings");
@@ -298,6 +344,8 @@ namespace DesktopUI2.ViewModels
         Stream = streamState.CachedStream;
         Client = streamState.Client;
         IsReceiver = streamState.IsReceiver;
+        AutoReceive = streamState.AutoReceive;
+        SelectedReceiveMode = streamState.ReceiveMode;
 
         //default to receive mode if no permission to send
         if (Stream.role == null || Stream.role == "stream:reviewer")
@@ -341,6 +389,7 @@ namespace DesktopUI2.ViewModels
 
         GetBranchesAndRestoreState();
         GetActivity();
+        GetComments();
       }
       catch (Exception ex)
       {
@@ -367,7 +416,7 @@ namespace DesktopUI2.ViewModels
       };
         var customMenues = Bindings.GetCustomStreamMenuItems();
         if (customMenues != null)
-          menu.Items.AddRange(customMenues.Select(x => new MenuItemViewModel(x, this.StreamState)).ToList());
+          menu.Items.AddRange(customMenues.Select(x => new MenuItemViewModel(x, StreamState)).ToList());
         //remove is added last
         //menu.Items.Add(new MenuItemViewModel(RemoveSavedStreamCommand, StreamState.Id, "Remove", MaterialIconKind.Bin));
         MenuItems.Add(menu);
@@ -400,6 +449,12 @@ namespace DesktopUI2.ViewModels
     {
       try
       {
+        //receive modes
+        ReceiveModes = Bindings.GetReceiveModes();
+        //by default the first available receive mode is selected
+        SelectedReceiveMode = ReceiveModes.Contains(StreamState.ReceiveMode) ? StreamState.ReceiveMode : ReceiveModes[0];
+
+
         //get available settings from our bindings
         Settings = Bindings.GetSettings();
 
@@ -441,6 +496,7 @@ namespace DesktopUI2.ViewModels
             var savedSetting = StreamState.Settings.FirstOrDefault(o => o.Slug == setting.Slug);
             if (savedSetting != null)
               setting.Selection = savedSetting.Selection;
+
           }
         }
       }
@@ -460,8 +516,7 @@ namespace DesktopUI2.ViewModels
         var activity = new List<ActivityViewModel>();
         foreach (var a in filteredActivity)
         {
-          var avm = new ActivityViewModel();
-          await avm.Init(a, Client);
+          var avm = new ActivityViewModel(a, Client);
           activity.Add(avm);
 
         }
@@ -473,6 +528,27 @@ namespace DesktopUI2.ViewModels
 
       }
     }
+
+    private async void GetComments()
+    {
+      try
+      {
+        var commentData = await Client.StreamGetComments(Stream.id);
+        var comments = new List<CommentViewModel>();
+        foreach (var c in commentData.items)
+        {
+          var cvm = new CommentViewModel(c, Stream.id, Client);
+          comments.Add(cvm);
+
+        }
+        Comments = comments;
+      }
+      catch (Exception ex)
+      {
+
+      }
+    }
+
 
     private async void ScrollToBottom()
     {
@@ -506,6 +582,9 @@ namespace DesktopUI2.ViewModels
       {
         StreamState.BranchName = SelectedBranch.name;
         StreamState.IsReceiver = IsReceiver;
+        StreamState.AutoReceive = AutoReceive;
+        StreamState.ReceiveMode = SelectedReceiveMode;
+
         if (IsReceiver)
           StreamState.CommitId = SelectedCommit.id;
         if (!IsReceiver)
@@ -560,6 +639,9 @@ namespace DesktopUI2.ViewModels
         Notification = $"{cinfo.authorName} sent to {info.branchName}: {info.message}";
         NotificationUrl = $"{StreamState.ServerUrl}/streams/{StreamState.StreamId}/commits/{cinfo.id}";
         ScrollToBottom();
+
+        if (AutoReceive)
+          ReceiveCommand();
       }
       catch (Exception ex)
       {
@@ -604,6 +686,11 @@ namespace DesktopUI2.ViewModels
     }
 
     #region commands
+
+    public void ShareCommand()
+    {
+      MainViewModel.RouterInstance.Navigate.Execute(new CollaboratorsViewModel(HostScreen, this));
+    }
     public void CloseNotificationCommand()
     {
       Notification = "";
@@ -630,7 +717,7 @@ namespace DesktopUI2.ViewModels
 
     public void EditSavedStreamCommand()
     {
-      MainWindowViewModel.RouterInstance.Navigate.Execute(this);
+      MainViewModel.RouterInstance.Navigate.Execute(this);
       Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Edit" } });
     }
 
@@ -706,7 +793,7 @@ namespace DesktopUI2.ViewModels
         if (!Progress.CancellationTokenSource.IsCancellationRequested)
         {
           LastUsed = DateTime.Now.ToString();
-          Analytics.TrackEvent(StreamState.Client.Account, Analytics.Events.Receive);
+          Analytics.TrackEvent(StreamState.Client.Account, Analytics.Events.Receive, new Dictionary<string, object>() { { "mode", StreamState.ReceiveMode }, { "auto", StreamState.AutoReceive } });
         }
 
         if (Progress.Report.ConversionErrorsCount > 0 || Progress.Report.OperationErrorsCount > 0)
@@ -744,13 +831,13 @@ namespace DesktopUI2.ViewModels
       {
         //ensure click transition has finished
         await Task.Delay(1000);
+        Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Open Report" } });
         ShowReport = true;
         var report = new Report();
-        report.Title = $"Report of the last operation, {LastUsed.ToLower()}";
+        //report.Title = $"Report of the last operation, {LastUsed.ToLower()}";
         report.DataContext = Progress;
-        report.WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner;
-        report.ShowDialog(MainWindow.Instance);
-        Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Open Report" } });
+        await report.ShowDialog();
+
       }
       catch (Exception ex)
       {
@@ -763,7 +850,7 @@ namespace DesktopUI2.ViewModels
       try
       {
         UpdateStreamState();
-        MainWindowViewModel.RouterInstance.Navigate.Execute(HomeViewModel.Instance);
+        MainViewModel.RouterInstance.Navigate.Execute(HomeViewModel.Instance);
         HomeViewModel.Instance.AddSavedStream(this);
 
         if (IsReceiver)
@@ -783,30 +870,32 @@ namespace DesktopUI2.ViewModels
     }
 
 
-    private async void OpenSettingsCommand()
+    private void OpenSettingsCommand()
     {
       try
       {
-        var settingsWindow = new Settings();
-        settingsWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
-        // Not doing this causes Avalonia to throw an error about the owner being already set on the Setting View UserControl
-        Settings.ForEach(x => x.ResetView());
-
-        var settingsPageViewModel = new SettingsPageViewModel(Settings.Select(x => new SettingViewModel(x)).ToList());
-        settingsWindow.DataContext = settingsPageViewModel;
-        settingsWindow.Title = $"Settings for {Stream.name}";
+        var settingsPageViewModel = new SettingsPageViewModel(HostScreen, Settings.Select(x => new SettingViewModel(x)).ToList(), this);
+        MainViewModel.RouterInstance.Navigate.Execute(settingsPageViewModel);
         Analytics.TrackEvent(null, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Settings Open" } });
-        var saveResult = await settingsWindow.ShowDialog<bool?>(MainWindow.Instance); // TODO: debug throws "control already has a visual parent exception" when calling a second time
 
-        if (saveResult != null && (bool)saveResult)
-        {
-          Settings = settingsPageViewModel.Settings.Select(x => x.Setting).ToList();
-        }
+
       }
       catch (Exception e)
       {
       }
+
+
+    }
+
+    private void AskRemoveSavedStreamCommand()
+    {
+      IsRemovingStream = true;
+    }
+
+    private void CancelRemoveSavedStreamCommand()
+    {
+      IsRemovingStream = false;
     }
 
 

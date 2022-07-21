@@ -20,8 +20,8 @@ namespace Objects.Converter.Revit
       }
 
       bool structural = false;
-      var outline = CurveToNative(speckleFloor.outline);
-
+      var outline = CurveToNative(speckleFloor.outline, true);
+      UnboundCurveIfSingle(outline);
       DB.Level level;
       double slope = 0;
       DB.Line slopeDirection = null;
@@ -43,26 +43,21 @@ namespace Objects.Converter.Revit
       // https://adndevbConversionLog.Add.typepad.com/aec/2013/10/change-the-boundary-of-floorsslabs.html
       // This would only work if the floors have the same number (and type!!!) of outline curves. 
       var docObj = GetExistingElementByApplicationId(speckleFloor.applicationId);
+      if (docObj != null && ReceiveMode == Speckle.Core.Kits.ReceiveMode.Ignore)
+        return new List<ApplicationPlaceholderObject>
+      {
+        new ApplicationPlaceholderObject
+          {applicationId = speckleFloor.applicationId, ApplicationGeneratedId = docObj.UniqueId, NativeObject = docObj}
+      };
+
       if (docObj != null)
       {
         Doc.Delete(docObj.Id);
       }
 
       DB.Floor revitFloor = null;
-#if REVIT2023
+#if (REVIT2019 || REVIT2020 || REVIT2021)
       if (floorType == null)
-      {
-        throw new SpeckleException("Floor needs a floor type");
-      }
-      else
-      {
-        if (slope != 0 && slopeDirection != null)
-          revitFloor = Floor.Create(Doc, new List<CurveLoop> { CurveArrayToCurveLoop(outline) }, floorType.Id, level.Id, structural, slopeDirection, slope);
-        if (revitFloor == null)
-          revitFloor = Floor.Create(Doc, new List<CurveLoop> { CurveArrayToCurveLoop(outline) }, floorType.Id, level.Id);
-      }
-#else
-  if (floorType == null)
       {
         if (slope != 0 && slopeDirection != null)
           revitFloor = Doc.Create.NewSlab(outline, level, slopeDirection, slope, structural);
@@ -76,11 +71,37 @@ namespace Objects.Converter.Revit
         if (revitFloor == null)
           revitFloor = Doc.Create.NewFloor(outline, floorType, level, structural);
       }
+
+#else
+     if (floorType == null)
+      {
+        throw new SpeckleException("Floor needs a floor type");
+      }
+      else
+      {
+        //from revit 2022 we can create openings in the floors!
+        var profile = new List<CurveLoop> { CurveArrayToCurveLoop(outline) };
+        if(speckleFloor["voids"] != null && (speckleFloor["voids"] is List<ICurve> voids))
+        {
+          foreach (var v in voids)
+          {
+            var opening = CurveArrayToCurveLoop(CurveToNative(v, true));
+            profile.Add(opening);
+          }   
+        }
+
+
+        if (slope != 0 && slopeDirection != null)
+          revitFloor = Floor.Create(Doc, profile, floorType.Id, level.Id, structural, slopeDirection, slope);
+        if (revitFloor == null)
+          revitFloor = Floor.Create(Doc, profile, floorType.Id, level.Id);
+      }
 #endif
 
 
       Doc.Regenerate();
 
+      #if (REVIT2019 || REVIT2020 || REVIT2021)
       try
       {
         CreateVoids(revitFloor, speckleFloor);
@@ -89,6 +110,7 @@ namespace Objects.Converter.Revit
       {
         Report.LogConversionError(new Exception($"Could not create openings in floor {speckleFloor.applicationId}", ex));
       }
+      #endif
 
       SetInstanceParameters(revitFloor, speckleFloor);
 

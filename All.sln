@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectorDynamoExtension", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectorDynamoFunctions", "ConnectorDynamo\ConnectorDynamoFunctions\ConnectorDynamoFunctions.csproj", "{8F4D907B-A2DF-4B40-8EA6-D79F9ED6D906}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConnectorGrasshopper", "ConnectorGrasshopper\ConnectorGrasshopper\ConnectorGrasshopper.csproj", "{BDEC781D-F322-49B0-8001-2CA66C182174}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectorGrasshopper", "ConnectorGrasshopper\ConnectorGrasshopper\ConnectorGrasshopper.csproj", "{109B3382-634B-408A-8A5C-4CD09CB92641}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopUI", "DesktopUI\DesktopUI\DesktopUI.csproj", "{A97C3046-2D55-4C49-AB40-A3C2194B82FA}"
 EndProject
@@ -188,6 +188,11 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid715", "Objects\Converters\ConverterTopSolid\ConverterTopSolid715\ConverterTopSolid715.csproj", "{A004A488-E31A-44AC-B076-D406723DCF8B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConverterTopSolid", "ConverterTopSolid", "{7E9B3FC4-8F72-43F6-8476-24A2A141CDF0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectorRevit2023", "ConnectorRevit\ConnectorRevit2023\ConnectorRevit2023.csproj", "{586A5A37-93F6-427E-8DF8-C10DB4D6822A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ArchiCAD", "ArchiCAD", "{DF1B3505-793C-4073-975B-04C81CC3CDC4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConnectorArchicad", "ConnectorArchicad\ConnectorArchicad\ConnectorArchicad.csproj", "{D163D710-B946-4D50-8833-BD8B9941033A}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -214,6 +219,7 @@ Global
 		Objects\Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{4d0f9f8a-2e89-4780-978a-cd92d6d7b844}*SharedItemsImports = 13
 		Objects\Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{50bc1552-3e7e-4c77-ac3a-aa7c572dfe09}*SharedItemsImports = 5
 		ConnectorMicroStation\ConnectorMicroStationOpenShared\ConnectorMicroStationOpenShared.projitems*{57bf94a8-8f73-4d1a-91d2-b10cc64178b6}*SharedItemsImports = 4
+		ConnectorRevit\ConnectorRevit\ConnectorRevit.projitems*{586a5a37-93f6-427e-8df8-c10db4d6822a}*SharedItemsImports = 4
 		ConnectorAutocadCivil\ConnectorAutocadCivil\ConnectorAutocadCivilShared.projitems*{58a88f1a-7489-46d2-949d-2fc3f68c8d84}*SharedItemsImports = 4
 		Objects\Converters\ConverterDynamo\ConverterDynamoShared\ConverterDynamoShared.projitems*{5bab09dc-b0fc-4004-9fd5-6496a9634071}*SharedItemsImports = 13
 		Objects\Converters\ConverterCSI\ConverterCSIShared\ConverterCSIShared.projitems*{5bbde14e-50f8-4d6e-8e35-747667ad4a09}*SharedItemsImports = 13
@@ -288,14 +294,14 @@ Global
 		{8F4D907B-A2DF-4B40-8EA6-D79F9ED6D906}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8F4D907B-A2DF-4B40-8EA6-D79F9ED6D906}.Release|x64.ActiveCfg = Release|Any CPU
 		{8F4D907B-A2DF-4B40-8EA6-D79F9ED6D906}.Release|x64.Build.0 = Release|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Debug|x64.Build.0 = Debug|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Release|x64.ActiveCfg = Release|Any CPU
-		{BDEC781D-F322-49B0-8001-2CA66C182174}.Release|x64.Build.0 = Release|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Debug|x64.Build.0 = Debug|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Release|Any CPU.Build.0 = Release|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Release|x64.ActiveCfg = Release|Any CPU
+		{109B3382-634B-408A-8A5C-4CD09CB92641}.Release|x64.Build.0 = Release|Any CPU
 		{A97C3046-2D55-4C49-AB40-A3C2194B82FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A97C3046-2D55-4C49-AB40-A3C2194B82FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A97C3046-2D55-4C49-AB40-A3C2194B82FA}.Debug|x64.ActiveCfg = Debug|x64
@@ -720,6 +726,22 @@ Global
 		{A004A488-E31A-44AC-B076-D406723DCF8B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A004A488-E31A-44AC-B076-D406723DCF8B}.Release|x64.ActiveCfg = Release|Any CPU
 		{A004A488-E31A-44AC-B076-D406723DCF8B}.Release|x64.Build.0 = Release|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Debug|x64.Build.0 = Debug|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Release|x64.ActiveCfg = Release|Any CPU
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A}.Release|x64.Build.0 = Release|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Debug|x64.Build.0 = Debug|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Release|x64.ActiveCfg = Release|Any CPU
+		{D163D710-B946-4D50-8833-BD8B9941033A}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -729,7 +751,7 @@ Global
 		{61A977EE-10DA-47F2-8BD9-3CC7BBB6904F} = {CB6F8F77-4487-469B-896A-1EEEC4451A04}
 		{B494FD40-5E59-4D5E-87B0-80AAC8BDCD5A} = {CB6F8F77-4487-469B-896A-1EEEC4451A04}
 		{8F4D907B-A2DF-4B40-8EA6-D79F9ED6D906} = {CB6F8F77-4487-469B-896A-1EEEC4451A04}
-		{BDEC781D-F322-49B0-8001-2CA66C182174} = {9461B162-AD2F-4F60-BCE4-E72DCEFD4608}
+		{109B3382-634B-408A-8A5C-4CD09CB92641} = {9461B162-AD2F-4F60-BCE4-E72DCEFD4608}
 		{A97C3046-2D55-4C49-AB40-A3C2194B82FA} = {DD7DA7E3-FBB7-4216-852B-A4A5BF3AB9AB}
 		{60BE029E-1F31-4473-8B68-A745A43AF179} = {E3916A0F-68D5-4C84-ACAE-41547F75E454}
 		{8BBED205-C34E-4226-8757-0B576132D2BC} = {DC6BE73D-4D60-4F90-9778-D44151CD6F98}
@@ -813,6 +835,9 @@ Global
 		{4D0F9F8A-2E89-4780-978A-CD92D6D7B844} = {7E9B3FC4-8F72-43F6-8476-24A2A141CDF0}
 		{A004A488-E31A-44AC-B076-D406723DCF8B} = {7E9B3FC4-8F72-43F6-8476-24A2A141CDF0}
 		{7E9B3FC4-8F72-43F6-8476-24A2A141CDF0} = {4DE5ED81-2A55-4C23-A05F-3C9B9B06F85D}
+		{586A5A37-93F6-427E-8DF8-C10DB4D6822A} = {42A86931-7497-4A34-B2FD-060231CD0A8F}
+		{DF1B3505-793C-4073-975B-04C81CC3CDC4} = {DD7DA7E3-FBB7-4216-852B-A4A5BF3AB9AB}
+		{D163D710-B946-4D50-8833-BD8B9941033A} = {DF1B3505-793C-4073-975B-04C81CC3CDC4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1D43D91B-4F01-4A78-8250-CC6F9BD93A14}

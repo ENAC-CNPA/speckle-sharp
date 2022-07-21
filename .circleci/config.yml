@@ -25,8 +25,7 @@ commands:
           command: |
             $tag = if([string]::IsNullOrEmpty($env:CIRCLE_TAG)) { "a/0.0.$($env:CIRCLE_BUILD_NUM)-beta" } else { $env:CIRCLE_TAG }
             $version = $tag.Split("/")[1]  
-            dotnet pack -c Release /p:Version="$version" -o $HOME/output <<parameters.projectfilepath>> 
-            cd $HOME/output
+            msbuild <<parameters.projectfilepath>> /p:Version="$version" /p:Configuration=Release /p:WarningLevel=0 /p:IsDesktopBuild=false -t:pack
             dotnet nuget push **/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY -n true
 
 # Parameters of our pipeline. Most of them are booleans that indicate which project to build/test with the pattern 'run_{PROJECT_NAME}'
@@ -109,9 +108,9 @@ jobs: # Each project will have individual jobs for each specific task it has to 
       - image: "mcr.microsoft.com/dotnet/core/sdk" # dotnet core 3.1 sdk
       - image: "mcr.microsoft.com/dotnet/core/sdk:2.1-focal" # dotnet core 2.1 sdk (for netstandard support on build)
       # Node, redis, postgres and speckle-server images for test server
-      - image: "circleci/node:12"
-      - image: "circleci/redis:6"
-      - image: "circleci/postgres:12"
+      - image: "cimg/node:16.15"
+      - image: "cimg/redis:6.2"
+      - image: "cimg/postgres:14.2"
         environment:
           POSTGRES_DB: speckle2_test
           POSTGRES_PASSWORD: speckle
@@ -128,6 +127,7 @@ jobs: # Each project will have individual jobs for each specific task it has to 
           STRATEGY_LOCAL: "true"
           CANONICAL_URL: "http://localhost:3000"
           WAIT_HOSTS: localhost:5432, localhost:6379
+          DISABLE_FILE_UPLOADS: "true"
     steps:
       - checkout
       - run:
@@ -196,7 +196,7 @@ jobs: # Each project will have individual jobs for each specific task it has to 
             $ver = if($semver.Contains('-')) {$semver.Split("-")[0] } else { $semver }
             $channel = if($semver.Contains('-')) {$semver.Split("-")[1] } else { "latest" }
             $version = "$($ver).$($env:CIRCLE_BUILD_NUM)"
-            msbuild << parameters.slnname >>/<< parameters.slnname >>.sln /p:Configuration=Release /p:WarningLevel=0 /p:IsDesktopBuild=false /p:AssemblyVersionNumber=$version /p:AssemblyInformationalVersion=$semver /p:Version=$version  
+            msbuild << parameters.slnname >>/<< parameters.slnname >>.sln /p:Configuration=Release /p:WarningLevel=0 /p:IsDesktopBuild=false /p:AssemblyVersionNumber=$version /p:AssemblyInformationalVersion=$semver /p:Version=$semver  
             if(-Not [string]::IsNullOrEmpty($env:CIRCLE_TAG)) { New-Item -Force "speckle-sharp-ci-tools/Installers/<< parameters.slug >>/$channel.yml" -ItemType File -Value "version: $semver" }
       - run:
           name: Deploy?
@@ -325,7 +325,7 @@ jobs: # Each project will have individual jobs for each specific task it has to 
   setup-archicad-dev: # get Archicad dev kit
     executor:
       name: win/default
-      shell: powershell.exe
+      shell: bash.exe
     steps:
       - checkout
       - attach_workspace:
@@ -338,15 +338,19 @@ jobs: # Each project will have individual jobs for each specific task it has to 
           name: extract devkit
           command: |
             cd speckle-sharp-ci-tools/Resources
-            Expand-Archive -Path Archicad25DevKit.zip
+            unzip Archicad25DevKit.zip -d Archicad25DevKit
       - run:
-          name: build AddOn
+          name: cmake AddOn
           command: |
             cd ConnectorArchicad/AddOn
             mkdir Build
-            $env:Path +="C:\Program Files\CMake\bin"
-            cmake -B "./Build/" -DAC_API_DEVKIT_DIR="../../speckle-sharp-ci-tools/Resources/Archicad25DevKit"
-            msbuild "Build/Speckle Connector.sln" /p:Configuration=Release
+            export PATH=$PATH:"C:\Program Files\CMake\bin"
+            cmake -B "./Build/" -DAC_API_DEVKIT_DIR="../../speckle-sharp-ci-tools/Resources/Archicad25DevKit" -DAC_MDID_DEV=$GRAPHISOFT_DEV_ID -DAC_MDID_LOC=$GRAPHISOFT_ADDON_ID
+      - run:
+          name: msbuild AddOn
+          command: |
+            cd ConnectorArchicad/AddOn
+            "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe" "Build/Speckle Connector.sln" -property:Configuration=Release
       - persist_to_workspace:
           root: ./
           paths:
@@ -877,4 +881,4 @@ workflows:
 
           filters:
             tags: # runs on any tag in the format "xyz/1.0.0" or "xyz/1.0.0-beta" -- TO UPDATE IDENTICAL LINE AT ~380  --
-              only: /^(all|win|mac|dynamo|revit|grasshopper|grasshopper-mac|grasshopper-win|rhino|rhino-mac|autocadcivil|revitdynamo|rhinogh|csi|etabs|sap2000|csibridge|safe|microstation|microstation|openbuildings|openrail|openroads|bentley|teklastructures)\/([0-9]+)\.([0-9]+)\.([0-9]+)(?:-\w+)?$/
+              only: /^(all|win|mac|dynamo|revit|grasshopper|grasshopper-mac|grasshopper-win|rhino|rhino-mac|autocadcivil|revitdynamo|rhinogh|csi|etabs|sap2000|csibridge|safe|microstation|microstation|openbuildings|openrail|openroads|bentley|teklastructures|archicad)\/([0-9]+)\.([0-9]+)\.([0-9]+)(?:-\w+)?$/

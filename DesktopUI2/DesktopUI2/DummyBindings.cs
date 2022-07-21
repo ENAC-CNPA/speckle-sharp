@@ -4,9 +4,11 @@ using DesktopUI2.Models.Settings;
 using DesktopUI2.ViewModels;
 using Speckle.Core.Api;
 using Speckle.Core.Credentials;
+using Speckle.Core.Kits;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -108,7 +110,12 @@ namespace DesktopUI2
     {
       return new List<ISetting>
       {
-        new ListBoxSetting {Name = "Reference Point", Icon = "mdiCrosshairsGps", Description = "Hello world. This is a setting.", Values = new List<string>() {"Default", "Project Base Point", "Survey Point"} }
+        new ListBoxSetting {Name = "Reference Point", Icon = "CrosshairsGps", Description = "Hello world. This is a setting.", Values = new List<string>() {"Default", "Project Base Point", "Survey Point"} },
+        new CheckBoxSetting {Slug = "linkedmodels-send", Name = "Send Linked Models", Icon ="Link", IsChecked= false, Description = "Include Linked Models in the selection filters when sending"},
+        new CheckBoxSetting {Slug = "linkedmodels-receive", Name = "Receive Linked Models", Icon ="Link", IsChecked= false, Description = "Include Linked Models when receiving"},
+        new MultiSelectBoxSetting { Slug = "disallow-join", Name = "Disallow Join For Elements", Icon = "CallSplit", Description = "Determine which objects should not be allowed to join by default",
+          Values = new List<string>() { "Architectural Walls", "Structural Walls", "Structural Framing" } },
+        new ListBoxSetting {Slug = "pretty-mesh", Name = "Mesh Import Method", Icon ="ChartTimelineVarient", Values = new List<string>() { "Default", "DXF", "Family DXF"}, Description = "Determines the display style of imported meshes" },
       };
     }
 
@@ -154,7 +161,7 @@ namespace DesktopUI2
           {
             id = "123",
             name = "main",
-            commits = new Commits()
+            commits = new Speckle.Core.Api.Commits()
             {
               items = new List<Commit>()
               {
@@ -188,7 +195,7 @@ namespace DesktopUI2
           {
             id = "123",
             name = "main",
-            commits = new Commits()
+            commits = new Speckle.Core.Api.Commits()
             {
               items = new List<Commit>()
               {
@@ -345,6 +352,11 @@ namespace DesktopUI2
     public override void WriteStreamsToFile(List<StreamState> streams)
     {
       //done!
+    }
+
+    public override List<ReceiveMode> GetReceiveModes()
+    {
+      return new List<ReceiveMode> { ReceiveMode.Update, ReceiveMode.Ignore };
     }
   }
 }

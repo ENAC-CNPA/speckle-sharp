@@ -132,6 +132,17 @@ namespace TestsIntegration
       Assert.IsTrue(res);
     }
 
+    [Test, Order(41)]
+    public async Task StreamInviteCreate()
+    {
+      var res = await myClient.StreamInviteCreate(
+        new StreamInviteCreateInput { streamId = streamId, email = "test@test.com", message = "Whasssup!" }
+      );
+
+      Assert.IsTrue(res);
+    }
+
+
     #region branches
 
     [Test, Order(41)]
@@ -301,6 +312,18 @@ namespace TestsIntegration
 
     [Test, Order(51)]
     public async Task StreamGetActivity()
+    {
+      var res = await myClient.StreamGetActivity(streamId);
+
+      Assert.NotNull(res);
+      //Assert.AreEqual(commitId, res[0].);
+    }
+    #endregion
+
+    #region comments
+
+    [Test, Order(52)]
+    public async Task StreamGetComments()
     {
       var res = await myClient.StreamGetActivity(streamId);
 

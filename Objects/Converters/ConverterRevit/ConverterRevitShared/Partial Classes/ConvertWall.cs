@@ -6,11 +6,15 @@ using System.Collections.Generic;
 using System.Linq;
 using DB = Autodesk.Revit.DB;
 using Mesh = Objects.Geometry.Mesh;
+using System.Text.RegularExpressions;
 
 namespace Objects.Converter.Revit
 {
   public partial class ConverterRevit
   {
+    // CAUTION: these strings need to have the same values as in the connector
+    const string StructuralWalls = "Structural Walls";
+    const string ArchitecturalWalls = "Achitectural Walls";
 
     public List<ApplicationPlaceholderObject> WallToNative(BuiltElements.Wall speckleWall)
     {
@@ -20,6 +24,8 @@ namespace Objects.Converter.Revit
       }
 
       var revitWall = GetExistingElementByApplicationId(speckleWall.applicationId) as DB.Wall;
+      if (revitWall != null && ReceiveMode == Speckle.Core.Kits.ReceiveMode.Ignore)
+        return new List<ApplicationPlaceholderObject> { new ApplicationPlaceholderObject { applicationId = speckleWall.applicationId, ApplicationGeneratedId = revitWall.UniqueId, NativeObject = revitWall } }; ;
 
       var wallType = GetElementType<WallType>(speckleWall);
       Level level = null;
@@ -42,6 +48,20 @@ namespace Objects.Converter.Revit
       {
         isUpdate = false;
         revitWall = DB.Wall.Create(Doc, baseCurve, level.Id, structural);
+        if (Settings.ContainsKey("disallow-join"))
+        {
+          List<string> joinSettings = new List<string>(Regex.Split(Settings["disallow-join"], @"\,\ "));
+          if (joinSettings.Contains(StructuralWalls) && structural)
+          {
+            WallUtils.DisallowWallJoinAtEnd(revitWall, 0);
+            WallUtils.DisallowWallJoinAtEnd(revitWall, 1);
+          }
+          if (joinSettings.Contains(ArchitecturalWalls) && !structural)
+          {
+            WallUtils.DisallowWallJoinAtEnd(revitWall, 0);
+            WallUtils.DisallowWallJoinAtEnd(revitWall, 1);
+          }
+        }
       }
       if (revitWall == null)
       {

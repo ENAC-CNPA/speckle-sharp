@@ -1,6 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Data;
-using DesktopUI2.Views;
+using DesktopUI2.ViewModels;
 using DesktopUI2.Views.Windows.Dialogs;
 using Material.Dialog;
 using Material.Dialog.Icons;
@@ -9,6 +9,7 @@ using Speckle.Core.Api;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DesktopUI2
@@ -18,8 +19,7 @@ namespace DesktopUI2
     public static async void ShowDialog(string title, string message, DialogIconKind icon)
     {
       Dialog d = new Dialog(title, message, icon);
-      d.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-      await d.ShowDialog(MainWindow.Instance);
+      await d.ShowDialog();
     }
 
     public static IDialogWindow<DialogResult> SendReceiveDialog(string header, object dataContext)
@@ -33,7 +33,7 @@ namespace DesktopUI2
         NegativeResult = new DialogResult("cancel"),
         Borderless = true,
 
-        Width = MainWindow.Instance.Width - 20,
+        //Width = MainWindow.Instance.Width - 20,
         DialogButtons = new DialogButton[]
           {
             new DialogButton
@@ -104,8 +104,15 @@ namespace DesktopUI2
   public static class ApiUtils
   {
     private static Dictionary<string, User> CachedUsers = new Dictionary<string, User>();
+    private static Dictionary<string, AccountViewModel> CachedAccounts = new Dictionary<string, AccountViewModel>();
 
-    public static async Task<User> GetUser(string userId, Client client)
+    public static void ClearCache()
+    {
+      CachedAccounts = new Dictionary<string, AccountViewModel>();
+      CachedUsers = new Dictionary<string, User>();
+    }
+
+    private static async Task<User> GetUser(string userId, Client client)
     {
       if (CachedUsers.ContainsKey(userId))
         return CachedUsers[userId];
@@ -116,6 +123,78 @@ namespace DesktopUI2
         CachedUsers[userId] = user;
 
       return user;
+    }
+
+    public static async Task<AccountViewModel> GetAccount(string userId, Client client)
+    {
+      if (CachedAccounts.ContainsKey(userId))
+        return CachedAccounts[userId];
+
+      User user = await GetUser(userId, client);
+
+      if (user == null)
+        return null;
+
+      var avm = new AccountViewModel(user);
+      CachedAccounts[userId] = avm;
+      return avm;
+
+    }
+  }
+
+
+  public static class Utils
+  {
+    public static bool IsValidEmail(string email)
+    {
+      string expression = "\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*";
+
+      if (Regex.IsMatch(email, expression))
+      {
+        if (Regex.Replace(email, expression, string.Empty).Length == 0)
+        {
+          return true;
+        }
+      }
+      return false;
+    }
+    public static Action Debounce(this Action func, int milliseconds = 300)
+    {
+      CancellationTokenSource cancelTokenSource = null;
+
+      return () =>
+      {
+        cancelTokenSource?.Cancel();
+        cancelTokenSource = new CancellationTokenSource();
+
+        Task.Delay(milliseconds, cancelTokenSource.Token)
+            .ContinueWith(t =>
+            {
+              if (t.IsCompleted)
+              {
+                func();
+              }
+            }, TaskScheduler.Default);
+      };
+    }
+    public static Action<T> Debounce<T>(this Action<T> func, int milliseconds = 300)
+    {
+      CancellationTokenSource cancelTokenSource = null;
+
+      return arg =>
+      {
+        cancelTokenSource?.Cancel();
+        cancelTokenSource = new CancellationTokenSource();
+
+        Task.Delay(milliseconds, cancelTokenSource.Token)
+            .ContinueWith(t =>
+            {
+              if (t.IsCompleted)
+              {
+                func(arg);
+              }
+            }, TaskScheduler.Default);
+      };
     }
   }
 }

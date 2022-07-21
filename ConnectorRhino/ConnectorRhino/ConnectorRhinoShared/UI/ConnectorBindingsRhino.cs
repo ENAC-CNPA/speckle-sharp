@@ -65,14 +65,20 @@ namespace SpeckleRhino
       var streams = GetStreamsInFile();
       if (UpdateSavedStreams != null)
         UpdateSavedStreams(streams);
-      if (streams.Count > 0)
-        SpeckleCommand.CreateOrFocusSpeckle();
+      //if (streams.Count > 0)
+      //  SpeckleCommand.CreateOrFocusSpeckle();
     }
 
     private void RhinoDoc_LayerChange(object sender, Rhino.DocObjects.Tables.LayerTableEventArgs e)
     {
       if (UpdateSelectedStream != null)
         UpdateSelectedStream();
+    }
+
+
+    public override List<ReceiveMode> GetReceiveModes()
+    {
+      return new List<ReceiveMode> { ReceiveMode.Create };
     }
 
     #region Local streams I/O with local file
@@ -350,14 +356,10 @@ namespace SpeckleRhino
       void FlattenConvertedObject(object item)
       {
         if (item is IList list)
-        {
           foreach (object child in list)
             FlattenConvertedObject(child);
-        }
         else
-        {
           convertedList.Add(item);
-        }
       }
 
       FlattenConvertedObject(converted);
@@ -386,30 +388,18 @@ namespace SpeckleRhino
 
         // handle display style
         if (obj[@"displayStyle"] is Base display)
-        {
           if (converter.ConvertToNative(display) is ObjectAttributes displayAttribute)
             attributes = displayAttribute;
-        }
         else if (obj[@"renderMaterial"] is Base renderMaterial)
-        {
-          if (renderMaterial["diffuse"] is int color)
-          {
-            attributes.ColorSource = ObjectColorSource.ColorFromObject;
-            attributes.ObjectColor = Color.FromArgb(color);
-          }
-        }
+          attributes.ColorSource = ObjectColorSource.ColorFromMaterial;
 
         // assign layer
         attributes.LayerIndex = bakeLayer.Index;
 
-        // TODO: deprecate after awhile, schemas included in user strings. This would be a breaking change.
-        if (obj["SpeckleSchema"] is string schema)
-          attributes.SetUserString("SpeckleSchema", schema);
-
         // handle user strings
-        if (obj[UserStrings] is Dictionary<string, string> userStrings)
+        if (obj[UserStrings] is Dictionary<string, object> userStrings)
           foreach (var key in userStrings.Keys)
-            attributes.SetUserString(key, userStrings[key]);
+            attributes.SetUserString(key, userStrings[key] as string);
 
         // handle user dictionaries
         if (obj[UserDictionary] is Dictionary<string, object> dict)
@@ -723,7 +713,7 @@ namespace SpeckleRhino
       switch (filter.Slug)
       {
         case "manual":
-          return GetSelectedObjects();
+          return filter.Selection;
         case "all":
           objs = Doc.Objects.Where(obj => obj.Visible).Select(obj => obj.Id.ToString()).ToList();
           objs.AddRange(Doc.NamedViews.Select(o => o.Name).ToList());

@@ -19,7 +19,7 @@ namespace ConnectorGrasshopper.Objects
     public override GH_Exposure Exposure => GH_Exposure.secondary;
     protected override Bitmap Icon => Properties.Resources.GetObjectValueByKey;
 
-    public GetObjectValueByKeyTaskComponent() : base("Speckle Object Value by Key", "Object K/V",
+    public GetObjectValueByKeyTaskComponent() : base("Speckle Object Value by Key", "SOVK",
       "Gets the value of a specific key in a Speckle object.", ComponentCategories.PRIMARY_RIBBON, ComponentCategories.OBJECTS)
     {
     }
@@ -44,13 +44,10 @@ namespace ConnectorGrasshopper.Objects
         var key = "";
         DA.GetData(0, ref speckleObj);
         DA.GetData(1, ref key);
+        
         if (DA.Iteration == 0)
-        {
-          Logging.Analytics.TrackEvent(Logging.Analytics.Events.NodeRun, new Dictionary<string, object>() { { "name", "Object Value By Key" } });
-
-        }
-
-
+          Tracker.TrackNodeRun("Object Value by Key");
+        
         var @base = speckleObj?.Value;
         var task = Task.Run(() => DoWork(@base, key, CancelToken));
         TaskList.Add(task);

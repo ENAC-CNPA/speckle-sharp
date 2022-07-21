@@ -18,7 +18,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -49,6 +48,11 @@ namespace Speckle.ConnectorAutocadCivil.UI
       Control.CreateControl();
     }
 
+    public override List<ReceiveMode> GetReceiveModes()
+    {
+      return new List<ReceiveMode> { ReceiveMode.Create };
+    }
+
     #region local streams 
     public override void WriteStreamsToFile(List<StreamState> streams)
     {
@@ -66,11 +70,11 @@ namespace Speckle.ConnectorAutocadCivil.UI
 
     #region boilerplate
     public override string GetHostAppNameVersion() => Utils.VersionedAppName.Replace("AutoCAD", "AutoCAD ").Replace("Civil", "Civil 3D  "); //hack for ADSK store;
-    
+
     public override string GetHostAppName() => Utils.Slug;
 
     private string GetDocPath(Document doc) => HostApplicationServices.Current.FindFile(doc?.Name, doc?.Database, FindFileHint.Default);
-   
+
     public override string GetDocumentId()
     {
       string path = GetDocPath(Doc);
@@ -626,11 +630,11 @@ namespace Speckle.ConnectorAutocadCivil.UI
               converted[key] = obj.ExtensionDictionary.GetUserString(key);
             */
 
-#if CIVIL2021 || CIVIL2022
-          // add property sets if this is Civil3D
-          var propertySets = obj.GetPropertySets(tr);
-          if (propertySets.Count > 0)
-            converted["propertySets"] = propertySets;
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
+            // add property sets if this is Civil3D
+            var propertySets = obj.GetPropertySets(tr);
+            if (propertySets.Count > 0)
+              converted["propertySets"] = propertySets;
 #endif
 
             if (obj is BlockReference)
@@ -673,7 +677,7 @@ namespace Speckle.ConnectorAutocadCivil.UI
       switch (filter.Slug)
       {
         case "manual":
-          return GetSelectedObjects();
+          return filter.Selection;
         case "all":
           return Doc.ConvertibleObjects(converter);
         case "layer":
@@ -719,7 +723,7 @@ namespace Speckle.ConnectorAutocadCivil.UI
         var streams = GetStreamsInFile();
         UpdateSavedStreams(streams);
 
-        MainWindowViewModel.GoHome();
+        MainViewModel.GoHome();
       }
       catch { }
     }
@@ -735,7 +739,7 @@ namespace Speckle.ConnectorAutocadCivil.UI
         if (SpeckleAutocadCommand.MainWindow != null)
           SpeckleAutocadCommand.MainWindow.Hide();
 
-        MainWindowViewModel.GoHome();
+        MainViewModel.GoHome();
       }
       catch { }
     }
@@ -755,7 +759,7 @@ namespace Speckle.ConnectorAutocadCivil.UI
         if (UpdateSavedStreams != null)
           UpdateSavedStreams(streams);
 
-        MainWindowViewModel.GoHome();
+        MainViewModel.GoHome();
       }
       catch { }
     }

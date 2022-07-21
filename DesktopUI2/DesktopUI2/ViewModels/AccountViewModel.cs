@@ -1,16 +1,30 @@
 ﻿using ReactiveUI;
+using Speckle.Core.Api;
 using Speckle.Core.Credentials;
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 
 namespace DesktopUI2.ViewModels
 {
   public class AccountViewModel : ReactiveObject
   {
-    public string Name { get; }
+    public string Name { get; set; }
+    public string Role { get; set; } = "contributor";
+    public string Id { get; }
 
     public Account Account { get; private set; }
+
+    public string SimpleName
+    {
+      get
+      {
+        if (HomeViewModel.Instance.Accounts.Any(x => x.Account.userInfo.id == Id))
+          return "You";
+        return Name;
+      }
+    }
 
     public string FullAccountName
     {
@@ -31,9 +45,29 @@ namespace DesktopUI2.ViewModels
     public AccountViewModel(Account account)
     {
       Name = account.userInfo.name;
+      Id = account.userInfo.id;
       AvatarUrl = account.userInfo.avatar;
       Account = account;
+
     }
+
+    public AccountViewModel(User user)
+    {
+      Name = user.name;
+      Id = user.id;
+      AvatarUrl = user.avatar;
+
+    }
+
+    public AccountViewModel(Collaborator user)
+    {
+      Name = user.name;
+      Id = user.id;
+      AvatarUrl = user.avatar;
+      Role = user.role;
+
+    }
+
 
 
     public void DownloadImage(string url)
@@ -64,7 +98,15 @@ namespace DesktopUI2.ViewModels
       get => _avatarUrl;
       set
       {
-        this.RaiseAndSetIfChanged(ref _avatarUrl, value);
+
+        if (value == null && Id != null)
+        {
+          this.RaiseAndSetIfChanged(ref _avatarUrl, $"https://robohash.org/{Id}.png?size=28x28");
+        }
+        else
+        {
+          this.RaiseAndSetIfChanged(ref _avatarUrl, value);
+        }
         DownloadImage(AvatarUrl);
       }
     }

@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
+using DesktopUI2.ViewModels;
 using Revit.Async;
 using Speckle.ConnectorRevit.UI;
 
@@ -15,6 +16,8 @@ namespace Speckle.ConnectorRevit.Entry
     public static UIApplication AppInstance { get; set; }
 
     public static UIControlledApplication UICtrlApp { get; set; }
+
+    public static IDockablePaneProvider Panel;
 
     public Result OnStartup(UIControlledApplication application)
     {
@@ -49,24 +52,6 @@ namespace Speckle.ConnectorRevit.Entry
         speckleButton.SetContextualHelp(new ContextualHelp(ContextualHelpType.Url, "https://speckle.systems"));
       }
 #else
-
-      //TODO: remove
-      //addin tab placeholder => to be delete ina  couple of releases
-      var tempSpecklePanel = application.CreateRibbonPanel("Speckle 2");
-      var placeholderSpeckleButton2 = tempSpecklePanel.AddItem(new PushButtonData("Speckle 2 placeholder", "Revit Connector", typeof(App).Assembly.Location, typeof(NewRibbonCommand).FullName)) as PushButton;
-
-      if (placeholderSpeckleButton2 != null)
-      {
-        placeholderSpeckleButton2.Image = LoadPngImgSource("Speckle.ConnectorRevit.Assets.logo16.png", path);
-        placeholderSpeckleButton2.LargeImage = LoadPngImgSource("Speckle.ConnectorRevit.Assets.logo32.png", path);
-        placeholderSpeckleButton2.ToolTipImage = LoadPngImgSource("Speckle.ConnectorRevit.Assets.logo32.png", path);
-        placeholderSpeckleButton2.ToolTip = "The Speckle Connector has moved and this button will be removed soon.";
-        placeholderSpeckleButton2.AvailabilityClassName = typeof(CmdAvailabilityViews).FullName;
-        placeholderSpeckleButton2.SetContextualHelp(new ContextualHelp(ContextualHelpType.Url, "https://speckle.systems"));
-      }
-
-
-
 
       //desktopui 2
       var speckleButton2 = specklePanel.AddItem(new PushButtonData("Speckle 2", "Revit Connector", typeof(App).Assembly.Location, typeof(SpeckleRevitCommand2).FullName)) as PushButton;
@@ -105,6 +90,20 @@ namespace Speckle.ConnectorRevit.Entry
         speckleButtonSend.AvailabilityClassName = typeof(CmdAvailabilityViews).FullName;
         speckleButtonSend.SetContextualHelp(new ContextualHelp(ContextualHelpType.Url, "https://speckle.systems"));
       }
+
+
+      // quick share
+      var speckleButtonShare = specklePanel.AddItem(new PushButtonData("Share", "Quick Share", typeof(App).Assembly.Location, typeof(QuickShareCommand).FullName)) as PushButton;
+
+      if (speckleButtonShare != null)
+      {
+        speckleButtonShare.Image = LoadPngImgSource("Speckle.ConnectorRevit.Assets.share16.png", path);
+        speckleButtonShare.LargeImage = LoadPngImgSource("Speckle.ConnectorRevit.Assets.share32.png", path);
+        speckleButtonShare.ToolTipImage = LoadPngImgSource("Speckle.ConnectorRevit.Assets.share32.png", path);
+        speckleButtonShare.ToolTip = "Quickly share the selected evelemtns via Speckle, or the entire model if nothing is selected.";
+        speckleButtonShare.AvailabilityClassName = typeof(CmdAvailabilityViews).FullName;
+        speckleButtonShare.SetContextualHelp(new ContextualHelp(ContextualHelpType.Url, "https://speckle.systems"));
+      }
 #endif
 
       PulldownButton helpPulldown = specklePanel.AddItem(new PulldownButtonData("Help&Resources", "Help & Resources")) as PulldownButton;
@@ -131,6 +130,9 @@ namespace Speckle.ConnectorRevit.Entry
       manager.Image = LoadPngImgSource("Speckle.ConnectorRevit.Assets.logo16.png", path);
       manager.LargeImage = LoadPngImgSource("Speckle.ConnectorRevit.Assets.logo32.png", path);
 
+
+
+
       return Result.Succeeded;
     }
 
@@ -139,6 +141,8 @@ namespace Speckle.ConnectorRevit.Entry
       UICtrlApp.Idling -= Initialise;
       AppInstance = sender as UIApplication;
       AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(OnAssemblyResolve);
+
+
 
 
 #if REVIT2019
@@ -155,8 +159,23 @@ namespace Speckle.ConnectorRevit.Entry
       SpeckleRevitCommand2.Bindings = bindings;
       SchedulerCommand.Bindings = bindings;
       OneClickSendCommand.Bindings = bindings;
-#endif
+      QuickShareCommand.Bindings = bindings;
 
+      if (SpeckleRevitCommand2.UseDockablePanel)
+      {
+        //Register dockable panel
+        var viewModel = new MainViewModel(bindings);
+        Panel = new Panel
+        {
+          DataContext = viewModel
+        };
+        AppInstance.RegisterDockablePane(SpeckleRevitCommand2.PanelId, "Speckle", Panel);
+      }
+
+
+
+#endif
+      //AppInstance.ViewActivated += new EventHandler<ViewActivatedEventArgs>(Application_ViewActivated);
     }
 
     public Result OnShutdown(UIControlledApplication application)

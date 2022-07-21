@@ -1,36 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
+﻿using Objects.Other;
 using Speckle.Core.Kits;
 using Speckle.Core.Models;
-using Objects.Other;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Acad = Autodesk.AutoCAD;
+using AcadDB = Autodesk.AutoCAD.DatabaseServices;
 using Alignment = Objects.BuiltElements.Alignment;
 using Arc = Objects.Geometry.Arc;
-using BlockInstance = Objects.Other.BlockInstance;
 using BlockDefinition = Objects.Other.BlockDefinition;
-using Brep = Objects.Geometry.Brep;
+using BlockInstance = Objects.Other.BlockInstance;
 using Circle = Objects.Geometry.Circle;
 using Curve = Objects.Geometry.Curve;
+using Dimension = Objects.Other.Dimension;
 using Ellipse = Objects.Geometry.Ellipse;
 using Hatch = Objects.Other.Hatch;
-using Interval = Objects.Primitive.Interval;
 using Line = Objects.Geometry.Line;
 using Mesh = Objects.Geometry.Mesh;
 using ModelCurve = Objects.BuiltElements.Revit.Curve.ModelCurve;
-using Plane = Objects.Geometry.Plane;
 using Point = Objects.Geometry.Point;
 using Polycurve = Objects.Geometry.Polycurve;
 using Polyline = Objects.Geometry.Polyline;
 using Spiral = Objects.Geometry.Spiral;
-using Surface = Objects.Geometry.Surface;
-using Vector = Objects.Geometry.Vector;
-
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
-using Acad = Autodesk.AutoCAD;
-using AcadDB = Autodesk.AutoCAD.DatabaseServices;
-#if (CIVIL2021 || CIVIL2022)
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
 using Civil = Autodesk.Civil;
 using CivilDB = Autodesk.Civil.DatabaseServices;
 #endif
@@ -43,11 +37,15 @@ namespace Objects.Converter.AutocadCivil
 #if AUTOCAD2021
     public static string AutocadAppName = VersionedHostApplications.Autocad2021;
 #elif AUTOCAD2022
-public static string AutocadAppName = VersionedHostApplications.Autocad2022;
+    public static string AutocadAppName = VersionedHostApplications.Autocad2022;
+#elif AUTOCAD2023
+    public static string AutocadAppName = VersionedHostApplications.Autocad2023;
 #elif CIVIL2021
     public static string AutocadAppName = VersionedHostApplications.Civil2021;
 #elif CIVIL2022
     public static string AutocadAppName = VersionedHostApplications.Civil2022;
+#elif CIVIL2023
+    public static string AutocadAppName = VersionedHostApplications.Civil2023;
 #endif
 
     public ConverterAutocadCivil()
@@ -66,6 +64,8 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
     public Document Doc { get; private set; }
     public Transaction Trans { get; private set; } // TODO: evaluate if this should be here
     #endregion ISpeckleConverter props
+
+    public ReceiveMode ReceiveMode { get; set; }
 
     public List<ApplicationPlaceholderObject> ContextObjects { get; set; } = new List<ApplicationPlaceholderObject>();
 
@@ -172,6 +172,10 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
               @base = SolidToSpeckle(o);
               Report.Log($"Converted Solid as Mesh");
               break;
+            case AcadDB.Dimension o:
+              @base = DimensionToSpeckle(o);
+              Report.Log($"Converted Dimension");
+              break;
             case BlockReference o:
               @base = BlockReferenceToSpeckle(o);
               Report.Log($"Converted Block Instance");
@@ -188,7 +192,7 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
               @base = TextToSpeckle(o);
               Report.Log($"Converted Text");
               break;
-#if (CIVIL2021 || CIVIL2022)
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
             case CivilDB.Alignment o:
               @base = AlignmentToSpeckle(o);
               Report.Log($"Converted Alignment");
@@ -283,6 +287,8 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
 
     public object ConvertToNative(Base @object)
     {
+      // determine if this object has autocad props
+      bool isFromAutoCAD = @object[AutocadPropName] != null ? true : false; 
       object acadObj = null;
       switch (@object)
       {
@@ -365,6 +371,11 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
           Report.Log($"Created Mesh {o.id}");
           break;
 
+        case Dimension o:
+          acadObj = isFromAutoCAD ? AcadDimensionToNative(o) : DimensionToNative(o);
+          Report.Log($"Created Dimension {o.id}");
+          break;
+
         case BlockInstance o:
           acadObj = BlockInstanceToNativeDB(o, out BlockReference reference);
           Report.Log($"Created Block Instance {o.id}");
@@ -391,7 +402,7 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
             Report.Log($"Created Alignment {o.id} as Curve");
             break;
           }
-#if (CIVIL2020 || CIVIL2021)
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
           acadObj = AlignmentToNative(o);
           if (acadObj != null)
             fallback = string.Empty;
@@ -430,6 +441,7 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
             case AcadDB.Line _:
             case AcadDB.Arc _:
             case AcadDB.Circle _:
+            case AcadDB.Dimension _:
             case AcadDB.Ellipse _:
             case AcadDB.Hatch _:
             case AcadDB.Spline _:
@@ -449,8 +461,8 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
             case AcadDB.MText _:
               return true;
 
-#if (CIVIL2021 || CIVIL2022)
-// NOTE: C3D pressure pipes and pressure fittings API under development
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
+            // NOTE: C3D pressure pipes and pressure fittings API under development
             case CivilDB.FeatureLine _:
             case CivilDB.Corridor _:
             case CivilDB.Structure _:
@@ -487,7 +499,7 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
         case Point _:
         case Line _:
         case Arc _:
-        case Circle _:  
+        case Circle _:
         case Ellipse _:
         case Spiral _:
         case Hatch _:
@@ -497,6 +509,7 @@ public static string AutocadAppName = VersionedHostApplications.Autocad2022;
         //case Brep _:
         case Mesh _:
 
+        case Dimension _:
         case BlockDefinition _:
         case BlockInstance _:
         case Text _:

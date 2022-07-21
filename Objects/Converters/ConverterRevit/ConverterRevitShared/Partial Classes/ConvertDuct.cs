@@ -57,6 +57,12 @@ namespace Objects.Converter.Revit
       }
 
       var docObj = GetExistingElementByApplicationId(((Base)speckleDuct).applicationId);
+      if (docObj != null && ReceiveMode == Speckle.Core.Kits.ReceiveMode.Ignore)
+        return new List<ApplicationPlaceholderObject>
+      {
+        new ApplicationPlaceholderObject
+          {applicationId = speckleDuct.applicationId, ApplicationGeneratedId = docObj.UniqueId, NativeObject = docObj}
+      }; ;
 
       // deleting instead of updating for now!
       if (docObj != null)
@@ -71,9 +77,7 @@ namespace Objects.Converter.Revit
         TrySetParam(duct, BuiltInParameter.RBS_CURVE_DIAMETER_PARAM, speckleRevitDuct.diameter, speckleRevitDuct.units);
         TrySetParam(duct, BuiltInParameter.CURVE_ELEM_LENGTH, speckleRevitDuct.length, speckleRevitDuct.units);
         TrySetParam(duct, BuiltInParameter.RBS_VELOCITY, speckleRevitDuct.velocity, speckleRevitDuct.units);
-
-
-
+        
         SetInstanceParameters(duct, speckleRevitDuct);
       }
 
@@ -100,9 +104,9 @@ namespace Objects.Converter.Revit
         family = revitDuct.DuctType.FamilyName,
         type = revitDuct.DuctType.Name,
         baseCurve = baseLine,
-        diameter = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_DIAMETER_PARAM),
-        height = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_HEIGHT_PARAM),
-        width = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_WIDTH_PARAM),
+        diameter = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_DIAMETER_PARAM, unitsOverride: ModelUnits),
+        height = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_HEIGHT_PARAM, unitsOverride: ModelUnits),
+        width = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_WIDTH_PARAM, unitsOverride: ModelUnits),
         length = GetParamValue<double>(revitDuct, BuiltInParameter.CURVE_ELEM_LENGTH),
         velocity = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_VELOCITY),
         level = ConvertAndCacheLevel(revitDuct, BuiltInParameter.RBS_START_LEVEL_PARAM),
@@ -150,9 +154,9 @@ namespace Objects.Converter.Revit
         family = revitDuct.FlexDuctType.FamilyName,
         type = revitDuct.FlexDuctType.Name,
         baseCurve = polyline,
-        diameter = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_DIAMETER_PARAM),
-        height = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_HEIGHT_PARAM),
-        width = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_WIDTH_PARAM),
+        diameter = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_DIAMETER_PARAM, unitsOverride: ModelUnits),
+        height = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_HEIGHT_PARAM, unitsOverride: ModelUnits),
+        width = GetParamValue<double>(revitDuct, BuiltInParameter.RBS_CURVE_WIDTH_PARAM, unitsOverride: ModelUnits),
         length = GetParamValue<double>(revitDuct, BuiltInParameter.CURVE_ELEM_LENGTH),
         startTangent = VectorToSpeckle(revitDuct.StartTangent),
         endTangent = VectorToSpeckle(revitDuct.EndTangent),
