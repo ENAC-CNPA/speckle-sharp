@@ -65,6 +65,7 @@ namespace Objects.Converter.TopSolid
 
         #endregion ISpeckleConverter props
 
+        public ReceiveMode ReceiveMode { get; set; }
 
         public List<ApplicationPlaceholderObject> ContextObjects { get; set; } = new List<ApplicationPlaceholderObject>();
 
