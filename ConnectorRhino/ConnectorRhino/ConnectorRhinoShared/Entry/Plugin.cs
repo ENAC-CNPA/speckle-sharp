@@ -20,16 +20,34 @@ namespace SpeckleRhino
     public ConnectorBindingsRhino Bindings { get; private set; }
     public MainViewModel ViewModel { get; private set; }
 
+    private bool _initialized;
+
     public SpeckleRhinoConnectorPlugin()
     {
       Instance = this;
+    }
 
-      Bindings = new ConnectorBindingsRhino();
-      ViewModel = new MainViewModel(Bindings);
+    internal void Init()
+    {
+      try
+      {
+        if (_initialized)
+          return;
 
-      RhinoDoc.BeginOpenDocument += RhinoDoc_BeginOpenDocument;
-      RhinoDoc.EndOpenDocument += RhinoDoc_EndOpenDocument;
-      SpeckleCommand.InitAvalonia();
+        SpeckleCommand.InitAvalonia();
+        Bindings = new ConnectorBindingsRhino();
+        ViewModel = new MainViewModel(Bindings);
+
+        RhinoDoc.BeginOpenDocument += RhinoDoc_BeginOpenDocument;
+        RhinoDoc.EndOpenDocument += RhinoDoc_EndOpenDocument;
+
+        _initialized = true;
+      }
+      catch (Exception ex)
+      {
+
+      }
+
     }
 
     private void RhinoDoc_EndOpenDocument(object sender, DocumentOpenEventArgs e)
@@ -76,6 +94,8 @@ namespace SpeckleRhino
     /// </summary>
     protected override LoadReturnCode OnLoad(ref string errorMessage)
     {
+      Init();
+
 #if !MAC
       System.Type panelType = typeof(Panel);
       // Register my custom panel class type with Rhino, the custom panel my be display
