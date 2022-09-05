@@ -37,6 +37,7 @@ using TsBSplineSurface = TopSolid.Kernel.G.D3.Surfaces.BSplineSurface;
 using TopSolid.Kernel.DB.D3.Curves;
 using TsShape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using TopSolid.Kernel.G.D3.Shapes;
+using TopSolid.Kernel.DB.Elements;
 
 
 
@@ -202,6 +203,21 @@ namespace Objects.Converter.TopSolid
         {
             switch (@object)
             {
+                case Element e:
+                    switch(e.Geometry)
+                    {
+                        case TsBox _:
+                        case TsPlane _:
+                        case TsPoint _:
+                        case TsLineCurve _:
+                        case TsPolylineCurve _:
+                        case TsBSplineSurface _:
+                        case TsShape _:
+                            return true;
+
+                        default:
+                            return false;
+                    }
                 case TsGeometry o:
                     switch (o)
                     {
