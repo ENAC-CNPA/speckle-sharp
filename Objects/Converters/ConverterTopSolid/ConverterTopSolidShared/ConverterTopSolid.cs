@@ -38,6 +38,7 @@ using TopSolid.Kernel.DB.D3.Curves;
 using TsShape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using TopSolid.Kernel.G.D3.Shapes;
 using TopSolid.Kernel.DB.Elements;
+using TopSolid.Cad.Design.DB;
 
 
 
@@ -203,9 +204,25 @@ namespace Objects.Converter.TopSolid
         {
             switch (@object)
             {
+                case PartEntity p:
+                    switch (p.Geometry)
+                    {
+                        case TsBox _:
+                        case TsPlane _:
+                        case TsPoint _:
+                        case TsLineCurve _:
+                        case TsPolylineCurve _:
+                        case TsBSplineSurface _:
+                        case TsShape _:
+                            return true;
+
+                        default:
+                            return false;
+                    }
                 case Element e:
                     switch(e.Geometry)
                     {
+                        // TODO : Polyhedrons
                         case TsBox _:
                         case TsPlane _:
                         case TsPoint _:
