@@ -19,6 +19,7 @@
     <PackageProjectUrl>https://speckle.systems/</PackageProjectUrl>
     <Copyright>Copyright (c) AEC Systems Ltd</Copyright>
     <ApplicationIcon />
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -42,6 +43,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="TopSolid.Cad.Design.DB">
+      <HintPath>..\..\..\..\..\Topsolid 7.15\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
+    </Reference>
     <Reference Include="TopSolid.Kernel.DB">
       <HintPath>..\..\..\..\..\Topsolid 7.15\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
       <Private>false</Private>
