@@ -41,6 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="TopSolid.Cad.Design.DB">
+      <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
+    </Reference>
     <Reference Include="TopSolid.Kernel.DB">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
       <Private>false</Private>
