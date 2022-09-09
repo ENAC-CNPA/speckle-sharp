@@ -38,10 +38,7 @@ using TopSolid.Kernel.DB.D3.Curves;
 using TsShape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using TopSolid.Kernel.G.D3.Shapes;
 using TopSolid.Kernel.DB.Elements;
-
-
-
-
+using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 
 namespace Objects.Converter.TopSolid
 {
@@ -190,6 +187,9 @@ namespace Objects.Converter.TopSolid
                 case TsShape o:
                     return BrepToSpeckle(o);
 
+                case Polyhedron o:
+                    return PolyhedronToSpeckle(o);
+
                 // TODO: using multi type (TsGeometry isn't compatible)
                 //case TsVector o:
                 //    return VectorToSpeckle(o);
@@ -204,7 +204,7 @@ namespace Objects.Converter.TopSolid
             switch (@object)
             {
                 case Element e:
-                    switch(e.Geometry)
+                    switch (e.Geometry)
                     {
                         case TsBox _:
                         case TsPlane _:
@@ -213,6 +213,7 @@ namespace Objects.Converter.TopSolid
                         case TsPolylineCurve _:
                         case TsBSplineSurface _:
                         case TsShape _:
+                        case Polyhedron _:
                             return true;
 
                         default:
@@ -228,6 +229,7 @@ namespace Objects.Converter.TopSolid
                         case TsPolylineCurve _:
                         case TsBSplineSurface _:
                         case TsShape _:
+                        case Polyhedron _:
                             return true;
 
                         default:

@@ -54,6 +54,7 @@ using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Kernel.TX.Units;
 using TopSolid.Kernel.G.D1;
+using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 
 namespace Objects.Converter.TopSolid
 {
@@ -401,7 +402,6 @@ namespace Objects.Converter.TopSolid
 
             return curve;
         }
-        #endregion
 
         public TsBsplineCurve CurveToNative(Curve c)
         {
@@ -427,6 +427,7 @@ namespace Objects.Converter.TopSolid
             }
 
         }
+        #endregion
 
 
         // Box
@@ -1071,6 +1072,53 @@ namespace Objects.Converter.TopSolid
             return speckleMesh;
         }
         #endregion
+
+
+        //PolyHedron
+        public Mesh PolyhedronToSpeckle(Polyhedron polyhedron, string units = null)
+        {
+            var u = units ?? ModelUnits;
+
+            var verts = new List<double>();
+            List<int> vertIndices = new List<int>();
+            int ind = 0;
+            var faces = new List<int>();
+
+
+            foreach (var f in polyhedron.Display.Items.FaceItems)
+            {
+
+                var mainface = f as FaceItem;
+                foreach (var face in mainface.Facets)
+                {
+
+
+                    verts.Add(face.P0.X);
+                    verts.Add(face.P0.Y);
+                    verts.Add(face.P0.Z);
+                    vertIndices.Add(ind++);
+
+                    verts.Add(face.P1.X);
+                    verts.Add(face.P1.Y);
+                    verts.Add(face.P1.Z);
+                    vertIndices.Add(ind++);
+
+                    verts.Add(face.P2.X);
+                    verts.Add(face.P2.Y);
+                    verts.Add(face.P2.Z);
+                    vertIndices.Add(ind++);
+
+
+                    faces.Add(0);
+                    faces.AddRange(new int[] { ind - 3, ind - 2, ind - 1 });
+                }
+
+
+            }
+
+            return new Mesh(verts.ToArray(), faces.ToArray(), units: u);
+
+        }
     }
 }
 
