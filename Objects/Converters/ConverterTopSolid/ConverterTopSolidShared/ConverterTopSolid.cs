@@ -55,6 +55,7 @@ namespace Objects.Converter.TopSolid
         public static string TopSolidAppName = VersionedHostApplications.TopSolid716;
 #endif
 
+
         #region ISpeckleConverter props
 
         public string Description => "Default Speckle Kit for TopSolid";
@@ -72,11 +73,15 @@ namespace Objects.Converter.TopSolid
 
         public List<ApplicationPlaceholderObject> ContextObjects { get; set; } = new List<ApplicationPlaceholderObject>();
 
+        public List<int> ConvertedObjectsList { get; set; } = new List<int>();
+
         public ProgressReport Report => throw new NotImplementedException();
 
         public void SetContextObjects(List<ApplicationPlaceholderObject> objects) => ContextObjects = objects;
 
         public void SetPreviousContextObjects(List<ApplicationPlaceholderObject> objects) => throw new NotImplementedException();
+
+        public Element CurrentHostElement { get; set; }
 
         public void SetContextDocument(object doc)
         {
@@ -111,19 +116,20 @@ namespace Objects.Converter.TopSolid
                 case TsShape o:
                     return BrepToSpeckle(o);
 
+                case Element o:
+                    return ElementToSpeckle(o);
+
                 default:
                     throw new NotSupportedException();
             }
         }
 
+        public List<Base> ConvertToSpeckle(List<object> objects) => objects.Select(ConvertToSpeckle).ToList();
+       
+
         private Base ObjectToSpeckleBuiltElement(TsEntity o)
         {
             throw new NotImplementedException();
-        }
-
-        public List<Base> ConvertToSpeckle(List<object> objects)
-        {
-            return objects.Select(x => ConvertToSpeckle(x)).ToList();
         }
 
         public object ConvertToNative(Base @object)

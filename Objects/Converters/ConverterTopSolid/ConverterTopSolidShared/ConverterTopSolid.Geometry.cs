@@ -798,6 +798,10 @@ namespace Objects.Converter.TopSolid
             spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
             spcklBrep.displayMesh = ShapeDisplayToMesh(shape, u);
 
+            System.Drawing.Color color = shape.Display.Items.FaceItems.FirstOrDefault().Color;
+            spcklBrep["renderMaterial"] = new Other.RenderMaterial() { opacity = 1, diffuse = color.ToArgb() };
+
+
             return spcklBrep;
         }
 
@@ -1063,7 +1067,7 @@ namespace Objects.Converter.TopSolid
                     faces.AddRange(new int[] { ind - 3, ind - 2, ind - 1 });
                 }
 
-
+                
             }
 
 
@@ -1116,7 +1120,12 @@ namespace Objects.Converter.TopSolid
 
             }
 
-            return new Mesh(verts.ToArray(), faces.ToArray(), units: u);
+
+            Mesh mesh = new Mesh(verts.ToArray(), faces.ToArray(), units: u);
+            
+            mesh["renderMaterial"] = new Other.RenderMaterial() { opacity = 1, diffuse = System.Drawing.Color.Red.ToArgb() };
+
+            return mesh;
 
         }
     }
