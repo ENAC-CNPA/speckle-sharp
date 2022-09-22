@@ -26,7 +26,8 @@ using TopSolid.Kernel.SX.Collections;
 using TopSolid.Kernel.G.D3;
 using TopSolid.Kernel.G.D1;
 using TKG = TopSolid.Kernel.G;
-
+using TopSolid.Kernel.DB.Entities;
+using TopSolid.Kernel.G;
 
 namespace Objects.Converter.TopSolid
 {
@@ -309,7 +310,6 @@ namespace Objects.Converter.TopSolid
                 }
             }
 
-
             if (paramBase.GetDynamicMembers().Any())
                 speckleElement["parameters"] = paramBase;
             speckleElement["elementId"] = topSolidElement.Id.ToString();
@@ -317,8 +317,57 @@ namespace Objects.Converter.TopSolid
             speckleElement["units"] = ModelUnits;
             speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
 
+            var owner = (topSolidElement.Owner as Entity);
+            if (owner != null)
+            {
+                System.Drawing.Color color = owner.Color;
+                double opacity = ((double)owner.Transparency.Opacity);
+                speckleElement["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
+            }
+
         }
 
+        /// <summary>
+        /// </summary>
+        /// <param name="topSolidElement"></param>
+        /// <param name="speckleElement"></param>
+        public void SetInstanceParameters(Base speckleElement, IGeometry topSolidElement)
+        {
+            if (topSolidElement == null)
+                return;
+
+            // TODO : Replace Owner by Geometry properties ? or not ? => Dependent on usage feedback in the Speckle viewer !
+            Element owner = topSolidElement.Owner as Element;
+
+            var (topSolidParameters, isTopSolidAssembly) = (topSolidElement.Owner != null) ? getParameters(owner) : (new List<KeyValuePair<string, object>>(), false);
+            Base paramBase = new Base();
+
+            // TODO Optimize perf. (filtrer param by type)
+            foreach (var kv in topSolidParameters)
+            {
+                try
+                {
+                    if (kv.Value != null && kv.Value.ToString() != "") paramBase[kv.Key] = kv.Value;
+                }
+                catch
+                {
+                    //ignore
+                }
+            }
+
+            if (paramBase.GetDynamicMembers().Any())
+                speckleElement["parameters"] = paramBase;
+            speckleElement["units"] = ModelUnits;
+            speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
+
+            if (owner != null)
+            {
+                System.Drawing.Color color = owner.Color;
+                double opacity = ((double)owner.Transparency.Opacity);
+                speckleElement["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
+            }
+
+        }
 
         public static (IEnumerable<KeyValuePair<string, object>>,bool) getParameters(Element element)
         {

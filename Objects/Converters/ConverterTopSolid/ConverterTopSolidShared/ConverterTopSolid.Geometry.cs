@@ -55,6 +55,7 @@ using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Kernel.TX.Units;
 using TopSolid.Kernel.G.D1;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
+using Speckle.Core.Models;
 
 namespace Objects.Converter.TopSolid
 {
@@ -94,10 +95,19 @@ namespace Objects.Converter.TopSolid
         {
             return points.SelectMany(pt => PointToArray(pt)).ToArray();
         }
+        public static List<double> PointsToFlatList(IEnumerable<TsPoint> points)
+        {
+            return points.SelectMany(pt => PointToArray(pt)).ToList();
+        }
 
         public static double[] Points2dToFlatArray(IEnumerable<TKGD2.Point> points)
         {
             return points.SelectMany(pt => Point2dToArray(pt)).ToArray();
+        }
+
+        public static List<double> Points2dToFlatList(IEnumerable<TKGD2.Point> points)
+        {
+            return points.SelectMany(pt => Point2dToArray(pt)).ToList();
         }
 
         private List<double> GetCorrectKnots(List<double> knots, int controlPointCount, int degree)
@@ -149,10 +159,12 @@ namespace Objects.Converter.TopSolid
 
         // Points
         #region Points
-        public Point PointToSpeckle(TsPoint point, string units = null)
+        public Point PointToSpeckle(TsPoint topSolidpoint, string units = null)
         {
             var u = units ?? ModelUnits;
-            return new Point(point.X, point.Y, point.Z, u);
+            Point specklePoint = new Point(topSolidpoint.X, topSolidpoint.Y, topSolidpoint.Z, u);
+            SetInstanceParameters(specklePoint, topSolidpoint);
+            return specklePoint;
         }
         public TsPoint PointToNative(Point point)
         {
@@ -165,10 +177,11 @@ namespace Objects.Converter.TopSolid
 
         // Vectors
         #region Vector
-        public Vector VectorToSpeckle(TsVector vector, string units = null)
+        public Vector VectorToSpeckle(TsVector topSolidVector, string units = null)
         {
             var u = units ?? ModelUnits;
-            return new Vector(vector.X, vector.Y, vector.Z, u);
+            Vector speckleVector = new Vector(topSolidVector.X, topSolidVector.Y, topSolidVector.Z, u);
+            return speckleVector;
         }
         public TsUVector VectorToNative(Vector vector)
         {
@@ -193,10 +206,12 @@ namespace Objects.Converter.TopSolid
 
         // Plane
         #region Plane
-        public Plane PlaneToSpeckle(TsPlane plane, string units = null)
+        public Plane PlaneToSpeckle(TsPlane topSolidPlane, string units = null)
         {
             var u = units ?? ModelUnits;
-            return new Plane(PointToSpeckle(plane.Po, u), VectorToSpeckle(plane.Vz, u), VectorToSpeckle(plane.Vx, u), VectorToSpeckle(plane.Vy, u), u);
+            Plane specklePlane = new Plane(PointToSpeckle(topSolidPlane.Po, u), VectorToSpeckle(topSolidPlane.Vz, u), VectorToSpeckle(topSolidPlane.Vx, u), VectorToSpeckle(topSolidPlane.Vy, u), u);
+            SetInstanceParameters(specklePlane, topSolidPlane);
+            return specklePlane;
         }
         public TsPlane PlaneToNative(Plane plane)
         {
@@ -206,10 +221,12 @@ namespace Objects.Converter.TopSolid
 
         // LineCurve
         #region Line
-        public Line LineToSpeckle(TsLineCurve line, string units = null)
+        public Line LineToSpeckle(TsLineCurve topSolidline, string units = null)
         {
             var u = units ?? ModelUnits;
-            return new Line(PointToSpeckle(line.Ps), PointToSpeckle(line.Pe), u);
+            Line speckleLine = new Line(PointToSpeckle(topSolidline.Ps), PointToSpeckle(topSolidline.Pe), u);
+            SetInstanceParameters(speckleLine, topSolidline);
+            return speckleLine;
         }
         public TsLineCurve LineToNative(Line line)
         {
@@ -219,12 +236,31 @@ namespace Objects.Converter.TopSolid
 
         // PolylineCurve
         #region Polyline
+        public Polyline PolyLineToSpeckle(TsPolylineCurve topSolidPolyline, string units = null)
+        {
+
+            var u = units ?? ModelUnits;
+            List<double> _coordinates = new List<double>();
+
+            TsPointList pts = topSolidPolyline.CPts;
+
+            foreach (TsPoint p in pts)
+            {
+                Point _point = PointToSpeckle(p);
+                _coordinates.Add(_point.x);
+            }
+
+            Polyline specklePolyline = new Polyline(_coordinates, u);
+            SetInstanceParameters(specklePolyline, topSolidPolyline);
+            return specklePolyline;
+
+        }
         public TsPolylineCurve PolyLineToNative(Polyline polyLine)
         {
 
             TsPointList _pointsList = new TsPointList();
 
-            foreach (Point p in polyLine.points)
+            foreach (Point p in polyLine.GetPoints())
             {
                 TsPoint _point = PointToNative(p);
                 _pointsList.Add(_point);
@@ -233,42 +269,23 @@ namespace Objects.Converter.TopSolid
             return new TsPolylineCurve(polyLine.closed, _pointsList);
 
         }
-        public Polyline PolyLineToSpeckle(TsPolylineCurve polyLine, string units = null)
-        {
-
-            var u = units ?? ModelUnits;
-            List<double> _coordinates = new List<double>();
-
-            TsPointList pts = polyLine.CPts;
-
-            foreach (TsPoint p in pts)
-            {
-                Point _point = PointToSpeckle(p);
-                _coordinates.Add(_point.x);
-            }
-
-            return new Polyline(_coordinates, u);
-
-        }
         #endregion
 
         //Curve 2D & 3D
         #region Curve
-        public Objects.Geometry.Curve CurveToSpeckle(BSplineCurve tsCurve, string units = null)
+        public Objects.Geometry.Curve CurveToSpeckle(BSplineCurve topSolidCurve, string units = null)
         {
-            var curve = new Curve();
+            Curve speckleCurve = new Curve();
             var u = units ?? ModelUnits;
 
 
-            List<TSPoint> tsPoints = tsCurve.CPts.ToList();
-
             //Weights
             List<double> ptWeights = new List<double>();
             try
             {
-                if (tsCurve.CWts.Count != 0)
+                if (topSolidCurve.CWts.Count != 0)
                 {
-                    foreach (double weight in tsCurve.CWts)
+                    foreach (double weight in topSolidCurve.CWts)
                     {
                         ptWeights.Add(weight);
                     }
@@ -278,72 +295,75 @@ namespace Objects.Converter.TopSolid
 
             try
             {
-                double range = (tsCurve.Te - tsCurve.Ts);
-                PointList polyPoints = new PointList();
+                double range = (topSolidCurve.Te - topSolidCurve.Ts);
+                TsPointList polyPoints = new TsPointList();
                 for (int i = 0; i < 100; i++)
                 {
-                    polyPoints.Add(tsCurve.GetPoint((range / 100) * i));
+                    polyPoints.Add(topSolidCurve.GetPoint((range / 100) * i));
                 }
-                TKGD3.Curves.PolylineCurve tspoly = new PolylineCurve(false, polyPoints);
-                Polyline displayValue = new Polyline(PointsToFlatArray(polyPoints));
+                Polyline displayValue = new Polyline();
+                displayValue.value = PointsToFlatList(polyPoints);
+                displayValue.units = u;
+                displayValue.closed = false;
 
-
-                curve.displayValue = displayValue;
+                speckleCurve.displayValue = displayValue;
             }
             catch { }
 
             //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
             List<double> knots = new List<double>();
 
-            for (int i = 0; i < (tsCurve.Bs.Count); i++)
+            for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
             {
-                knots.Add(tsCurve.Bs.ElementAt(i));
+                knots.Add(topSolidCurve.Bs.ElementAt(i));
 
             }
 
             //Prevent errors when weight list is empty
-            if (tsCurve.CWts.Count == 0)
+            if (topSolidCurve.CWts.Count == 0)
             {
                 ptWeights.Clear();
-                for (int i = 0; i < tsCurve.CPts.Count; i++)
+                for (int i = 0; i < topSolidCurve.CPts.Count; i++)
                 {
                     ptWeights.Add(1.0);
                 }
             }
 
-            Interval interval = new Interval(tsCurve.Ts, tsCurve.Te);
+            Interval interval = new Interval(topSolidCurve.Ts, topSolidCurve.Te);
 
             //set speckle curve info
-            curve.points = PointsToFlatArray(tsCurve.CPts).ToList();
-            curve.knots = knots;
-            curve.weights = ptWeights;
-            curve.degree = tsCurve.Degree;
-            curve.periodic = tsCurve.IsPeriodic;
-            curve.rational = tsCurve.IsRational;
-            curve.closed = tsCurve.IsClosed();
-            curve.length = tsCurve.GetLength();
-            curve.domain = interval;
-            //curve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
-            curve.units = u;
+            speckleCurve.points = PointsToFlatArray(topSolidCurve.CPts).ToList();
+            speckleCurve.knots = knots;
+            speckleCurve.weights = ptWeights;
+            speckleCurve.degree = topSolidCurve.Degree;
+            speckleCurve.periodic = topSolidCurve.IsPeriodic;
+            speckleCurve.rational = topSolidCurve.IsRational;
+            speckleCurve.closed = topSolidCurve.IsClosed();
+            speckleCurve.length = topSolidCurve.GetLength();
+            speckleCurve.domain = interval;
+            //speckleCurve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
+            speckleCurve.units = u;
 
-            return curve;
+            SetInstanceParameters(speckleCurve, topSolidCurve);
+
+            return speckleCurve;
         }
 
-        public Objects.Geometry.Curve Curve2dToSpeckle(TKGD2.Curves.BSplineCurve tsCurve, string units = null)
+        public Objects.Geometry.Curve Curve2dToSpeckle(TKGD2.Curves.BSplineCurve topSolidCurve, string units = null)
         {
-            var curve = new Curve();
+            Curve speckleCurve = new Curve();
             var u = units ?? ModelUnits; //TODO investigate this
 
 
-            List<TKGD2.Point> tsPoints = tsCurve.CPts.ToList();
+            List<TKGD2.Point> tsPoints = topSolidCurve.CPts.ToList();
 
             //Weights
             List<double> ptWeights = new List<double>();
             try
             {
-                if (tsCurve.CWts.Count != 0)
+                if (topSolidCurve.CWts.Count != 0)
                 {
-                    foreach (double weight in tsCurve.CWts)
+                    foreach (double weight in topSolidCurve.CWts)
                     {
                         ptWeights.Add(weight);
                     }
@@ -353,54 +373,59 @@ namespace Objects.Converter.TopSolid
 
             try
             {
-                double range = (tsCurve.Te - tsCurve.Ts);
+                double range = (topSolidCurve.Te - topSolidCurve.Ts);
                 TKGD2.PointList polyPoints = new TKGD2.PointList();
                 for (int i = 0; i < 100; i++)
                 {
-                    polyPoints.Add(tsCurve.GetPoint((range / 100) * i));
+                    polyPoints.Add(topSolidCurve.GetPoint((range / 100) * i));
                 }
                 TKGD2.Curves.PolylineCurve tspoly = new TKGD2.Curves.PolylineCurve(false, polyPoints);
-                Polyline displayValue = new Polyline(Points2dToFlatArray(polyPoints));
+                Polyline displayValue = new Polyline();
+                displayValue.value = Points2dToFlatList(polyPoints);
+                displayValue.units = u;
+                displayValue.closed = false;
 
 
-                curve.displayValue = displayValue;
+                speckleCurve.displayValue = displayValue;
             }
             catch { }
 
             //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
             List<double> knots = new List<double>();
 
-            for (int i = 0; i < (tsCurve.Bs.Count); i++)
+            for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
             {
-                knots.Add(tsCurve.Bs.ElementAt(i));
+                knots.Add(topSolidCurve.Bs.ElementAt(i));
             }
 
             //Prevent errors when weight list is empty
-            if (tsCurve.CWts.Count == 0)
+            if (topSolidCurve.CWts.Count == 0)
             {
                 ptWeights.Clear();
-                for (int i = 0; i < tsCurve.CPts.Count; i++)
+                for (int i = 0; i < topSolidCurve.CPts.Count; i++)
                 {
                     ptWeights.Add(1.0);
                 }
             }
 
-            Interval interval = new Interval(tsCurve.Ts, tsCurve.Te);
+            Interval interval = new Interval(topSolidCurve.Ts, topSolidCurve.Te);
 
             //set speckle curve info
-            curve.points = Points2dToFlatArray(tsCurve.CPts).ToList();
-            curve.knots = knots;
-            curve.weights = ptWeights;
-            curve.degree = tsCurve.Degree;
-            curve.periodic = tsCurve.IsPeriodic;
-            curve.rational = tsCurve.IsRational;
-            curve.closed = tsCurve.IsClosed();
-            curve.length = tsCurve.GetLength();
-            curve.domain = interval;
-            //curve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
-            curve.units = u;
+            speckleCurve.points = Points2dToFlatArray(topSolidCurve.CPts).ToList();
+            speckleCurve.knots = knots;
+            speckleCurve.weights = ptWeights;
+            speckleCurve.degree = topSolidCurve.Degree;
+            speckleCurve.periodic = topSolidCurve.IsPeriodic;
+            speckleCurve.rational = topSolidCurve.IsRational;
+            speckleCurve.closed = topSolidCurve.IsClosed();
+            speckleCurve.length = topSolidCurve.GetLength();
+            speckleCurve.domain = interval;
+            //speckleCurve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
+            speckleCurve.units = u;
 
-            return curve;
+            SetInstanceParameters(speckleCurve, topSolidCurve);
+
+            return speckleCurve;
         }
 
         public TsBsplineCurve CurveToNative(Curve c)
@@ -432,30 +457,27 @@ namespace Objects.Converter.TopSolid
 
         // Box
         #region Box
-        public TsBox BoxToNative(Box box)
-        {
-            // TODO: BOX To Topsolid
-            return new TsBox();
-        }
-        public Box BoxToSpeckle(TsBox box, string units = null)
+        public Box BoxToSpeckle(TsBox topSolidBox, string units = null)
         {
             try
             {
 
                 var u = units ?? ModelUnits;
 
-                Box _box = null;
+                Box speckleBox = null;
 
 
-                Frame tsFrame = box.Frame;
+                Frame tsFrame = topSolidBox.Frame;
                 Plane spcklPlane = new Plane(new Point(tsFrame.Po.X, tsFrame.Po.Y, tsFrame.Po.Z, u), VectorToSpeckle(tsFrame.Vz, u), VectorToSpeckle(tsFrame.Vx, u), VectorToSpeckle(tsFrame.Vy, u), u);
 
-                _box = new Box(spcklPlane, new Interval(-box.Hx, box.Hx), new Interval(-box.Hy, box.Hy), new Interval(-box.Hz, box.Hz), u);
+                speckleBox = new Box(spcklPlane, new Interval(-topSolidBox.Hx, topSolidBox.Hx), new Interval(-topSolidBox.Hy, topSolidBox.Hy), new Interval(-topSolidBox.Hz, topSolidBox.Hz), u);
                 //_box.area = (box.Hx * 2 * box.Hy * 2 * 2) + (box.Hx * 2 * box.Hz * 2 * 2) + (box.Hz * 2 * box.Hy * 2 * 2);
-                _box.volume = box.Volume;
-                _box.units = u;
+                speckleBox.volume = topSolidBox.Volume;
+                speckleBox.units = u;
 
-                return _box;
+                SetInstanceParameters(speckleBox, topSolidBox);
+
+                return speckleBox;
 
             }
             catch
@@ -463,10 +485,39 @@ namespace Objects.Converter.TopSolid
                 return null;
             }
         }
+        public TsBox BoxToNative(Box box)
+        {
+            // TODO: BOX To Topsolid
+            return new TsBox();
+        }
         #endregion
 
         // Surface
         #region Surface
+
+        public Surface SurfaceToSpeckle(TsBSplineSurface topSolidSurface, string units = null)
+        {
+            var u = units ?? ModelUnits;
+            var speckleSurface = new Geometry.Surface
+            {
+                degreeU = topSolidSurface.UDegree,
+                degreeV = topSolidSurface.VDegree,
+                rational = topSolidSurface.IsRational,
+                closedU = topSolidSurface.IsUClosed,
+                closedV = topSolidSurface.IsVClosed,
+                domainU = new Interval(topSolidSurface.Us, topSolidSurface.Ue),
+                domainV = new Interval(topSolidSurface.Vs, topSolidSurface.Ve),
+                knotsU = GetCorrectKnots(topSolidSurface.UBs.ToList(), topSolidSurface.UCptsCount, topSolidSurface.UDegree),
+                knotsV = GetCorrectKnots(topSolidSurface.VBs.ToList(), topSolidSurface.VCptsCount, topSolidSurface.VDegree)
+            };
+
+            speckleSurface.SetControlPoints(ControlPointsToSpeckle(topSolidSurface));
+
+            speckleSurface.units = u;
+            SetInstanceParameters(speckleSurface, topSolidSurface);
+
+            return speckleSurface;
+        }
         public TsBSplineSurface SurfaceToNative(Surface surface)
         {
             // Create TopSolid surface
@@ -511,33 +562,11 @@ namespace Objects.Converter.TopSolid
 
         }
 
-        public Surface SurfaceToSpeckle(TsBSplineSurface surface, string units = null)
-        {
-            var u = units ?? ModelUnits;
-            var _surface = new Geometry.Surface
-            {
-                degreeU = surface.UDegree,
-                degreeV = surface.VDegree,
-                rational = surface.IsRational,
-                closedU = surface.IsUClosed,
-                closedV = surface.IsVClosed,
-                domainU = new Interval(surface.Us, surface.Ue),
-                domainV = new Interval(surface.Vs, surface.Ve),
-                knotsU = GetCorrectKnots(surface.UBs.ToList(), surface.UCptsCount, surface.UDegree),
-                knotsV = GetCorrectKnots(surface.VBs.ToList(), surface.VCptsCount, surface.VDegree)
-            };
-
-            _surface.SetControlPoints(ControlPointsToSpeckle(surface));
-            _surface.units = u;
-
-            return _surface;
-        }
         #endregion      
 
         //Breps & Shapes
         #region Brep
         private Brep BrepToSpeckle(Shape shape, string units = null)
-
         {
             Shape _shape = shape;
             Brep spcklBrep = new Brep();
@@ -557,7 +586,6 @@ namespace Objects.Converter.TopSolid
             List<TSX.List<TKGD3.Curves.IGeometricProfile>> global3dList = new List<TSX.List<TKGD3.Curves.IGeometricProfile>>(facecount);
             List<TSX.List<EdgeList>> globalEdgeList = new List<TSX.List<EdgeList>>(facecount);
             List<BoolList> globalBoolList = new List<BoolList>(facecount);
-
 
             //uv curves, 3d curves and surfaces, per face
             foreach (Face face in _shape.Faces)
@@ -796,13 +824,12 @@ namespace Objects.Converter.TopSolid
             }
 
             spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
-            spcklBrep.displayMesh = ShapeDisplayToMesh(shape, u);
 
-            var owner = (shape.Owner as ShapeEntity);
-            System.Drawing.Color color = owner.Color;
-            double opacity = ((double)owner.Transparency.Opacity);
-            spcklBrep["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
-
+            //Find display values in geometries
+            List<Mesh> displayValue = new List<Mesh>();
+            displayValue.Add(ShapeDisplayToMesh(shape, u));
+            spcklBrep.displayValue = displayValue;
+            SetInstanceParameters(spcklBrep, shape);
             return spcklBrep;
         }
 
@@ -1072,7 +1099,10 @@ namespace Objects.Converter.TopSolid
             }
 
 
-            var speckleMesh = new Mesh(verts.ToArray(), faces.ToArray(), units: u);
+            Mesh speckleMesh = new Mesh();
+            speckleMesh.faces = faces;
+            speckleMesh.vertices = verts;
+            speckleMesh.units = u;
 
             return speckleMesh;
         }
@@ -1121,12 +1151,13 @@ namespace Objects.Converter.TopSolid
 
             }
 
+            Mesh speckleMesh = new Mesh();
+            speckleMesh.faces = faces;
+            speckleMesh.vertices = verts;
+            speckleMesh.units = u;
+            SetInstanceParameters(speckleMesh, polyhedron);
 
-            Mesh mesh = new Mesh(verts.ToArray(), faces.ToArray(), units: u);
-            
-            mesh["renderMaterial"] = new Other.RenderMaterial() { opacity = 1, diffuse = System.Drawing.Color.Red.ToArgb() };
-
-            return mesh;
+            return speckleMesh;
 
         }
     }
