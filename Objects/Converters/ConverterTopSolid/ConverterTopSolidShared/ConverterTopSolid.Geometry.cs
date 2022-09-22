@@ -798,9 +798,10 @@ namespace Objects.Converter.TopSolid
             spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
             spcklBrep.displayMesh = ShapeDisplayToMesh(shape, u);
 
-            System.Drawing.Color color = shape.Display.Items.FaceItems.FirstOrDefault().Color;
-            spcklBrep["renderMaterial"] = new Other.RenderMaterial() { opacity = 1, diffuse = color.ToArgb() };
-
+            var owner = (shape.Owner as ShapeEntity);
+            System.Drawing.Color color = owner.Color;
+            double opacity = ((double)owner.Transparency.Opacity);
+            spcklBrep["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
 
             return spcklBrep;
         }

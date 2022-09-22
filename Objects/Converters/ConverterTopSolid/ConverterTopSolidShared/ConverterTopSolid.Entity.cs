@@ -41,13 +41,13 @@ namespace Objects.Converter.TopSolid
                 return new List<ApplicationPlaceholderObject> { new ApplicationPlaceholderObject { applicationId = speckleElement.applicationId, ApplicationGeneratedId = topSolidElement.Id.ToString(), NativeObject = topSolidElement } }; ;
 
             bool isUpdate = true;
-            if (topSolidElement == null) // Create element
+            if (topSolidElement == null) // TODO : Create element
             {
 
             }
             if (topSolidElement == null) // Check if created
             {
-                throw new Speckle.Core.Logging.SpeckleException($"Failed to create wall ${speckleElement.applicationId}.");
+                throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${speckleElement.applicationId}.");
             }
 
             var placeholders = new List<ApplicationPlaceholderObject>()
@@ -64,39 +64,12 @@ namespace Objects.Converter.TopSolid
             placeholders.AddRange(hostedElements);
 
 
-            Report.Log($"{(isUpdate ? "Updated" : "Created")} Wall {topSolidElement.Id}");
+            Report.Log($"{(isUpdate ? "Updated" : "Created")} Entity {topSolidElement.Id}");
 
             return placeholders;
         }
 
         #endregion
-
-
-        //public Surface SurfaceToSpeckle(TsSurface surfaceEntity, string units = null)
-        //{
-        //    var u = units ?? ModelUnits;
-        //    TsBSplineSurface surface = surfaceEntity.Geometry.GetBsplineGeometry(Precision.LinearPrecision, false, false, false);
-        //    Surface _surface = new Geometry.Surface
-        //    {
-        //        degreeU = surface.UDegree,
-        //        degreeV = surface.VDegree,
-        //        rational = surface.IsRational,
-        //        closedU = surface.IsUClosed,
-        //        closedV = surface.IsVClosed,
-        //        domainU = new Interval(surface.Us, surface.Ue),
-        //        domainV = new Interval(surface.Vs, surface.Ve),
-        //        knotsU = GetCorrectKnots(surface.UBs.ToList(), surface.UCptsCount, surface.UDegree),
-        //        knotsV = GetCorrectKnots(surface.VBs.ToList(), surface.VCptsCount, surface.VDegree)
-        //    };
-
-        //    _surface.SetControlElements(ControlElementsToSpeckle(surface));
-        //    _surface.units = u;
-
-        //    // TODO: Make Shape Display
-        //    //FacetedShapeMaker.MakeShape(surfaceEntity, surfaceEntity.LevelKey, surfaceEntity.Geometry);
-
-        //    return _surface;
-        //}
 
 
     }

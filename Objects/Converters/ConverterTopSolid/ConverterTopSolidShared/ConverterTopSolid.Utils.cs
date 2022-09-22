@@ -284,169 +284,6 @@ namespace Objects.Converter.TopSolid
 
         #region parameters
 
-        //#region ToSpeckle
-        ///// <summary>
-        ///// Adds Instance and Type parameters, ElementId, ApplicationInternalName and Units.
-        ///// </summary>
-        ///// <param name="speckleElement"></param>
-        ///// <param name="revitElement"></param>
-        ///// <param name="exclusions">List of BuiltInParameters or GUIDs used to indicate what parameters NOT to get,
-        ///// we exclude all params already defined on the top level object to avoid duplication and 
-        ///// potential conflicts when setting them back on the element</param>
-        //public void GetAllRevitParamsAndIds(Base speckleElement, DB.Element revitElement, List<string> exclusions = null)
-        //{
-        //    var instParams = GetInstanceParams(revitElement, exclusions);
-        //    var typeParams = speckleElement is Level ? null : GetTypeParams(revitElement);  //ignore type props of levels..!
-        //    var allParams = new Dictionary<string, Parameter>();
-
-        //    if (instParams != null)
-        //        instParams.ToList().ForEach(x => { if (!allParams.ContainsKey(x.Key)) allParams.Add(x.Key, x.Value); });
-
-        //    if (typeParams != null)
-        //        typeParams.ToList().ForEach(x => { if (!allParams.ContainsKey(x.Key)) allParams.Add(x.Key, x.Value); });
-
-        //    //sort by key
-        //    allParams = allParams.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
-        //    Base paramBase = new Base();
-
-        //    foreach (var kv in allParams)
-        //    {
-        //        try
-        //        {
-        //            paramBase[kv.Key] = kv.Value;
-        //        }
-        //        catch
-        //        {
-        //            //ignore
-        //        }
-        //    }
-
-        //    if (paramBase.GetDynamicMembers().Any())
-        //        speckleElement["parameters"] = paramBase;
-        //    speckleElement["elementId"] = revitElement.Id.ToString();
-        //    speckleElement.applicationId = revitElement.UniqueId;
-        //    speckleElement["units"] = ModelUnits;
-        //    speckleElement["isRevitLinkedModel"] = revitElement.Document.IsLinked;
-        //    speckleElement["revitLinkedModelPath"] = revitElement.Document.PathName;
-        //}
-
-        ////private List<string> alltimeExclusions = new List<string> { 
-        ////  "ELEM_CATEGORY_PARAM" };
-        //private Dictionary<string, Parameter> GetInstanceParams(DB.Element element, List<string> exclusions)
-        //{
-        //    return GetElementParams(element, false, exclusions);
-        //}
-        //private Dictionary<string, Parameter> GetTypeParams(DB.Element element)
-        //{
-        //    var elementType = element.Document.GetElement(element.GetTypeId());
-
-        //    if (elementType == null || elementType.Parameters == null)
-        //    {
-        //        return new Dictionary<string, Parameter>();
-        //    }
-        //    return GetElementParams(elementType, true);
-
-        //}
-
-        //private Dictionary<string, Parameter> GetElementParams(DB.Element element, bool isTypeParameter = false, List<string> exclusions = null)
-        //{
-        //    exclusions = (exclusions != null) ? exclusions : new List<string>();
-
-        //    //exclude parameters that don't have a value and those pointing to other elements as we don't support them
-        //    var revitParameters = element.Parameters.Cast<DB.Parameter>()
-        //      .Where(x => x.HasValue && x.StorageType != StorageType.ElementId && !exclusions.Contains(GetParamInternalName(x))).ToList();
-
-        //    //exclude parameters that failed to convert
-        //    var speckleParameters = revitParameters.Select(x => ParameterToSpeckle(x, isTypeParameter))
-        //      .Where(x => x != null);
-
-        //    return speckleParameters.GroupBy(x => x.applicationInternalName).Select(x => x.First()).ToDictionary(x => x.applicationInternalName, x => x);
-        //}
-
-        ///// <summary>
-        ///// Returns the value of a Revit Built-In <see cref="DB.Parameter"/> given a target <see cref="DB.Element"/> and <see cref="BuiltInParameter"/>
-        ///// </summary>
-        ///// <param name="elem">The <see cref="DB.Element"/> containing the Built-In <see cref="DB.Parameter"/></param>
-        ///// <param name="bip">The <see cref="BuiltInParameter"/> enum name of the target parameter</param>
-        ///// <param name="unitsOverride">The units in which to return the value in the case where you want to override the Built-In <see cref="DB.Parameter"/>'s units</param>
-        ///// <typeparam name="T"></typeparam>
-        ///// <returns></returns>
-        //private T GetParamValue<T>(DB.Element elem, BuiltInParameter bip, string unitsOverride = null)
-        //{
-        //    var rp = elem.get_Parameter(bip);
-
-        //    if (rp == null || !rp.HasValue)
-        //        return default;
-
-        //    var value = ParameterToSpeckle(rp, unitsOverride: unitsOverride).value;
-        //    if (typeof(T) == typeof(int) && value.GetType() == typeof(bool))
-        //        return (T)Convert.ChangeType(value, typeof(int));
-
-        //    return (T)ParameterToSpeckle(rp, unitsOverride: unitsOverride).value;
-        //}
-
-        ///// <summary>
-        ///// Converts a Revit Built-In <see cref="DB.Parameter"/> to a Speckle <see cref="Parameter"/>.
-        ///// </summary>
-        ///// <param name="rp">The Revit Built-In <see cref="DB.Parameter"/> to convert</param>
-        ///// <param name="isTypeParameter">Defaults to false. True if this is a type parameter</param>
-        ///// <param name="unitsOverride">The units in which to return the value in the case where you want to override the Built-In <see cref="DB.Parameter"/>'s units</param>
-        ///// <returns></returns>
-        ///// <remarks>The <see cref="rp"/> must have a value (<see cref="DB.Parameter.HasValue"/></remarks>
-        //private Parameter ParameterToSpeckle(DB.Parameter rp, bool isTypeParameter = false, string unitsOverride = null)
-        //{
-        //    var sp = new Parameter
-        //    {
-        //        name = rp.Definition.Name,
-        //        applicationInternalName = GetParamInternalName(rp),
-        //        isShared = rp.IsShared,
-        //        isReadOnly = rp.IsReadOnly,
-        //        isTypeParameter = isTypeParameter,
-        //        applicationUnitType = rp.GetUnityTypeString() //eg UT_Length
-        //    };
-
-        //    switch (rp.StorageType)
-        //    {
-        //        case StorageType.Double:
-        //            // NOTE: do not use p.AsDouble() as direct input for unit utils conversion, it doesn't work.  ¯\_(ツ)_/¯
-        //            var val = rp.AsDouble();
-        //            try
-        //            {
-        //                sp.applicationUnit = rp.GetDisplayUnityTypeString(); //eg DUT_MILLIMITERS, this can throw!
-        //                sp.value = unitsOverride == null ? RevitVersionHelper.ConvertFromInternalUnits(val, rp) : ScaleToSpeckle(val, unitsOverride);
-        //            }
-        //            catch
-        //            {
-        //                sp.value = val;
-        //            }
-        //            break;
-        //        case StorageType.Integer:
-
-        //            switch (rp.Definition.ParameterType)
-        //            {
-        //                case ParameterType.YesNo:
-        //                    sp.value = Convert.ToBoolean(rp.AsInteger());
-        //                    break;
-        //                default:
-        //                    sp.value = rp.AsInteger();
-        //                    break;
-        //            }
-
-        //            break;
-        //        case StorageType.String:
-        //            sp.value = rp.AsString();
-        //            if (sp.value == null)
-        //                sp.value = rp.AsValueString();
-        //            break;
-
-        //        default:
-        //            return null;
-        //    }
-        //    return sp;
-        //}
-
-        #endregion
-
         /// <summary>
         /// </summary>
         /// <param name="topSolidElement"></param>
@@ -495,8 +332,11 @@ namespace Objects.Converter.TopSolid
             if (ownerDoc is null)
             {
                 AssemblyEntity ownerAss = element.Owner as AssemblyEntity;
-                paramElements = ownerAss.DefinitionDocument.ParametersFolderEntity.DeepParameters;
-                isTopSolidAssembly = true;
+                if (ownerAss != null && ownerAss.DefinitionDocument.ParametersFolderEntity != null)
+                {
+                    isTopSolidAssembly = true;
+                    paramElements = ownerAss.DefinitionDocument.ParametersFolderEntity.DeepParameters;
+                }
             }
             else
             {
@@ -534,7 +374,8 @@ namespace Objects.Converter.TopSolid
         }
 
 
-        //#endregion
+        #endregion
+
 
 
 
