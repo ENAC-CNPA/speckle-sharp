@@ -75,13 +75,14 @@ namespace Objects.Converter.TopSolid
 
         public List<int> ConvertedObjectsList { get; set; } = new List<int>();
 
-        public ProgressReport Report => throw new NotImplementedException();
+        public ProgressReport Report { get; private set; } = new ProgressReport();
 
         public void SetContextObjects(List<ApplicationPlaceholderObject> objects) => ContextObjects = objects;
 
         public void SetPreviousContextObjects(List<ApplicationPlaceholderObject> objects) => throw new NotImplementedException();
 
         public Element CurrentHostElement { get; set; }
+
 
         public void SetContextDocument(object doc)
         {
