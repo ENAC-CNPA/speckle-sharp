@@ -32,7 +32,7 @@ using TsBsplineCurve = TopSolid.Kernel.G.D3.Curves.BSplineCurve;
 using TX = TopSolid.Kernel.TX;
 using SX = TopSolid.Kernel.SX;
 using TopSolid.Kernel.G.D3.Shapes;
-using TopSolid.Kernel.SX.Collections;
+//using TopSolid.Kernel.SX.Collections;
 using TSX = TopSolid.Kernel.SX.Collections.Generic;
 using TKGD3 = TopSolid.Kernel.G.D3;
 using TKGD2 = TopSolid.Kernel.G.D2;
@@ -56,6 +56,8 @@ using TopSolid.Kernel.TX.Units;
 using TopSolid.Kernel.G.D1;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using Speckle.Core.Models;
+using TopSolid.Kernel.GR.Attributes;
+//using TopSolid.Kernel.SX.Collections.Generic;
 
 namespace Objects.Converter.TopSolid
 {
@@ -434,10 +436,10 @@ namespace Objects.Converter.TopSolid
             bool p = c.periodic;
             int d = c.degree;
 
-            DoubleList k = ToDoubleList(c.knots);
+            SX.Collections.DoubleList k = ToDoubleList(c.knots);
             var ptsList = c.GetPoints();
             PointList pts = ToPointList(ptsList);
-            DoubleList w = ToDoubleList(c.weights.ToList());
+            SX.Collections.DoubleList w = ToDoubleList(c.weights.ToList());
             BSpline b = new BSpline(p, d, k);
             if (r)
             {
@@ -585,7 +587,7 @@ namespace Objects.Converter.TopSolid
             List<TSX.List<TKGD2.Curves.IGeometricProfile>> global2dList = new List<TSX.List<TKGD2.Curves.IGeometricProfile>>(facecount);
             List<TSX.List<TKGD3.Curves.IGeometricProfile>> global3dList = new List<TSX.List<TKGD3.Curves.IGeometricProfile>>(facecount);
             List<TSX.List<EdgeList>> globalEdgeList = new List<TSX.List<EdgeList>>(facecount);
-            List<BoolList> globalBoolList = new List<BoolList>(facecount);
+            List<SX.Collections.BoolList> globalBoolList = new List<SX.Collections.BoolList>(facecount);
 
             //uv curves, 3d curves and surfaces, per face
             foreach (Face face in _shape.Faces)
@@ -593,7 +595,7 @@ namespace Objects.Converter.TopSolid
                 global2dList.Add(new TSX.List<TKGD2.Curves.IGeometricProfile>());
                 global3dList.Add(new TSX.List<IGeometricProfile>());
                 globalEdgeList.Add(new TSX.List<EdgeList>());
-                globalBoolList.Add(new BoolList());
+                globalBoolList.Add(new SX.Collections.BoolList());
 
                 var loop2d = global2dList[faceindex];
                 var loop3d = global3dList[faceindex];
@@ -862,9 +864,11 @@ namespace Objects.Converter.TopSolid
 
             shapesCreation.Create();
 
-
             SewOperation sewOperation = new SewOperation(doc, 0);
-            sewOperation.ModifiedEntity = shapesCreation.ChildrenEntities.First() as ShapeEntity;
+            if (shapesCreation.ChildrenEntities.Count() != 0)
+            {
+                sewOperation.ModifiedEntity = shapesCreation.ChildrenEntities.First() as ShapeEntity; // TODO : Question : Why ChildrenEntities is empty ???
+            }
             for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
             {
                 //shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
@@ -890,7 +894,9 @@ namespace Objects.Converter.TopSolid
                 }
             }
 
-            //TODO
+            //TODO Move the Shape creation in specific function
+
+
             //ShapeEntity se = new ShapeEntity(doc, 0);
             //se.Geometry = shape;
             //se.Create(doc.ShapesFolderEntity);
