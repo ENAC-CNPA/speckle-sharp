@@ -1114,7 +1114,7 @@ namespace Objects.Converter.TopSolid
                     //var x = new ItemMoniker(new CString($"S{op2.Id}"));
                     try
                     {
-                        //shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
+                        shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
                     }
                     catch (Exception e)
 
