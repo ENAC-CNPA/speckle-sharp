@@ -34,7 +34,7 @@ namespace Objects.Converter.TopSolid
     public partial class ConverterTopSolid
     {
 
-      
+
         #region units
         private string _modelUnits;
         public string ModelUnits
@@ -155,6 +155,7 @@ namespace Objects.Converter.TopSolid
             return tsDblList;
         }
 
+
         static DoubleList ToDoubleList(IEnumerable<double> list)
         {
             DoubleList tsDblList = new DoubleList();
@@ -209,7 +210,7 @@ namespace Objects.Converter.TopSolid
 
                 foreach (TKG.IGeometry geometry in hostedGeometries)
                 {
-                   
+
 
                     if (CanConvertToSpeckle(geometry))
                     {
@@ -232,8 +233,9 @@ namespace Objects.Converter.TopSolid
                 }
 
 
-            
-            } else
+
+            }
+            else
             {
                 return;
 
@@ -369,7 +371,7 @@ namespace Objects.Converter.TopSolid
 
         }
 
-        public static (IEnumerable<KeyValuePair<string, object>>,bool) getParameters(Element element)
+        public static (IEnumerable<KeyValuePair<string, object>>, bool) getParameters(Element element)
         {
 
             List<KeyValuePair<string, object>> speckleParameters = new List<KeyValuePair<string, object>>();

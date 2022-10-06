@@ -57,6 +57,7 @@ using TopSolid.Kernel.G.D1;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using Speckle.Core.Models;
 using TopSolid.Kernel.GR.Attributes;
+using TopSolid.Kernel.DB.D3.Surfaces;
 //using TopSolid.Kernel.SX.Collections.Generic;
 
 namespace Objects.Converter.TopSolid
@@ -430,27 +431,29 @@ namespace Objects.Converter.TopSolid
             return speckleCurve;
         }
 
-        public TsBsplineCurve CurveToNative(Curve c)
+        public TsBsplineCurve CurveToNative(Curve curve)
         {
-            bool r = c.rational;
-            bool p = c.periodic;
-            int d = c.degree;
+            bool isRational = curve.rational;
+            bool isPeriodic = curve.periodic;
+            int degree = curve.degree;
 
-            SX.Collections.DoubleList k = ToDoubleList(c.knots);
-            var ptsList = c.GetPoints();
+            SX.Collections.DoubleList k = ToDoubleList(curve.knots);
+            var ptsList = curve.GetPoints();
             PointList pts = ToPointList(ptsList);
-            SX.Collections.DoubleList w = ToDoubleList(c.weights.ToList());
-            BSpline b = new BSpline(p, d, k);
-            if (r)
+            SX.Collections.DoubleList w = ToDoubleList(curve.weights.ToList());
+            BSpline bspline = new BSpline(isPeriodic, degree, k);
+            if (isRational)
             {
                 //var w = c.Points.ConvertAll(x => x.Weight);
-                BSplineCurve bs = new BSplineCurve(b, pts, w);
-                return bs;
+                BSplineCurve bsplineCurve = new BSplineCurve(bspline, pts, w);
+                bsplineCurve.SetRange((double)curve.domain.start, (double)curve.domain.end);
+                return bsplineCurve;
             }
             else
             {
-                BSplineCurve bs = new BSplineCurve(b, pts);
-                return bs;
+                BSplineCurve bsplineCurve = new BSplineCurve(bspline, pts);
+                bsplineCurve.SetRange((double)curve.domain.start, (double)curve.domain.end);
+                return bsplineCurve;
             }
 
         }
@@ -523,7 +526,7 @@ namespace Objects.Converter.TopSolid
         public TsBSplineSurface SurfaceToNative(Surface surface)
         {
             // Create TopSolid surface
-            List<List<ControlPoint>> points = surface.GetControlPoints().Select(l => l.Select(p =>
+            List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
               new ControlPoint(
                 ScaleToNative(p.x, p.units),
                 ScaleToNative(p.y, p.units),
@@ -532,10 +535,14 @@ namespace Objects.Converter.TopSolid
                 p.units)).ToList()).ToList();
 
 
-            //TsBSplineSurface _surface = new TsBSplineSurface();
+            var uKnots = SurfaceKnotsToNative(surface.knotsU);
+            var vKnots = SurfaceKnotsToNative(surface.knotsV);
+            var ctPts = ControlPointsToNative(surfPts);
 
-            BSpline vBspline = new BSpline(surface.closedV, surface.degreeV, ToDoubleList(surface.knotsV));
-            BSpline UBspline = new BSpline(surface.closedU, surface.degreeU, ToDoubleList(surface.knotsU));
+            BSpline vBspline = new BSpline(surface.closedV, surface.degreeV, ToDoubleList(vKnots));
+            //vBspline.SetRange(new global::TopSolid.Kernel.G.D1.Extent((double)surface.domainV.start, (double)surface.domainV.end));
+            BSpline uBspline = new BSpline(surface.closedU, surface.degreeU, ToDoubleList(uKnots));
+            //uBspline.SetRange(new global::TopSolid.Kernel.G.D1.Extent((double)surface.domainU.start, (double)surface.domainU.end));
 
             //for (int u = 0; u < points.Count; u++)
             //{
@@ -551,12 +558,18 @@ namespace Objects.Converter.TopSolid
             // TODO : Rational option
             if (surface.rational)
             {
-                TsBSplineSurface bs = new TsBSplineSurface(UBspline, vBspline, ToPointList(points.SelectMany(x => x)), ToDoubleList(points.SelectMany(x => x).Select(x => x.weight)));
+                TsBSplineSurface bs = new TsBSplineSurface(uBspline, vBspline, ctPts, ToDoubleList(surfPts.SelectMany(x => x).Select(x => x.weight)));
                 return bs;
             }
             else
             {
-                TsBSplineSurface bs = new TsBSplineSurface(UBspline, vBspline, ToPointList(points.SelectMany(x => x)));
+                TsBSplineSurface bs = new TsBSplineSurface(uBspline, vBspline, ctPts);
+                var gtype = bs.GeometryType;
+
+
+
+                //bs.SetRangeFull();
+
                 return bs;
             }
 
@@ -564,7 +577,51 @@ namespace Objects.Converter.TopSolid
 
         }
 
-        #endregion      
+        private PointList ControlPointsToNative(List<List<ControlPoint>> controlPoints)
+        {
+            var uCount = controlPoints.Count;
+            var vCount = controlPoints[0].Count;
+            var count = uCount * vCount;
+
+            var points = new PointList(count);
+            int p = 0;
+
+            foreach (var row in controlPoints)
+            {
+                foreach (var pt in row)
+                {
+                    var point = new Point(pt.x, pt.y, pt.z, pt.units);
+                    points.Add(PointToNative(point));
+                }
+            }
+
+
+            //controlPoints.ForEach(row =>
+            //  row.ForEach(pt =>
+            //  {
+            //      var point = new Point(pt.x, pt.y, pt.z, pt.units);
+            //      points[p++] = PointToNative(point);
+            //  }));
+
+            return points;
+        }
+
+        public double[] SurfaceKnotsToNative(List<double> list)
+        {
+            var count = list.Count;
+            var knots = new double[count + 2];
+
+            int j = 0, k = 0;
+            while (j < count)
+                knots[++k] = list[j++];
+
+            knots[0] = knots[1];
+            knots[count + 1] = knots[count];
+
+            return knots;
+        }
+
+        #endregion
 
         //Breps & Shapes
         #region Brep
@@ -966,12 +1023,17 @@ namespace Objects.Converter.TopSolid
 
                 if (bsSurface.IsVPeriodic)
                     bsSurface.MakeVNonPeriodic();
-                bsSurface.MakeVNonPeriodic();
+                //bsSurface.MakeVNonPeriodic();
 
                 //surface = bsSurface;
             }
 
+            //for debug
+            //SurfaceEntity surfEnt = new SurfaceEntity(Doc, 0);
+            //surfEnt.Geometry = bsSurface;
+            //surfEnt.Create(Doc.PointsFolderEntity);
 
+            var x = new OrientedSurface(bsSurface, false);
             sheetMaker.Surface = new OrientedSurface(bsSurface, false);
             sheetMaker.SurfaceMoniker = new ItemMoniker(false, (byte)ItemType.ShapeFace, key, 1);
 
@@ -1052,10 +1114,12 @@ namespace Objects.Converter.TopSolid
                     //var x = new ItemMoniker(new CString($"S{op2.Id}"));
                     try
                     {
-                        shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
+                        //shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
                     }
-                    catch
+                    catch (Exception e)
+
                     {
+                        Console.WriteLine(e);
 
                     }
                 }
@@ -1101,7 +1165,7 @@ namespace Objects.Converter.TopSolid
                     faces.AddRange(new int[] { ind - 3, ind - 2, ind - 1 });
                 }
 
-                
+
             }
 
 
