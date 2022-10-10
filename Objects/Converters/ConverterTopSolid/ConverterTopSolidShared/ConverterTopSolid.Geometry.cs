@@ -902,7 +902,7 @@ namespace Objects.Converter.TopSolid
 
             //Brep rs = null;
             double tol = 0;
-            tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance;
+            tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
             ShapeList shape = BrepToShapeList(brep, tol);
 
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
@@ -962,6 +962,7 @@ namespace Objects.Converter.TopSolid
 
             UndoSequence.End();
 
+            //return sewOperation.ShapeEntities.First().Geometry as Shape;
             return sewOperation.ShapeEntities.First().Geometry as Shape;
         }
 
