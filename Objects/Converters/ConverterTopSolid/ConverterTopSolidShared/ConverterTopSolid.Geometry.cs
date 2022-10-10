@@ -523,8 +523,9 @@ namespace Objects.Converter.TopSolid
 
             return speckleSurface;
         }
-        public TsBSplineSurface SurfaceToNative(Surface surface)
+        public TsBSplineSurface SurfaceToNative(Surface surface, string units = null)
         {
+            var u = units ?? ModelUnits;
             // Create TopSolid surface
             List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
               new ControlPoint(
@@ -903,7 +904,7 @@ namespace Objects.Converter.TopSolid
             //Brep rs = null;
             double tol = 0;
             tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
-            ShapeList shape = BrepToShapeList(brep, tol);
+            ShapeList shape = BrepToShapeList(brep, tol, units);
 
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
@@ -966,9 +967,9 @@ namespace Objects.Converter.TopSolid
             return sewOperation.ShapeEntities.First().Geometry as Shape;
         }
 
-        public ShapeList BrepToShapeList(Brep brep, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance)
+        public ShapeList BrepToShapeList(Brep brep, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, string units = null)
         {
-
+            var u = units ?? ModelUnits;
             double tol_TS = tol;
             Shape shape = null;
             ShapeList ioShapes = new ShapeList();
@@ -978,7 +979,7 @@ namespace Objects.Converter.TopSolid
                 shape = null;
 
 
-                shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++);
+                shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++, units);
 
                 if (shape == null || shape.IsEmpty)
                 { }
@@ -989,9 +990,9 @@ namespace Objects.Converter.TopSolid
 
             return ioShapes;
         }
-        private Shape MakeSheetFrom3d(Brep inBRep, BrepFace inFace, double inLinearPrecision, int faceindex)
+        private Shape MakeSheetFrom3d(Brep inBRep, BrepFace inFace, double inLinearPrecision, int faceindex, string units = null)
         {
-
+            var u = units ?? ModelUnits;
             Shape shape = new Shape(null);
 
             TrimmedSheetMaker sheetMaker = new TrimmedSheetMaker(SX.Version.Current);
@@ -1013,7 +1014,7 @@ namespace Objects.Converter.TopSolid
 
             //TODO check if planar to simplify            
 
-            BSplineSurface bsSurface = SurfaceToNative(surface);
+            BSplineSurface bsSurface = SurfaceToNative(surface, units);
 
             if (bsSurface != null && (bsSurface.IsUPeriodic || bsSurface.IsVPeriodic))
             {
