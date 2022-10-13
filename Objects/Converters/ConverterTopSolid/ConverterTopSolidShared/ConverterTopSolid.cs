@@ -126,7 +126,7 @@ namespace Objects.Converter.TopSolid
         }
 
         public List<Base> ConvertToSpeckle(List<object> objects) => objects.Select(ConvertToSpeckle).ToList();
-       
+
 
         private Base ObjectToSpeckleBuiltElement(TsEntity o)
         {
@@ -147,7 +147,7 @@ namespace Objects.Converter.TopSolid
                     return PointToNative(o);
 
                 case Vector o:
-                    return VectorToNative(o);
+                    return UnitVectorToNative(o);
 
                 case Polyline o:
                     return PolyLineToNative(o);

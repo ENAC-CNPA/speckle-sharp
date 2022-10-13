@@ -25,7 +25,7 @@ using TsPlane = TopSolid.Kernel.G.D3.Plane;
 using TsPoint = TopSolid.Kernel.G.D3.Point;
 using TsPointList = TopSolid.Kernel.G.D3.PointList;
 using TsPolylineCurve = TopSolid.Kernel.G.D3.Curves.PolylineCurve;
-using TsUVector = TopSolid.Kernel.G.D3.UnitVector;
+using TsUnitVector = TopSolid.Kernel.G.D3.UnitVector;
 using TsVector = TopSolid.Kernel.G.D3.Vector;
 using TsBsplineCurve = TopSolid.Kernel.G.D3.Curves.BSplineCurve;
 
@@ -81,6 +81,7 @@ namespace Objects.Converter.TopSolid
         }
         public TsPoint[] PointListToNative(IEnumerable<double> arr, string units)
         {
+
             var enumerable = arr.ToList();
             if (enumerable.Count % 3 != 0) throw new Speckle.Core.Logging.SpeckleException("Array malformed: length%3 != 0.");
 
@@ -169,7 +170,7 @@ namespace Objects.Converter.TopSolid
             SetInstanceParameters(specklePoint, topSolidpoint);
             return specklePoint;
         }
-        public TsPoint PointToNative(Point point)
+        public TsPoint PointToNative(Point point, string units = null)
         {
             var _point = new TsPoint(ScaleToNative(point.x, point.units),
               ScaleToNative(point.y, point.units),
@@ -186,9 +187,16 @@ namespace Objects.Converter.TopSolid
             Vector speckleVector = new Vector(topSolidVector.X, topSolidVector.Y, topSolidVector.Z, u);
             return speckleVector;
         }
-        public TsUVector VectorToNative(Vector vector)
+        public TsUnitVector UnitVectorToNative(Vector vector)
         {
-            return new TsUVector(
+            return new TsUnitVector(
+              ScaleToNative(vector.x, vector.units),
+              ScaleToNative(vector.y, vector.units),
+              ScaleToNative(vector.z, vector.units));
+        }
+        public TsVector VectorToNative(Vector vector)
+        {
+            return new TsUnitVector(
               ScaleToNative(vector.x, vector.units),
               ScaleToNative(vector.y, vector.units),
               ScaleToNative(vector.z, vector.units));
@@ -218,7 +226,7 @@ namespace Objects.Converter.TopSolid
         }
         public TsPlane PlaneToNative(Plane plane)
         {
-            return new TsPlane(PointToNative(plane.origin), VectorToNative(plane.normal));
+            return new TsPlane(PointToNative(plane.origin), UnitVectorToNative(plane.xdir.Unit()), UnitVectorToNative(plane.ydir.Unit()));
         }
         #endregion
 
@@ -231,7 +239,7 @@ namespace Objects.Converter.TopSolid
             SetInstanceParameters(speckleLine, topSolidline);
             return speckleLine;
         }
-        public TsLineCurve LineToNative(Line line)
+        public TsLineCurve LineToNative(Line line, string units = null)
         {
             return new TsLineCurve(PointToNative(line.start), PointToNative(line.end));
         }
@@ -258,14 +266,14 @@ namespace Objects.Converter.TopSolid
             return specklePolyline;
 
         }
-        public TsPolylineCurve PolyLineToNative(Polyline polyLine)
+        public TsPolylineCurve PolyLineToNative(Polyline polyLine, string units = null)
         {
 
             TsPointList _pointsList = new TsPointList();
 
             foreach (Point p in polyLine.GetPoints())
             {
-                TsPoint _point = PointToNative(p);
+                TsPoint _point = PointToNative(p, units);
                 _pointsList.Add(_point);
             }
 
@@ -276,6 +284,24 @@ namespace Objects.Converter.TopSolid
 
         //Curve 2D & 3D
         #region Curve
+
+        //Arc      
+        public CircleCurve ArcToNative(Arc arc, string units = null)
+        {
+            //var plane = PlaneToNative(arc.plane);
+            CircleCurve circleCurve = new CircleCurve(PlaneToNative(arc.plane), ScaleToNative((double)arc.radius, arc.units));
+            CircleMaker maker = new CircleMaker(SX.Version.Current, tolerance, global::TopSolid.Kernel.G.Precision.AngularPrecision);
+            maker.SetByCenterAndTwoPoints(
+                PointToNative(arc.plane.origin),
+                PointToNative(arc.startPoint),
+                PointToNative(arc.endPoint),
+                false,
+                UnitVectorToNative(arc.plane.normal.Unit()),
+                circleCurve);
+
+            return circleCurve;
+
+        }
         public Objects.Geometry.Curve CurveToSpeckle(BSplineCurve topSolidCurve, string units = null)
         {
             Curve speckleCurve = new Curve();
@@ -431,27 +457,28 @@ namespace Objects.Converter.TopSolid
             return speckleCurve;
         }
 
-        public TsBsplineCurve CurveToNative(Curve curve)
+        public TsBsplineCurve CurveToNative(Curve curve, string units = null)
         {
+            //var u = units ?? ModelUnits;
             bool isRational = curve.rational;
             bool isPeriodic = curve.periodic;
             int degree = curve.degree;
 
-            SX.Collections.DoubleList k = ToDoubleList(curve.knots);
+            SX.Collections.DoubleList nativeKnot = ToNativeDoubleList(curve.knots);
             var ptsList = curve.GetPoints();
-            PointList pts = ToPointList(ptsList);
-            SX.Collections.DoubleList w = ToDoubleList(curve.weights.ToList());
-            BSpline bspline = new BSpline(isPeriodic, degree, k);
+            PointList nativePts = ToNativePointList(ptsList);
+            SX.Collections.DoubleList nativeWeights = ToNativeDoubleList(curve.weights.ToList());
+            BSpline bspline = new BSpline(isPeriodic, degree, nativeKnot);
             if (isRational)
             {
                 //var w = c.Points.ConvertAll(x => x.Weight);
-                BSplineCurve bsplineCurve = new BSplineCurve(bspline, pts, w);
+                BSplineCurve bsplineCurve = new BSplineCurve(bspline, nativePts, nativeWeights);
                 bsplineCurve.SetRange((double)curve.domain.start, (double)curve.domain.end);
                 return bsplineCurve;
             }
             else
             {
-                BSplineCurve bsplineCurve = new BSplineCurve(bspline, pts);
+                BSplineCurve bsplineCurve = new BSplineCurve(bspline, nativePts);
                 bsplineCurve.SetRange((double)curve.domain.start, (double)curve.domain.end);
                 return bsplineCurve;
             }
@@ -525,13 +552,22 @@ namespace Objects.Converter.TopSolid
         }
         public TsBSplineSurface SurfaceToNative(Surface surface, string units = null)
         {
-            var u = units ?? ModelUnits;
+            //var u = units ?? ModelUnits;
             // Create TopSolid surface
+            //AHW incorrect cause scaling twice ?
+            //List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
+            //  new ControlPoint(
+            //    ScaleToNative(p.x, p.units),
+            //    ScaleToNative(p.y, p.units),
+            //    ScaleToNative(p.z, p.units),
+            //    p.weight,
+            //    p.units)).ToList()).ToList();
+
             List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
               new ControlPoint(
-                ScaleToNative(p.x, p.units),
-                ScaleToNative(p.y, p.units),
-                ScaleToNative(p.z, p.units),
+                p.x,
+                p.y,
+                p.z,
                 p.weight,
                 p.units)).ToList()).ToList();
 
@@ -896,6 +932,7 @@ namespace Objects.Converter.TopSolid
 
         private Shape BrepToNative(Brep brep, string units = null)
         {
+            var u = units ?? ModelUnits;
             ModelingDocument doc = global::TopSolid.Kernel.UI.Application.CurrentDocument as ModelingDocument;
             UndoSequence.UndoCurrent();
             UndoSequence.Start("Bake", true);
@@ -904,7 +941,7 @@ namespace Objects.Converter.TopSolid
             //Brep rs = null;
             double tol = 0;
             tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
-            ShapeList shape = BrepToShapeList(brep, tol, units);
+            ShapeList shape = BrepToShapeList(brep, tol);
 
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
@@ -921,6 +958,11 @@ namespace Objects.Converter.TopSolid
             }
 
             shapesCreation.Create();
+            if (shape.Count == 1)
+            {
+                UndoSequence.End();
+                return shape[0];
+            }
 
             SewOperation sewOperation = new SewOperation(doc, 0);
             if (shapesCreation.ChildrenEntities.Count() != 0)
@@ -947,8 +989,8 @@ namespace Objects.Converter.TopSolid
             {
                 for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
                 {
-                    shapesCreation.ChildrenEntities.ElementAt(i).Hide();
-                    //shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
+                    //shapesCreation.ChildrenEntities.ElementAt(i).Hide();
+                    shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
                 }
             }
 
@@ -969,7 +1011,7 @@ namespace Objects.Converter.TopSolid
 
         public ShapeList BrepToShapeList(Brep brep, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, string units = null)
         {
-            var u = units ?? ModelUnits;
+            //var u = units ?? ModelUnits;
             double tol_TS = tol;
             Shape shape = null;
             ShapeList ioShapes = new ShapeList();
@@ -979,10 +1021,11 @@ namespace Objects.Converter.TopSolid
                 shape = null;
 
 
-                shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++, units);
+                shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++);
 
                 if (shape == null || shape.IsEmpty)
-                { }
+                {
+                }
                 else
                     ioShapes.Add(shape);
             }
@@ -992,7 +1035,7 @@ namespace Objects.Converter.TopSolid
         }
         private Shape MakeSheetFrom3d(Brep inBRep, BrepFace inFace, double inLinearPrecision, int faceindex, string units = null)
         {
-            var u = units ?? ModelUnits;
+            //var u = units ?? ModelUnits;
             Shape shape = new Shape(null);
 
             TrimmedSheetMaker sheetMaker = new TrimmedSheetMaker(SX.Version.Current);
@@ -1014,7 +1057,7 @@ namespace Objects.Converter.TopSolid
 
             //TODO check if planar to simplify            
 
-            BSplineSurface bsSurface = SurfaceToNative(surface, units);
+            BSplineSurface bsSurface = SurfaceToNative(surface);
 
             if (bsSurface != null && (bsSurface.IsUPeriodic || bsSurface.IsVPeriodic))
             {
@@ -1035,7 +1078,6 @@ namespace Objects.Converter.TopSolid
             //surfEnt.Geometry = bsSurface;
             //surfEnt.Create(Doc.PointsFolderEntity);
 
-            var x = new OrientedSurface(bsSurface, false);
             sheetMaker.Surface = new OrientedSurface(bsSurface, false);
             sheetMaker.SurfaceMoniker = new ItemMoniker(false, (byte)ItemType.ShapeFace, key, 1);
 
@@ -1053,9 +1095,9 @@ namespace Objects.Converter.TopSolid
 
 
             int counter = 0;
-            foreach (var loop in inBRep.Faces.ElementAt(faceindex).Loops)
+            foreach (BrepLoop loop in inBRep.Faces.ElementAt(faceindex).Loops)
             {
-                foreach (var trim in loop.Trims)
+                foreach (BrepTrim trim in loop.Trims)
                 {
 
                     Curve spCurve = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Curve; //TODO check a more general way to cast ICurve to Curve even for lines
@@ -1076,7 +1118,19 @@ namespace Objects.Converter.TopSolid
                             listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
                             loops3d.First().Add(convertedCrv);
                         }
+                        else
+                        {
+                            var spArc = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Arc;
+                            if (spArc != null)
+                            {
+                                var convertedCrv = ArcToNative(spArc);
+                                listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                                loops3d.First().Add(convertedCrv);
+                            }
+                        }
                     }
+
+
 
                     var spCurve2 = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex);
 

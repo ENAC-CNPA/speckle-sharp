@@ -56,7 +56,8 @@ namespace Objects.Converter.TopSolid
 
         private double ScaleToNative(double value, string units)
         {
-            var f = Units.GetConversionFactor(units, ModelUnits);
+            if (units == "m") return value;
+            var f = Units.GetConversionFactor(units, "m");
             return value * f;
         }
 
@@ -104,14 +105,15 @@ namespace Objects.Converter.TopSolid
         #endregion
 
         #region convertList
-        public static PointList ToPointList(IEnumerable<Geometry.Point> list)
+        public PointList ToNativePointList(IEnumerable<Geometry.Point> list, string units = null)
         {
+            //var u = units ?? ModelUnits;
             //    var count = list.CountU * list.CountV;
             var points = new PointList();
 
             foreach (var p in list)
             {
-                var pt = new TKG.D3.Point(p.x, p.y, p.z);
+                var pt = new TKG.D3.Point(ScaleToNative(p.x, p.units), ScaleToNative(p.y, p.units), ScaleToNative(p.z, p.units));
                 points.Add(pt);
             }
 
@@ -143,7 +145,7 @@ namespace Objects.Converter.TopSolid
             return w;
         }
 
-        static DoubleList ToDoubleList(List<double> list)
+        static DoubleList ToNativeDoubleList(List<double> list)
         {
             DoubleList tsDblList = new DoubleList(list.Count);
 
