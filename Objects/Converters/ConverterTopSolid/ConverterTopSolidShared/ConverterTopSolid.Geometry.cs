@@ -997,13 +997,14 @@ namespace Objects.Converter.TopSolid
             return spcklBrep;
         }
 
-
+        OperationList operationsList = new OperationList();
         private Shape BrepToNative(Brep brep, string units = null)
         {
+
+
             var u = units ?? ModelUnits;
-            ModelingDocument doc = global::TopSolid.Kernel.UI.Application.CurrentDocument as ModelingDocument;
-            UndoSequence.UndoCurrent();
-            UndoSequence.Start("Bake", true);
+            ModelingDocument doc = Doc;
+
 
 
             //Brep rs = null;
@@ -1011,28 +1012,34 @@ namespace Objects.Converter.TopSolid
             tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
             ShapeList shape = BrepToShapeList(brep, tol);
 
+
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
+            SewOperation sewOperation = new SewOperation(doc, 0);
+            sewOperation.Name = $"brep : {brep.GetId()}";
 
             foreach (var ts in shape)
             {
                 ShapeEntity se = new ShapeEntity(doc, 0);
+                //se.Name = $"brep : {brep.GetId()}";
                 se.Geometry = ts;
-
-                se.Create(doc.ShapesFolderEntity);
+                se.Parent = shapesCreation;
+                //se.Create(doc.ShapesFolderEntity);
                 shapesCreation.AddChildEntity(se);
                 shapesCreation.CanDeleteFromChild(se);
-
             }
 
-            shapesCreation.Create();
             if (shape.Count == 1)
             {
+                shapesCreation.Create();
                 UndoSequence.End();
                 return shape[0];
             }
 
-            SewOperation sewOperation = new SewOperation(doc, 0);
+
+            shapesCreation.Owner = sewOperation;
+            //shapesCreation.Create();
+
             if (shapesCreation.ChildrenEntities.Count() != 0)
             {
                 sewOperation.ModifiedEntity = shapesCreation.ChildrenEntities.First() as ShapeEntity; // TODO : Question : Why ChildrenEntities is empty ???
@@ -1049,6 +1056,12 @@ namespace Objects.Converter.TopSolid
                 sewOperation.GapWidth = new BasicSmartReal(sewOperation, global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, UnitType.Length, doc);
 
             sewOperation.NbIterations = new BasicSmartInteger(sewOperation, 5);
+            sewOperation.AddOperation(shapesCreation);
+            var op = Doc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleCreation").FirstOrDefault() as FolderOperation;
+            if (op != null)
+            {
+                sewOperation.Owner = op;
+            }
             sewOperation.Create();
 
             //Hides other shapes when successfull, otherwise keep them shown
@@ -1060,6 +1073,7 @@ namespace Objects.Converter.TopSolid
                     //shapesCreation.ChildrenEntities.ElementAt(i).Hide();
                     shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
                 }
+
             }
 
             //TODO Move the Shape creation in specific function
@@ -1075,10 +1089,14 @@ namespace Objects.Converter.TopSolid
                 var display = DiplayToNative(brep);
                 ent.ExplicitColor = display.Item1;
                 ent.ExplicitTransparency = display.Item2;
+                //ent.Name = $"brep : {brep.GetId()}";
+                doc.ShapesFolderEntity.AddEntity(ent);
             }
 
 
-            UndoSequence.End();
+            //operationsList.Add(sewOperation);           
+
+
 
             //return sewOperation.ShapeEntities.First().Geometry as Shape;
             return sewOperation.ShapeEntities.First().Geometry as Shape;
