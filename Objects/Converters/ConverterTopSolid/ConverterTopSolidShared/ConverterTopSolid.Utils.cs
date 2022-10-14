@@ -22,12 +22,14 @@ using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Cad.Design.DB;
 
 using TsApp = TopSolid.Kernel.UI.Application;
+using TX = TopSolid.Kernel.TX;
 using TopSolid.Kernel.SX.Collections;
 using TopSolid.Kernel.G.D3;
 using TopSolid.Kernel.G.D1;
 using TKG = TopSolid.Kernel.G;
 using TopSolid.Kernel.DB.Entities;
 using TopSolid.Kernel.G;
+using TopSolid.Kernel.SX.Drawing;
 
 namespace Objects.Converter.TopSolid
 {
@@ -426,6 +428,36 @@ namespace Objects.Converter.TopSolid
 
         }
 
+
+        #endregion
+
+        #region Display and Attributes
+        public (Color, Transparency) DiplayToNative(Base styleBase)
+        {
+            var color = new System.Drawing.Color();
+            RenderMaterial mat = styleBase["renderMaterial"] as RenderMaterial;
+            if (styleBase["displayStyle"] != null && styleBase["displayStyle"] is DisplayStyle style)
+            {
+                color = System.Drawing.Color.FromArgb(style.color);
+            }
+            else
+            if (styleBase["renderMaterial"] != null && styleBase["renderMaterial"] is RenderMaterial material) // this is the fallback value if a rendermaterial is passed instead
+            {
+                color = System.Drawing.Color.FromArgb(material.diffuse);
+            }
+            else return (Color.Blue, Transparency.SemiTransparent);
+            return (new Color(color.R, color.G, color.B), Transparency.FromByte((byte)(byte.MaxValue - color.A)));
+        }
+
+
+        //TODO Lineweight
+        //private static LineWeight GetLineWeight(double weight)
+        //{
+        //    double hundredthMM = weight * 100;
+        //    var weights = Enum.GetValues(typeof(LineWeight)).Cast<int>().ToList();
+        //    int closest = weights.Aggregate((x, y) => Math.Abs(x - hundredthMM) < Math.Abs(y - hundredthMM) ? x : y);
+        //    return (LineWeight)closest;
+        //}
 
         #endregion
 

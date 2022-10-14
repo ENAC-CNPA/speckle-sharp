@@ -58,6 +58,7 @@ using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using Speckle.Core.Models;
 using TopSolid.Kernel.GR.Attributes;
 using TopSolid.Kernel.DB.D3.Surfaces;
+using TopSolid.Kernel.G;
 //using TopSolid.Kernel.SX.Collections.Generic;
 
 namespace Objects.Converter.TopSolid
@@ -455,6 +456,73 @@ namespace Objects.Converter.TopSolid
             SetInstanceParameters(speckleCurve, topSolidCurve);
 
             return speckleCurve;
+        }
+
+        private TKGD3.Curves.Curve CircleToNative(Circle circle)
+        {
+
+            CircleCurve circleCurve = new CircleCurve(PlaneToNative(circle.plane), ScaleToNative((double)circle.radius, circle.units));
+
+            return circleCurve;
+
+        }
+        public TKGD3.Curves.Curve CurveToNative(ICurve curve)
+        {
+            switch (curve)
+            {
+                case Circle circle:
+                    return CircleToNative(circle);
+
+                case Arc arc:
+                    return ArcToNative(arc);
+
+                case Ellipse ellipse:
+                    return EllipseToNative(ellipse);
+
+                //case Spiral spiral:
+                //    return SpiralToNative(spiral);
+
+                case Curve crv:
+                    return CurveToNative(crv);
+
+                case Polyline polyline:
+                    return PolylineToNative(polyline);
+
+                case Line line:
+                    return LineToNative(line);
+
+                //case Polycurve polycurve:
+                //    return PolycurveToNative(polycurve);
+
+                default:
+                    return null;
+            }
+        }
+
+        public EllipseCurve EllipseToNative(Ellipse ellipse)
+        {
+            return new EllipseCurve(
+                PlaneToNative(ellipse.plane),
+                ScaleToNative((double)ellipse.firstRadius, ellipse.units),
+                ScaleToNative((double)ellipse.secondRadius, ellipse.units));
+
+        }
+
+
+        public PolylineCurve PolylineToNative(Polyline polyline)
+        {
+            return new TsPolylineCurve(polyline.closed, ToNativePointList(polyline.points));
+
+        }
+
+        public GeometricProfile PolycurveToNative(Polycurve polycurve)
+        {
+            GeometricProfile profile = new GeometricProfile();
+            foreach (ICurve segment in polycurve.segments)
+            {
+                profile.Add(CurveToNative(segment));
+            }
+            return profile;
         }
 
         public TsBsplineCurve CurveToNative(Curve curve, string units = null)
@@ -1001,6 +1069,13 @@ namespace Objects.Converter.TopSolid
             //se.Geometry = shape;
             //se.Create(doc.ShapesFolderEntity);
 
+            var ent = sewOperation.ModifiedShapeEntity;
+            if (ent != null)
+            {
+                var display = DiplayToNative(brep);
+                ent.ExplicitColor = display.Item1;
+                ent.ExplicitTransparency = display.Item2;
+            }
 
 
             UndoSequence.End();
@@ -1019,8 +1094,6 @@ namespace Objects.Converter.TopSolid
             foreach (BrepFace bface in brep.Faces)
             {
                 shape = null;
-
-
                 shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++);
 
                 if (shape == null || shape.IsEmpty)
@@ -1035,7 +1108,6 @@ namespace Objects.Converter.TopSolid
         }
         private Shape MakeSheetFrom3d(Brep inBRep, BrepFace inFace, double inLinearPrecision, int faceindex, string units = null)
         {
-            //var u = units ?? ModelUnits;
             Shape shape = new Shape(null);
 
             TrimmedSheetMaker sheetMaker = new TrimmedSheetMaker(SX.Version.Current);
@@ -1070,113 +1142,71 @@ namespace Objects.Converter.TopSolid
                     bsSurface.MakeVNonPeriodic();
                 //bsSurface.MakeVNonPeriodic();
 
-                //surface = bsSurface;
             }
-
-            //for debug
-            //SurfaceEntity surfEnt = new SurfaceEntity(Doc, 0);
-            //surfEnt.Geometry = bsSurface;
-            //surfEnt.Create(Doc.PointsFolderEntity);
 
             sheetMaker.Surface = new OrientedSurface(bsSurface, false);
             sheetMaker.SurfaceMoniker = new ItemMoniker(false, (byte)ItemType.ShapeFace, key, 1);
 
             // Get spatial curves and set to maker.
-            TSX.List<TKGD3.Curves.CurveList> loops3d = new TSX.List<TKGD3.Curves.CurveList>();
-            loops3d.Add(new TKGD3.Curves.CurveList());
-
-
+            int loopCount = inBRep.Faces.ElementAt(faceindex).Loops.Count;
+            TSX.List<TKGD3.Curves.CurveList> loops3d = new TSX.List<TKGD3.Curves.CurveList>(loopCount);
             TSX.List<ItemMonikerList> listItemMok = new TSX.List<ItemMonikerList>();
-            listItemMok.Add(new ItemMonikerList());
+            for (int k = 0; k < loopCount; k++)
+            {
+                loops3d.Add(new TKGD3.Curves.CurveList());
+                listItemMok.Add(new ItemMonikerList());
+            }
+
+
+
             int i = 0;
 
-            List<int> indices = new List<int>();
+            //List<int> indices = new List<int>();
 
 
-
+            int loopindex = 0;
             int counter = 0;
             foreach (BrepLoop loop in inBRep.Faces.ElementAt(faceindex).Loops)
             {
                 foreach (BrepTrim trim in loop.Trims)
                 {
+                    TKGD3.Curves.Curve nativeCurve = CurveToNative(inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex)); //TODO check a more general way to cast ICurve to Curve even for lines
 
-                    Curve spCurve = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Curve; //TODO check a more general way to cast ICurve to Curve even for lines
-
-                    if (spCurve != null)
+                    if (nativeCurve != null)
                     {
-                        var convertedCrv = CurveToNative(spCurve);
-                        listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-                        loops3d.First().Add(convertedCrv);
+                        var convertedCrv = nativeCurve;
+                        listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                        loops3d.ElementAt(loopindex).Add(convertedCrv);
                     }
 
-                    else
+                    else if (inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) is Polycurve polyCurve)
                     {
-                        var spLineCrv = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Line;
-                        if (spLineCrv != null)
+                        GeometricProfile profile = PolycurveToNative(polyCurve);
+                        if (profile != null)
                         {
-                            var convertedCrv = LineToNative(spLineCrv);
-                            listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-                            loops3d.First().Add(convertedCrv);
-                        }
-                        else
-                        {
-                            var spArc = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) as Arc;
-                            if (spArc != null)
+                            foreach (var seg in profile.Segments)
                             {
-                                var convertedCrv = ArcToNative(spArc);
-                                listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-                                loops3d.First().Add(convertedCrv);
+                                listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                                loops3d.ElementAt(loopindex).Add(seg.GetOrientedCurve().Curve);
                             }
                         }
                     }
-
-
-
-                    var spCurve2 = inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex);
-
                     counter++;
-
                 }
+                loopindex++;
             }
-
-
-
-            //foreach (int ind in indices)
-            //{
-            //    var spCurve = inBRep.Edges.ElementAt(ind).Curve as Curve;
-
-            //    var convertedCrv = CurveToNative(spCurve);
-
-            //    //if (counter != 0 && convertedCrv.Ps.DistanceTo(inBRep.Edges.ElementAt(indices[counter - 1]).PointAtEnd) > inLinearPrecision)
-            //    //{
-            //    //    spCurve.Reverse();
-            //    //}
-
-            //    listItemMok.First().Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-            //    loops3d.First().Add(convertedCrv);
-            //    counter++;
-
-            //}
-
-
             if (loops3d != null && loops3d.Count != 0)
             {
                 // if (inFace.rev == false || ImporterHelper.MakeReversed(loops3d)) // Useless
                 {
                     sheetMaker.SetCurves(loops3d, listItemMok);
-
-                    //AHW setting to true causes an error
-                    //sheetMaker.UsesBRepMethod = true;
-                    //var x = new ItemMoniker(new CString($"S{op2.Id}"));
                     try
                     {
                         shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
                     }
                     catch (Exception e)
-
                     {
                         Console.WriteLine(e);
-
                     }
                 }
             }
