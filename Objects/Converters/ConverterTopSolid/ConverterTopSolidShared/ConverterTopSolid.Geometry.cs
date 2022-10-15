@@ -1000,8 +1000,6 @@ namespace Objects.Converter.TopSolid
         OperationList operationsList = new OperationList();
         private Shape BrepToNative(Brep brep, string units = null)
         {
-
-
             var u = units ?? ModelUnits;
             ModelingDocument doc = Doc;
 
@@ -1032,7 +1030,7 @@ namespace Objects.Converter.TopSolid
             if (shape.Count == 1)
             {
                 shapesCreation.Create();
-                UndoSequence.End();
+                //UndoSequence.End();
                 return shape[0];
             }
 
@@ -1057,11 +1055,11 @@ namespace Objects.Converter.TopSolid
 
             sewOperation.NbIterations = new BasicSmartInteger(sewOperation, 5);
             sewOperation.AddOperation(shapesCreation);
-            var op = Doc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleCreation").FirstOrDefault() as FolderOperation;
-            if (op != null)
-            {
-                sewOperation.Owner = op;
-            }
+            // var op = Doc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleCreation").FirstOrDefault() as FolderOperation;
+            //if (op != null)
+            //{
+            //    sewOperation.Owner = op;
+            //}
             sewOperation.Create();
 
             //Hides other shapes when successfull, otherwise keep them shown
@@ -1099,7 +1097,7 @@ namespace Objects.Converter.TopSolid
 
 
             //return sewOperation.ShapeEntities.First().Geometry as Shape;
-            return sewOperation.ShapeEntities.First().Geometry as Shape;
+            return ent.Geometry as Shape;
         }
 
         public ShapeList BrepToShapeList(Brep brep, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, string units = null)
