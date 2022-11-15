@@ -1086,7 +1086,7 @@ namespace Objects.Converter.TopSolid
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
             SewOperation sewOperation = new SewOperation(doc, 0);
-            sewOperation.Name = $"brep : {brep.GetId()}";
+            //sewOperation.Name = $"brep : {brep.GetId()}";
 
             foreach (var ts in shape)
             {
@@ -1134,7 +1134,7 @@ namespace Objects.Converter.TopSolid
             //    sewOperation.Owner = op;
             //}
             sewOperation.Create(folderOperation);
-            
+            doc.Update(true, true);
 
             //Hides other shapes when successfull, otherwise keep them shown
             bool isInvalid = sewOperation.IsInvalid;
