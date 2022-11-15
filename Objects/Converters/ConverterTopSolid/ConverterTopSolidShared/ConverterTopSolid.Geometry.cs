@@ -286,6 +286,16 @@ namespace Objects.Converter.TopSolid
         //Curve 2D & 3D
         #region Curve
 
+
+        public Polycurve ProfileToSpeckle(TKGD3.Curves.GeometricProfile profile, string units = null)
+        {
+            var u = units ?? ModelUnits;
+            Polycurve polyCurve = new Polycurve();
+            polyCurve.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve)).ToList();
+            polyCurve.units = u;
+            return polyCurve;
+        }
+
         //Arc      
         public CircleCurve ArcToNative(Arc arc, string units = null)
         {
@@ -303,7 +313,60 @@ namespace Objects.Converter.TopSolid
             return circleCurve;
 
         }
-        public Objects.Geometry.Curve CurveToSpeckle(BSplineCurve topSolidCurve, string units = null)
+
+        public ICurve CurveToSpeckle(TKGD3.Curves.Curve curve, string units = null)
+        {
+            var u = units ?? ModelUnits;
+            switch (curve)
+            {
+                case BSplineCurve bspline:
+                    return BSplineCurveToSpeckle(bspline, u);
+                case CircleCurve circle:
+                    if (circle.IsClosed())
+                        return CircleToSpeckle(circle, u);
+                    else
+                        return ArcToSpeckle(circle, u);
+                case LineCurve line:
+                    return LineToSpeckle(line, u);
+                case PolylineCurve poly:
+                    return PolyLineToSpeckle(poly, u);
+                default:
+                    return BSplineCurveToSpeckle(curve.GetBSplineCurve(false, false));
+
+
+
+
+            }
+
+        }
+
+        public Circle CircleToSpeckle(CircleCurve circ, string units = null)
+        {
+            var u = units ?? ModelUnits;
+            var circle = new Circle(PlaneToSpeckle(circ.Plane, u), circ.Radius, u);
+            circle.domain = new Interval(0, 1);
+            circle.length = 2 * Math.PI * circ.Radius;
+            circle.area = Math.PI * circ.Radius * circ.Radius;
+            return circle;
+        }
+
+        public Arc ArcToSpeckle(CircleCurve a, string units = null)
+        {
+            var u = units ?? ModelUnits;
+
+            double angle = (new TsVector(a.Center, a.Ps)).GetAngle(new TsVector(a.Center, a.Pe));
+            Arc arc = new Arc(PlaneToSpeckle(a.Plane), PointToSpeckle(a.Ps), PointToSpeckle(a.Pe), angle);
+
+            arc.midPoint = PointToSpeckle(a.Pm, u);
+            arc.domain = new Interval(0, 1);
+            arc.length = a.GetLength();
+            //arc.bbox = BoxToSpeckle(new RH.Box(a.BoundingBox()), u);
+            return arc;
+        }
+
+
+
+        public Objects.Geometry.Curve BSplineCurveToSpeckle(BSplineCurve topSolidCurve, string units = null)
         {
             Curve speckleCurve = new Curve();
             var u = units ?? ModelUnits;
@@ -812,22 +875,28 @@ namespace Objects.Converter.TopSolid
                     j = 0;
                     foreach (var seg in profile.Segments) //loop through crvs
                     {
-                        var edge = tupList.ElementAt(counter).Edge;
-                        if (!listDistinct.Contains(edge))
+                        if (counter < tupList.Count) //Added to prevent an error when number of edges != number of curves
                         {
-                            listDistinct.Add(edge);
-                            EdgeIndex = EdgeCounter++;
-                        }
-                        else
-                        {
-                            EdgeIndex = listDistinct.IndexOf(edge);
+                            var edge = tupList.ElementAt(counter).Edge;
+
+                            if (!listDistinct.Contains(edge))
+                            {
+                                listDistinct.Add(edge);
+                                EdgeIndex = EdgeCounter++;
+                            }
+                            else
+                            {
+                                EdgeIndex = listDistinct.IndexOf(edge);
+                            }
+
+                            var mytup = (Edge: edge, crv3d: tupList.ElementAt(counter).Crv3d, crv2d: tupList.ElementAt(counter).Crv2d, faceindex: K, Counter: counter, LoopIndex: i, EdgeIndex: EdgeIndex);
+                            //tupwithfaces.Add(new Tuple<Edge, IGeometricSegment, TKGD2.Curves.IGeometricSegment, int>(tup.ElementAt(counter).Item1, tup.ElementAt(counter).Item2, tup.ElementAt(counter).Item3, K));
+                            tupwithfaces.Add(mytup);
+                            j++;
+                            counter++;
                         }
 
-                        var mytup = (Edge: edge, crv3d: tupList.ElementAt(counter).Crv3d, crv2d: tupList.ElementAt(counter).Crv2d, faceindex: K, Counter: counter, LoopIndex: i, EdgeIndex: EdgeIndex);
-                        //tupwithfaces.Add(new Tuple<Edge, IGeometricSegment, TKGD2.Curves.IGeometricSegment, int>(tup.ElementAt(counter).Item1, tup.ElementAt(counter).Item2, tup.ElementAt(counter).Item3, K));
-                        tupwithfaces.Add(mytup);
-                        j++;
-                        counter++;
+
                     }
                     i++;
                 }
@@ -876,7 +945,7 @@ namespace Objects.Converter.TopSolid
             foreach (var t in tupforTrims)
             {
                 bsCrv3d = t.Crv3d.GetOrientedCurve().Curve.GetBSplineCurve(false, false);
-                spcklBrep.Curve3D.Add(CurveToSpeckle(bsCrv3d, u));
+                spcklBrep.Curve3D.Add(BSplineCurveToSpeckle(bsCrv3d, u));
             }
 
             //Add 2D curves
@@ -1010,6 +1079,9 @@ namespace Objects.Converter.TopSolid
             tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
             ShapeList shape = BrepToShapeList(brep, tol);
 
+            FolderOperation folderOperation = new FolderOperation(doc, 0);
+            //folderOperation.Name = $"Speckle creation : {brep.GetId()}";
+            folderOperation.Create();
 
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
@@ -1021,7 +1093,7 @@ namespace Objects.Converter.TopSolid
                 ShapeEntity se = new ShapeEntity(doc, 0);
                 //se.Name = $"brep : {brep.GetId()}";
                 se.Geometry = ts;
-                se.Parent = shapesCreation;
+                //se.Parent = shapesCreation;
                 //se.Create(doc.ShapesFolderEntity);
                 shapesCreation.AddChildEntity(se);
                 shapesCreation.CanDeleteFromChild(se);
@@ -1029,13 +1101,14 @@ namespace Objects.Converter.TopSolid
 
             if (shape.Count == 1)
             {
-                shapesCreation.Create();
+                shapesCreation.Create(folderOperation);
                 //UndoSequence.End();
                 return shape[0];
             }
 
 
-            shapesCreation.Owner = sewOperation;
+            //shapesCreation.Owner = sewOperation;
+            //shapesCreation.Create(folderOperation);
             //shapesCreation.Create();
 
             if (shapesCreation.ChildrenEntities.Count() != 0)
@@ -1060,7 +1133,8 @@ namespace Objects.Converter.TopSolid
             //{
             //    sewOperation.Owner = op;
             //}
-            sewOperation.Create();
+            sewOperation.Create(folderOperation);
+            
 
             //Hides other shapes when successfull, otherwise keep them shown
             bool isInvalid = sewOperation.IsInvalid;

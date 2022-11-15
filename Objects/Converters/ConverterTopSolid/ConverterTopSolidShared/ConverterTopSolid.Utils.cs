@@ -47,7 +47,7 @@ namespace Objects.Converter.TopSolid
                 GeometricDocument Doc = TsApp.CurrentDocument as ModelingDocument;
 
                 if (string.IsNullOrEmpty(_modelUnits))
-                    _modelUnits = UnitToSpeckle(Doc.LengthUnit);
+                    _modelUnits = UnitToSpeckle(LengthUnits.Meter);
                 return _modelUnits;
             }
         }
