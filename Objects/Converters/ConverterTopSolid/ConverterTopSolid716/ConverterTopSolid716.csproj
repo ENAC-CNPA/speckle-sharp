@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy /Y /S &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(AppData)\Speckle\Kits\Objects\&quot;" />
+    <Exec Command="xcopy /Y /S &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(AppData)\Speckle\Kits\Objects\&quot;&#xD;&#xA;xcopy /Y /S &quot;$(TargetDir)\Objects.dll&quot; &quot;$(AppData)\Speckle\Kits\Objects\&quot;" />
   </Target>
 
   <ItemGroup>
@@ -43,69 +43,73 @@
   <ItemGroup>
     <Reference Include="TopSolid.Cad.Design.DB">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D3.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Meshes">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D3.Meshes.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Modeling">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D3.Modeling.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Shapes">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D3.Shapes.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Sketches">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D3.Sketches.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D2.Curves">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D2.Curves.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D2.Sketches">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D2.Sketches.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Curves">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Curves.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Shapes">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Sketches">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Sketches.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Surfaces">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Surfaces.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.GR">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.GR.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.SX">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.TX">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.UI">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.UI.dll</HintPath>
-      <Private>false</Private>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
 
