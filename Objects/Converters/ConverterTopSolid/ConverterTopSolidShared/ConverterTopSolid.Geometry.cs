@@ -1102,7 +1102,7 @@ namespace Objects.Converter.TopSolid
             if (shape.Count == 1)
             {
                 shapesCreation.Create(folderOperation);
-                //UndoSequence.End();
+           
                 return shape[0];
             }
 
