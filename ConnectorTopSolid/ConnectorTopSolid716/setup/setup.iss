@@ -8,6 +8,7 @@
 #define AppName "ConnectorTopSolid"
 #define Guid "{79A9EAFE-A578-4C98-8871-0D743CF83FDA}"
 #define SrcFolder "C:\Sources\Topsolid 7.16\Release x64"
+#define SpeckleSrcFolder "Sources\Speckle"
 #define IconPath "\ContextMenu.Item.ico"
 #define ServerRes "res://Services"
 #define UpdateType "Services"
@@ -153,6 +154,13 @@ Source: "{#SrcFolder}\x64\libHarfBuzzSharp.so"; DestDir: "{code:GetTopDir}\bin\x
 Source: "{#SrcFolder}\x64\libSkiaSharp.dll"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\libSkiaSharp.so"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\SQLite.Interop.dll"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+
+; Speckle AppData files : %appdata%\Roaming\Speckle
+Source: "{#SpeckleSrcFolder}\Accounts.db"; DestDir: "{userappdata}\Speckle"; Flags: ignoreversion;
+Source: "{#SpeckleSrcFolder}\Config.db"; DestDir: "{userappdata}\Speckle"; Flags: ignoreversion;
+Source: "{#SpeckleSrcFolder}\Data.db"; DestDir: "{userappdata}\Speckle"; Flags: ignoreversion;
+Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.Converter.TopSolid716.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
+Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
 
 
 
