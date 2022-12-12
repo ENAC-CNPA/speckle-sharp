@@ -8,7 +8,7 @@ namespace Speckle.ConnectorTopSolid.AddIn
 	/// <summary>
 	/// Represents the TopSolid add-in.
 	/// </summary>
-	[Guid("A2FF2D66-4E58-4F0B-91DE-0F1D480DCFDB")]
+	[Guid("C534F186-FC35-4B91-8B91-ECF71942011F")]
     public class AddIn : TopSolid.Kernel.TX.AddIns.AddIn
 	{
 		// Properties:
