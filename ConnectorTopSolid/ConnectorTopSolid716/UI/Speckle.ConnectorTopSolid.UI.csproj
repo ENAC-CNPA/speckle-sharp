@@ -34,7 +34,7 @@
     <WarningLevel>2</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>..\..\..\Topsolid 7.16\Release x64\</OutputPath>
+    <OutputPath>..\..\..\..\Topsolid 7.16\Release x64\</OutputPath>
     <DocumentationFile>
     </DocumentationFile>
     <PlatformTarget>x64</PlatformTarget>
@@ -201,7 +201,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="ContextMenu.Item.ico" />
+    <EmbeddedResource Include="ContextMenu.Item.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\ConnectorTopSolid\UI\app.config">
@@ -243,8 +245,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)obj\$(platform)\$(ConfigurationName)\Speckle.ConnectorTopSolid.UI.dll" "$(ProjectDir)..\setup\Sources\Speckle.ConnectorTopSolid.UI.dll"
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

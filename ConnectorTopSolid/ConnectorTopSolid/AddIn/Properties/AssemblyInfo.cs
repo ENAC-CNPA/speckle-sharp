@@ -16,7 +16,7 @@ using TopSolid.Kernel.SX;
 [assembly: AssemblyCulture("")]
 
 //[assembly: Guid("7EE9AFF9-7982-4633-A0ED-58BDC960CA9F")] <<<< OLD Guid --- NEW Guid >>>> //[Guid("A2FF2D66-4E58-4F0B-91DE-0F1D480DCFDB")]
-[assembly: Guid("A2FF2D66-4E58-4F0B-91DE-0F1D480DCFDB")]
+[assembly: Guid("C534F186-FC35-4B91-8B91-ECF71942011F")]
 
 // Version information for an assembly consists of the following four values:
 //

@@ -31,7 +31,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>..\..\..\Topsolid 7.16\Release x64\</OutputPath>
+    <OutputPath>..\..\..\..\Topsolid 7.16\Release x64\</OutputPath>
     <PlatformTarget>x64</PlatformTarget>
     <NoWarn>1607</NoWarn>
     <DefineConstants>TRACE;TOPSOLID716</DefineConstants>
@@ -149,8 +149,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)obj\$(platform)\$(ConfigurationName)\Speckle.ConnectorTopSolid.DB.dll" "$(ProjectDir)..\setup\Sources\Speckle.ConnectorTopSolid.DB.dll"
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

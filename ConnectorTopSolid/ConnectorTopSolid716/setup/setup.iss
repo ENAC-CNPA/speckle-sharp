@@ -7,8 +7,8 @@
 #define Project "Speckle"
 #define AppName "ConnectorTopSolid"
 #define Guid "{79A9EAFE-A578-4C98-8871-0D743CF83FDA}"
-#define SrcFolder "C:\Sources\Speckle.TopSolid\ConnectorTopSolid716\setup\Sources"
-#define IconPath "C:\Sources\Speckle.TopSolid\ConnectorTopSolid716\UI\ContextMenu.Item.ico"
+#define SrcFolder "C:\Sources\Topsolid 7.16\Release x64"
+#define IconPath "\ContextMenu.Item.ico"
 #define ServerRes "res://Services"
 #define UpdateType "Services"
 
@@ -31,9 +31,9 @@ AppPublisherURL={#WebSite}
 AppSupportURL={#WebSite}
 AppUpdatesURL={#WebSite}
 CreateAppDir=no
-OutputDir=Binaries
+OutputDir=../../../../Speckle.TopSolid/Binaries
 OutputBaseFilename={#Project}_{#AppVerName_}_Setup
-SetupIconFile={#IconPath}
+SetupIconFile={#SrcFolder}{#IconPath}
 UninstallDisplayIcon={code:GetTopDir}\bin\topsolid.exe
 Compression=lzma
 SolidCompression=yes

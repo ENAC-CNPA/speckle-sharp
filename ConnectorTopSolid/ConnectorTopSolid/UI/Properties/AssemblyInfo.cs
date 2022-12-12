@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 // General Information about an assembly is controlled through the following 
@@ -24,5 +25,4 @@ using System.Runtime.CompilerServices;
 // [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyVersion(Speckle.ConnectorTopSolid.DB.Version.CurrentAssemblyVersionString)]
 [assembly: AssemblyInformationalVersion(Speckle.ConnectorTopSolid.DB.Version.CurrentAssemblyVersionString)]
-
-
+[assembly: Guid("57660544-CC67-4491-AFB0-EE6C2ACD7521")]

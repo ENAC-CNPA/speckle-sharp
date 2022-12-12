@@ -79,6 +79,7 @@
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D2.Sketches">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D2.Sketches.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Curves">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Curves.dll</HintPath>
@@ -90,6 +91,7 @@
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Sketches">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Sketches.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Surfaces">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.G.D3.Surfaces.dll</HintPath>
