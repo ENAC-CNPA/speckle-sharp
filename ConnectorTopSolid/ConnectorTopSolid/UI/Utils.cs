@@ -20,14 +20,16 @@ namespace Speckle.ConnectorTopSolid.UI
     {
 
 #if TOPSOLID715
-    public static string VersionedAppName = VersionedHostApplications.TopSolid715;
+    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v715);
     public static string AppName = HostApplications.TopSolid.Name;
     public static string Slug = HostApplications.TopSolid.Slug;
 #elif TOPSOLID716
-        public static string VersionedAppName = VersionedHostApplications.TopSolid716;
-        public static string AppName = HostApplications.TopSolid.Name;
-        public static string Slug = HostApplications.TopSolid.Slug;
+    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v716);
+    public static string AppName = HostApplications.TopSolid.Name;
+    public static string Slug = HostApplications.TopSolid.Slug;
 #endif
+
+
         public static string invalidChars = @"<>/\:;""?*|=,‘";
 
         #region extension methods

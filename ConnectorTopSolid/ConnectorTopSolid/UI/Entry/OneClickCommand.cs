@@ -14,16 +14,16 @@ namespace Speckle.ConnectorTopSolid.UI.Entry
         /// <summary>
         /// Command to send selection to the document stream, or everything if nothing is selected
         /// </summary>
-        public static void SendCommand()
-        {
-            // initialize dui
-            SpeckleTopSolidCommand.CreateOrFocusSpeckle(false);
+        //public static void SendCommand()
+        //{
+        //    // initialize dui
+        //    SpeckleTopSolidCommand.CreateOrFocusSpeckle(false);
 
-            // send
-            var oneClick = new OneClickViewModel(Bindings, FileStream);
-            oneClick.Send();
-            FileStream = oneClick.FileStream;
-        }
+        //    // send
+        //    var oneClick = new OneClickViewModel(Bindings, FileStream);
+        //    oneClick.Send();
+        //    FileStream = oneClick.FileStream;
+        //}
     }
 }
 

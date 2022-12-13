@@ -248,9 +248,9 @@ namespace Objects.Converter.TopSolid
 
         }
 
-        public List<ApplicationPlaceholderObject> SetHostedElements(Base @base, Element host)
+        public List<ApplicationObject> SetHostedElements(Base @base, Element host)
         {
-            var placeholders = new List<ApplicationPlaceholderObject>();
+            var placeholders = new List<ApplicationObject>();
             if (@base["elements"] != null && @base["elements"] is List<Base> elements)
             {
                 CurrentHostElement = host;
@@ -267,13 +267,13 @@ namespace Objects.Converter.TopSolid
                     try
                     {
                         var res = ConvertToNative(obj);
-                        if (res is ApplicationPlaceholderObject apl)
+                        if (res is ApplicationObject apl)
                         {
                             placeholders.Add(apl);
                         }
-                        else if (res is List<ApplicationPlaceholderObject> apls)
+                        else if (res is ApplicationObject apls)
                         {
-                            placeholders.AddRange(apls);
+                            placeholders.Add(apls);
                         }
                     }
                     catch (Exception e)

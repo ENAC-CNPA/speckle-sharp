@@ -21,7 +21,9 @@ using TopSolid.Kernel.DB.D3.Modeling.Documents;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.DB.Layers;
 using TopSolid.Kernel.DB.Operations;
+using TopSolid.Kernel.SX;
 using TopSolid.Kernel.TX.Undo;
+using static DesktopUI2.ViewModels.MappingViewModel;
 using Application = TopSolid.Kernel.UI.Application;
 
 namespace Speckle.ConnectorTopSolid.UI
@@ -166,14 +168,30 @@ namespace Speckle.ConnectorTopSolid.UI
             return new List<MenuItem>();
         }
 
-        public override void SelectClientObjects(string args)
+        public override void SelectClientObjects(List<string> args, bool deselect = false)
         {
             throw new NotImplementedException();
+        }
+
+        public override void ResetDocument()
+        {
+            // TODO!
+        }
+
+        public override async Task<Dictionary<string, List<MappingValue>>> ImportFamilyCommand(Dictionary<string, List<MappingValue>> Mapping)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            return new Dictionary<string, List<MappingValue>>();
         }
 
         #endregion
 
         #region receiving 
+        public override bool CanPreviewReceive => false;
+        public override Task<StreamState> PreviewReceive(StreamState state, ProgressViewModel progress)
+        {
+            return null;
+        }
         public override async Task<StreamState> ReceiveStream(StreamState state, ProgressViewModel progress)
         {
             var kit = KitManager.GetDefaultKit();
@@ -393,7 +411,7 @@ namespace Speckle.ConnectorTopSolid.UI
                 }
                 else
                 {
-                    List<string> props = @base.GetDynamicMembers().ToList();
+                    List<string> props = @base.GetMembers(DynamicBaseMemberType.Dynamic).Keys.ToList();
                     if (@base.GetMembers().ContainsKey("displayValue"))
                         props.Add("displayValue");
                     else if (@base.GetMembers().ContainsKey("displayMesh")) // add display mesh to member list if it exists. this will be deprecated soon
@@ -555,6 +573,16 @@ namespace Speckle.ConnectorTopSolid.UI
             return null;
         }
 
+        /// <summary>
+        /// Previews a send operation
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="progress"></param>
+        /// <returns></returns>
+        public override void PreviewSend(StreamState state, ProgressViewModel progress)
+        {
+            // TODO!
+        }
 
         delegate void SendingDelegate(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, ref int convertedCount);
         private void ConvertSendCommit(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, ref int convertedCount)

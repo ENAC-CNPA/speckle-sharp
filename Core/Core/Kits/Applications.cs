@@ -24,8 +24,9 @@ namespace Speckle.Core.Kits
     vRevit2024,
     vRevit2025,
     v25,
-    v26
-
+    v26,
+    v715,
+    v716
   }
 
 

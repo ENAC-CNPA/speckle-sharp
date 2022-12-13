@@ -42,50 +42,54 @@ using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using TopSolid.Cad.Design.DB;
 using G = TopSolid.Kernel.G;
 using TopSolid.Kernel.G.D3.Sketches;
+using TopSolid.Kernel.DB.D3.Modeling.Documents;
+
+using Application = TopSolid.Kernel.UI.Application;
+
 
 namespace Objects.Converter.TopSolid
 {
     public partial class ConverterTopSolid : ISpeckleConverter
     {
 #if TOPSOLID715
-        public static string TopSolidAppName = VersionedHostApplications.TopSolid715;
+        public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v715);
 #else
-        public static string TopSolidAppName = VersionedHostApplications.TopSolid716;
+        public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v716);
 #endif
-
+       
+        public ConverterTopSolid()
+        {
+            var ver = System.Reflection.Assembly.GetAssembly(typeof(ConverterTopSolid)).GetName().Version;
+        }
 
         #region ISpeckleConverter props
-
         public string Description => "Default Speckle Kit for TopSolid";
         public string Name => nameof(ConverterTopSolid);
         public string Author => "Speckle";
         public string WebsiteOrEmail => "https://speckle.systems";
-
+        public ProgressReport Report { get; private set; } = new ProgressReport();
         public IEnumerable<string> GetServicedApplications() => new string[] { TopSolidAppName };
-
-        public HashSet<Exception> ConversionErrors { get; private set; } = new HashSet<Exception>();
-
+        public ModelingDocument Doc => Application.CurrentDocument as ModelingDocument;
+        public Dictionary<string, string> Settings { get; private set; } = new Dictionary<string, string>();
+   
         #endregion ISpeckleConverter props
 
         public ReceiveMode ReceiveMode { get; set; }
 
-        public List<ApplicationPlaceholderObject> ContextObjects { get; set; } = new List<ApplicationPlaceholderObject>();
+        public List<ApplicationObject> ContextObjects { get; set; } = new List<ApplicationObject>();
 
         public List<int> ConvertedObjectsList { get; set; } = new List<int>();
 
-        public ProgressReport Report { get; private set; } = new ProgressReport();
+        public void SetContextObjects(List<ApplicationObject> objects) => ContextObjects = objects;
 
-        public void SetContextObjects(List<ApplicationPlaceholderObject> objects) => ContextObjects = objects;
-
-        public void SetPreviousContextObjects(List<ApplicationPlaceholderObject> objects) => throw new NotImplementedException();
-
-        public Element CurrentHostElement { get; set; }
-
+        public void SetPreviousContextObjects(List<ApplicationObject> objects) => throw new NotImplementedException();
 
         public void SetContextDocument(object doc)
         {
             // TODO: if documnent init is necessary for TopSolid
         }
+
+        public Element CurrentHostElement { get; set; }
 
         public Base ConvertToSpeckle(object @object)
         {
@@ -298,7 +302,7 @@ namespace Objects.Converter.TopSolid
 
         public void SetConverterSettings(object settings)
         {
-            throw new NotImplementedException();
+            Settings = settings as Dictionary<string, string>;
         }
     }
 }
