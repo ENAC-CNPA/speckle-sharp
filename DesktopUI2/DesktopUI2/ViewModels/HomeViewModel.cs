@@ -1,8 +1,15 @@
-using Avalonia;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Data;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Metadata;
+using Avalonia.Threading;
 using DesktopUI2.Models;
+using DesktopUI2.Views;
 using DesktopUI2.Views.Windows.Dialogs;
+using Material.Icons;
+using Material.Icons.Avalonia;
 using Material.Styles.Themes;
 using Material.Styles.Themes.Base;
 using ReactiveUI;
@@ -18,7 +25,9 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
+using Stream = Speckle.Core.Api.Stream;
 
 namespace DesktopUI2.ViewModels
 {
@@ -47,6 +56,8 @@ namespace DesktopUI2.ViewModels
     public string Version => "v" + Bindings.ConnectorVersion;
     public ReactiveCommand<string, Unit> RemoveSavedStreamCommand { get; }
 
+    private CancellationTokenSource StreamGetCancelTokenSource = null;
+
     private bool _showProgress;
     public bool InProgress
     {
@@ -54,19 +65,16 @@ namespace DesktopUI2.ViewModels
       private set => this.RaiseAndSetIfChanged(ref _showProgress, value);
     }
 
-    private bool _isLoggingIn;
-    public bool IsLoggingIn
-    {
-      get => _isLoggingIn;
-      private set => this.RaiseAndSetIfChanged(ref _isLoggingIn, value);
-    }
 
 
-    private bool _hasUpdate;
-    public bool HasUpdate
+    private ObservableCollection<MenuItemViewModel> _menuItems = new ObservableCollection<MenuItemViewModel>();
+    public ObservableCollection<MenuItemViewModel> MenuItems
     {
-      get => _hasUpdate;
-      private set => this.RaiseAndSetIfChanged(ref _hasUpdate, value);
+      get => _menuItems;
+      private set
+      {
+        this.RaiseAndSetIfChanged(ref _menuItems, value);
+      }
     }
 
     private List<StreamAccountWrapper> _streams;
@@ -79,6 +87,14 @@ namespace DesktopUI2.ViewModels
         this.RaisePropertyChanged("FilteredStreams");
         this.RaisePropertyChanged("HasStreams");
       }
+    }
+
+    private ObservableCollection<NotificationViewModel> _notifications = new ObservableCollection<NotificationViewModel>();
+    public ObservableCollection<NotificationViewModel> Notifications
+    {
+      get => _notifications;
+      private set => this.RaiseAndSetIfChanged(ref _notifications, value);
+
     }
 
     private Filter _selectedFilter = Filter.all;
@@ -146,6 +162,8 @@ namespace DesktopUI2.ViewModels
       }
     }
 
+    private Action streamSearchDebouncer = null;
+
     private string _searchQuery = "";
 
     public string SearchQuery
@@ -154,47 +172,16 @@ namespace DesktopUI2.ViewModels
       set
       {
         this.RaiseAndSetIfChanged(ref _searchQuery, value);
-        GetStreams().ConfigureAwait(false);
-        this.RaisePropertyChanged("StreamsText");
+        if (!string.IsNullOrEmpty(SearchQuery) && SearchQuery.Length <= 2)
+          return;
+        streamSearchDebouncer();
       }
     }
 
-    public StreamAccountWrapper SelectedStream
-    {
-      set
-      {
-        if (value != null)
-        {
-          var streamState = new StreamState(value);
-          OpenStream(streamState);
-        }
-      }
-    }
 
-    private StreamViewModel _selectedSavedStream;
-    public StreamViewModel SelectedSavedStream
-    {
-      set
-      {
-        if (value != null && !value.NoAccess)
-        {
-          try
-          {
-            value.UpdateVisualParentAndInit(HostScreen);
-            MainViewModel.RouterInstance.Navigate.Execute(value);
-            Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Edit" } });
-            _selectedSavedStream = value;
-          }
-          catch (Exception ex)
-          {
-
-          }
-        }
-      }
-    }
-
-    private ObservableCollection<StreamViewModel> _savedStreams = new ObservableCollection<StreamViewModel>();
-    public ObservableCollection<StreamViewModel> SavedStreams
+    private StreamViewModel _selectedSavedStream = null;
+    private List<StreamViewModel> _savedStreams = new List<StreamViewModel>();
+    public List<StreamViewModel> SavedStreams
     {
       get => _savedStreams;
       set
@@ -211,31 +198,23 @@ namespace DesktopUI2.ViewModels
       private set
       {
         this.RaiseAndSetIfChanged(ref _accounts, value);
-        this.RaisePropertyChanged("HasOneAccount");
-        this.RaisePropertyChanged("HasMultipleAccounts");
         this.RaisePropertyChanged("HasAccounts");
         this.RaisePropertyChanged("Avatar");
       }
     }
 
-    public Bitmap Avatar
-    {
-      get => HasAccounts ? Accounts[0].AvatarImage : null;
-    }
-
-    public bool HasOneAccount
-    {
-      get => Accounts.Count == 1;
-    }
-
-    public bool HasMultipleAccounts
-    {
-      get => Accounts.Count > 1;
-    }
-
     public bool HasAccounts
     {
       get => Accounts != null && Accounts.Any();
+    }
+
+    private List<Client> _subscribedClientsStreamAddRemove = new List<Client>();
+
+    private bool _isOffline = false;
+    public bool IsOffline
+    {
+      get => _isOffline;
+      private set => this.RaiseAndSetIfChanged(ref _isOffline, value);
     }
 
     #endregion
@@ -248,18 +227,18 @@ namespace DesktopUI2.ViewModels
         HostScreen = screen;
         RemoveSavedStreamCommand = ReactiveCommand.Create<string>(RemoveSavedStream);
 
-        SavedStreams.CollectionChanged += SavedStreams_CollectionChanged;
-
         Bindings = Locator.Current.GetService<ConnectorBindings>();
-        this.RaisePropertyChanged("SavedStreams");
-        Init();
 
-        var config = ConfigManager.Load();
-        ChangeTheme(config.DarkTheme);
+        Bindings.UpdateSavedStreams = UpdateSavedStreams;
+        Bindings.UpdateSelectedStream = UpdateSelectedStream;
+
+
+
+        streamSearchDebouncer = Utils.Debounce(SearchStreams, 500);
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
     }
 
@@ -271,18 +250,35 @@ namespace DesktopUI2.ViewModels
     {
       try
       {
-        SavedStreams.CollectionChanged -= SavedStreams_CollectionChanged;
-        SavedStreams = new ObservableCollection<StreamViewModel>();
-        streams.ForEach(x => SavedStreams.Add(new StreamViewModel(x, HostScreen, RemoveSavedStreamCommand)));
+        ClearSavedStreams();
+
+        foreach (StreamState stream in streams)
+        {
+          SavedStreams.Add(new StreamViewModel(stream, HostScreen, RemoveSavedStreamCommand));
+        }
+
+        this.RaisePropertyChanged("SavedStreams");
         this.RaisePropertyChanged("HasSavedStreams");
-        SavedStreams.CollectionChanged += SavedStreams_CollectionChanged;
+
+
+        Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Saved Streams Load" }, { "count", streams.Count } });
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
     }
 
+    private void ClearSavedStreams()
+    {
+      //dispose subscriptions!
+      SavedStreams.ForEach(x => x.Dispose());
+      SavedStreams.Clear();
+    }
+
+    /// <summary>
+    /// Binding from host app when the saved stream needs to refresh filters & such
+    /// </summary>
     internal void UpdateSelectedStream()
     {
       try
@@ -292,17 +288,10 @@ namespace DesktopUI2.ViewModels
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
     }
 
-    //write changes to file every time they happen
-    //this is because if there is an active document change we need to swap saved streams and restore them later
-    //even if the doc has not been saved
-    private void SavedStreams_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-    {
-      WriteStreamsToFile();
-    }
 
     internal void WriteStreamsToFile()
     {
@@ -318,49 +307,55 @@ namespace DesktopUI2.ViewModels
         if (savedStream != null)
         {
           savedStream = stream;
-          WriteStreamsToFile();
         }
         //it's a new saved stream
         else
         {
-          //triggers => SavedStreams_CollectionChanged
           SavedStreams.Add(stream);
-
         }
 
+        WriteStreamsToFile();
         this.RaisePropertyChanged("HasSavedStreams");
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
     }
+
 
     private async Task GetStreams()
     {
       try
       {
-        if (!HasAccounts || (!string.IsNullOrEmpty(SearchQuery) && SearchQuery.Length <= 2))
+        if (!HasAccounts)
           return;
 
         InProgress = true;
 
-        Streams = new List<StreamAccountWrapper>();
+        //needed for the search feature
+        StreamGetCancelTokenSource?.Cancel();
+        StreamGetCancelTokenSource = new CancellationTokenSource();
+
+        var streams = new List<StreamAccountWrapper>();
 
         foreach (var account in Accounts)
         {
+          if (StreamGetCancelTokenSource.IsCancellationRequested)
+            return;
+
           try
           {
-            var client = new Client(account.Account);
+            var result = new List<Stream>();
 
             //NO SEARCH
             if (SearchQuery == "")
             {
 
               if (SelectedFilter == Filter.favorite)
-                Streams.AddRange((await client.FavoriteStreamsGet()).Select(x => new StreamAccountWrapper(x, account.Account)));
+                result = await account.Client.FavoriteStreamsGet(StreamGetCancelTokenSource.Token, 25);
               else
-                Streams.AddRange((await client.StreamsGet()).Select(x => new StreamAccountWrapper(x, account.Account)));
+                result = await account.Client.StreamsGet(StreamGetCancelTokenSource.Token, 25);
             }
             //SEARCH
             else
@@ -368,35 +363,133 @@ namespace DesktopUI2.ViewModels
               //do not search favorite streams, too much hassle
               if (SelectedFilter == Filter.favorite)
                 SelectedFilter = Filter.all;
-              Streams.AddRange((await client.StreamSearch(SearchQuery)).Select(x => new StreamAccountWrapper(x, account.Account)));
+              result = await account.Client.StreamSearch(StreamGetCancelTokenSource.Token, SearchQuery, 25);
+            }
+
+            if (StreamGetCancelTokenSource.IsCancellationRequested)
+              return;
+
+            streams.AddRange(result.Select(x => new StreamAccountWrapper(x, account.Account)));
+
+          }
+          catch (Exception e)
+          {
+            if (e.InnerException is System.Threading.Tasks.TaskCanceledException)
+              return;
+            Log.CaptureException(new Exception("Could not fetch streams", e), Sentry.SentryLevel.Error);
+            Dispatcher.UIThread.Post(() =>
+              MainUserControl.NotificationManager.Show(new PopUpNotificationViewModel()
+              {
+                Title = "⚠️ Could not get streams",
+                Message = $"With account {account.Account.userInfo.email} on server {account.Account.serverInfo.url}\n\n",
+                Type = Avalonia.Controls.Notifications.NotificationType.Error
+              }), DispatcherPriority.Background);
+
+          }
+        }
+        if (StreamGetCancelTokenSource.IsCancellationRequested)
+          return;
+
+        Streams = streams.OrderByDescending(x => DateTime.Parse(x.Stream.updatedAt)).ToList();
+
+      }
+      catch (Exception ex)
+      {
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
+      }
+      finally
+      {
+        InProgress = false;
+      }
+    }
+
+    private async Task GetNotifications()
+    {
+      try
+      {
+
+        var hasUpdate = await Helpers.IsConnectorUpdateAvailable(Bindings.GetHostAppName()).ConfigureAwait(false);
+
+        Notifications.Clear();
+
+        if (hasUpdate)
+          Notifications.Add(new NotificationViewModel { Message = "An update for this connector is available, install it now!", Launch = LaunchManagerCommand, Icon = MaterialIconKind.Gift, IconColor = Avalonia.Media.Brushes.Gold });
+
+        foreach (var account in Accounts)
+        {
+          try
+          {
+            var result = await account.Client.GetAllPendingInvites();
+            foreach (var r in result)
+            {
+              Notifications.Add(new NotificationViewModel(r, account.Client.ServerUrl));
             }
 
           }
           catch (Exception e)
           {
-            Dialogs.ShowDialog($"Could not get streams", $"With account {account.Account.userInfo.email} on server {account.Account.serverInfo.url}\n\n" + e.Message, Material.Dialog.Icons.DialogIconKind.Error);
+            if (e.InnerException is System.Threading.Tasks.TaskCanceledException)
+              return;
+            Log.CaptureException(new Exception("Could not fetch invites", e), Sentry.SentryLevel.Error);
           }
         }
-        Streams = Streams.OrderByDescending(x => DateTime.Parse(x.Stream.updatedAt)).ToList();
 
-        InProgress = false;
+
+        this.RaisePropertyChanged(nameof(Notifications));
+
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
+    }
+
+    private async void SearchStreams()
+    {
+      if (await CheckIsOffline())
+        return;
+
+      GetStreams().ConfigureAwait(false);
+      this.RaisePropertyChanged("StreamsText");
+    }
+
+    private async Task<bool> CheckIsOffline()
+    {
+      if (!await Helpers.UserHasInternet())
+      {
+        Dispatcher.UIThread.Post(() =>
+          MainUserControl.NotificationManager.Show(new PopUpNotificationViewModel()
+          {
+            Title = "⚠️ Oh no!",
+            Message = "Could not reach the internet, are you connected?",
+            Type = Avalonia.Controls.Notifications.NotificationType.Error
+          }), DispatcherPriority.Background);
+
+        IsOffline = true;
+      }
+      else
+        IsOffline = false;
+
+      return IsOffline;
 
     }
 
-
-
-    internal async void Init()
+    internal async void Refresh()
     {
       try
       {
+        if (await CheckIsOffline())
+          return;
+
+        //prevent subscriptions from being registered multiple times
+        _subscribedClientsStreamAddRemove.ForEach(x => x.Dispose());
+        _subscribedClientsStreamAddRemove.Clear();
+
         Accounts = AccountManager.GetAccounts().Select(x => new AccountViewModel(x)).ToList();
 
         GetStreams();
+        GetNotifications();
+        GenerateMenuItems();
 
         try
         {
@@ -406,125 +499,172 @@ namespace DesktopUI2.ViewModels
         }
         catch { }
 
+        foreach (var account in Accounts)
+        {
 
-        HasUpdate = await Helpers.IsConnectorUpdateAvailable(Bindings.GetHostAppName());
+          account.Client.SubscribeUserStreamAdded();
+          account.Client.OnUserStreamAdded += Client_OnUserStreamAdded;
+
+          account.Client.SubscribeUserStreamRemoved();
+          account.Client.OnUserStreamRemoved += Client_OnUserStreamRemoved;
+
+          _subscribedClientsStreamAddRemove.Add(account.Client);
+
+        }
+
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
     }
 
-    private void RemoveSavedStream(string id)
+    private void Client_OnUserStreamAdded(object sender, Speckle.Core.Api.SubscriptionModels.StreamInfo e)
+    {
+      Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+      {
+        MainUserControl.NotificationManager.Show(new PopUpNotificationViewModel()
+        {
+          Title = "🥳 You have a new Stream!",
+          Message = e.sharedBy == null ? $"You have created '{e.name}'." : $"'{e.name}' has been shared with you.",
+        }); ;
+      });
+    }
+
+    private void Client_OnUserStreamRemoved(object sender, Speckle.Core.Api.SubscriptionModels.StreamInfo e)
+    {
+      Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+      {
+        var streamName = Streams.FirstOrDefault(x => x.Stream.id == e.id)?.Stream?.name;
+        if (streamName == null)
+          streamName = SavedStreams.FirstOrDefault(x => x.Stream.id == e.id)?.Stream?.name;
+        if (streamName == null)
+          return;
+
+        var svm = MainViewModel.RouterInstance.NavigationStack.Last() as StreamViewModel;
+        if (svm != null && svm.Stream.id == e.id)
+          MainViewModel.GoHome();
+
+        //remove all saved streams matching this id
+        foreach (var stateId in SavedStreams.Where(x => x.Stream.id == e.id).Select(y => y.StreamState.Id).ToList())
+          RemoveSavedStream(stateId);
+
+        GetStreams().ConfigureAwait(false);
+
+
+        MainUserControl.NotificationManager.Show(new PopUpNotificationViewModel()
+        {
+          Title = "❌ Stream removed!",
+          Message = $"'{streamName}' has been deleted or un-shared.",
+        }); ;
+      });
+    }
+
+    private void GenerateMenuItems()
     {
       try
       {
-        var s = SavedStreams.FirstOrDefault(x => x.StreamState.Id == id);
-        if (s != null)
+        MenuItems.Clear();
+        MenuItemViewModel menu;
+
+
+        if (Accounts.Count > 1)
+          menu = new MenuItemViewModel { Header = new MaterialIcon { Kind = MaterialIconKind.AccountMultiple, Foreground = Avalonia.Media.Brushes.White } };
+        else if (Accounts.Count == 1)
+          menu = new MenuItemViewModel { Header = new Image { Width = 28, Height = 28, [!Image.SourceProperty] = new Binding("AvatarImage"), DataContext = Accounts[0], Clip = new EllipseGeometry(new Rect(0, 0, 28, 28)) }, };
+        else
+          menu = new MenuItemViewModel { Header = new MaterialIcon { Kind = MaterialIconKind.AccountWarning, Foreground = Avalonia.Media.Brushes.White } };
+
+        menu.Items = new List<MenuItemViewModel>();
+
+
+
+        foreach (var account in Accounts)
         {
-          SavedStreams.Remove(s);
-          if (s.StreamState.Client != null)
-            Analytics.TrackEvent(s.StreamState.Client.Account, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Remove" } });
+
+          menu.Items.Add(new MenuItemViewModel
+          {
+            Header = account.FullAccountName,
+            //needs a binding to the image as it's lazy loaded
+            Icon = new Image { Width = 20, Height = 20, [!Image.SourceProperty] = new Binding("AvatarImage"), DataContext = account, Clip = new EllipseGeometry(new Rect(0, 0, 20, 20)) },
+            Items = new List<MenuItemViewModel>()
+            {
+              new MenuItemViewModel(OpenProfileCommand, account.Account, "View online", MaterialIconKind.ExternalLink),
+              new MenuItemViewModel(RemoveAccountCommand, account.Account, "Remove account", MaterialIconKind.AccountMinus)
+            }
+          });
         }
 
-        this.RaisePropertyChanged("HasSavedStreams");
+        menu.Items.Add(new MenuItemViewModel(AddAccountCommand, "Add another account", MaterialIconKind.AccountPlus));
+        menu.Items.Add(new MenuItemViewModel(LaunchManagerCommand, "Manage accounts in Manager", MaterialIconKind.AccountCog));
+
+        menu.Items.Add(new MenuItemViewModel(RefreshCommand, "Refresh streams & accounts", MaterialIconKind.Refresh));
+        menu.Items.Add(new MenuItemViewModel(ToggleDarkThemeCommand, "Toggle dark/light theme", MaterialIconKind.SunMoonStars));
+
+#if DEBUG
+        menu.Items.Add(new MenuItemViewModel(TestCommand, "Test stuff", MaterialIconKind.Bomb));
+#endif
+
+        MenuItems.Add(menu);
+
+        this.RaisePropertyChanged("MenuItems");
       }
       catch (Exception ex)
       {
-
+        new SpeckleException("Error generating menu items", ex, true, Sentry.SentryLevel.Error);
       }
     }
 
+    private void RemoveSavedStream(string stateId)
+    {
+      try
+      {
+        var i = SavedStreams.FindIndex(x => x.StreamState.Id == stateId);
+        if (i == -1)
+          return;
+        SavedStreams[i].Dispose();
+        SavedStreams.RemoveAt(i);
 
+        WriteStreamsToFile();
+
+        this.RaisePropertyChanged("SavedStreams");
+        this.RaisePropertyChanged("HasSavedStreams");
+
+        Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Remove" } });
+      }
+      catch (Exception ex)
+      {
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
+      }
+    }
+
+    public async void AddAccountCommand()
+    {
+      await Utils.AddAccountCommand();
+    }
     public async void RemoveAccountCommand(Account account)
     {
       try
       {
         AccountManager.RemoveAccount(account.id);
-        Analytics.TrackEvent(null, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Account Remove" } });
-        Init();
+        Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Account Remove" } });
+        MainViewModel.Instance.NavigateToDefaultScreen();
       }
       catch (Exception ex)
       {
-
+        Log.CaptureException(ex, Sentry.SentryLevel.Error);
       }
     }
 
     public void OpenProfileCommand(Account account)
     {
       Process.Start(new ProcessStartInfo($"{account.serverInfo.url}/profile") { UseShellExecute = true });
-      Analytics.TrackEvent(null, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Account View" } });
+      Analytics.TrackEvent(account, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Account View" } });
     }
 
     public void LaunchManagerCommand()
     {
-      try
-      {
-        string path = "";
-
-        Analytics.TrackEvent(null, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Launch Manager" } });
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-          path = @"/Applications/SpeckleManager.app";
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-          path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "speckle-manager", "SpeckleManager.exe");
-        }
-
-        if (File.Exists(path))
-          Process.Start(path);
-
-        else
-        {
-          Process.Start(new ProcessStartInfo($"https://speckle-releases.netlify.app/") { UseShellExecute = true });
-        }
-      }
-      catch (Exception ex)
-      {
-
-      }
-    }
-    public async void AddAccountCommand()
-    {
-      try
-      {
-        IsLoggingIn = true;
-
-
-        var dialog = new AddAccountDialog(AccountManager.GetDefaultServerUrl());
-        var result = await dialog.ShowDialog<string>();
-
-        if (result != null)
-        {
-          Uri u;
-          if (!Uri.TryCreate(result, UriKind.Absolute, out u))
-            Dialogs.ShowDialog("Error", "Invalid URL", Material.Dialog.Icons.DialogIconKind.Error);
-          else
-          {
-            try
-            {
-              Analytics.TrackEvent(null, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Account Add" } });
-
-              await AccountManager.AddAccount(result);
-              await Task.Delay(1000);
-              Init();
-            }
-            catch (Exception e)
-            {
-              Dialogs.ShowDialog("Something went wrong...", e.Message, Material.Dialog.Icons.DialogIconKind.Error);
-            }
-          }
-        }
-
-        IsLoggingIn = false;
-      }
-      catch (Exception ex)
-      {
-
-      }
+      Utils.LaunchManager();
     }
 
     public void ClearSearchCommand()
@@ -538,27 +678,10 @@ namespace DesktopUI2.ViewModels
       Analytics.TrackEvent(streamAcc.Account, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream View" } });
     }
 
-    public void SendCommand(object parameter)
-    {
-      var streamAcc = parameter as StreamAccountWrapper;
-      var streamState = new StreamState(streamAcc);
-      OpenStream(streamState);
-    }
-
-    public void ReceiveCommand(object parameter)
-    {
-      var streamAcc = parameter as StreamAccountWrapper;
-      var streamState = new StreamState(streamAcc) { IsReceiver = true };
-      OpenStream(streamState);
-    }
-
     public async void NewStreamCommand()
     {
-
       var dialog = new NewStreamDialog(Accounts);
       var result = await dialog.ShowDialog<bool>();
-
-
 
       if (result)
       {
@@ -569,7 +692,7 @@ namespace DesktopUI2.ViewModels
           var stream = await client.StreamGet(streamId);
           var streamState = new StreamState(dialog.Account, stream);
 
-          OpenStream(streamState);
+          MainViewModel.RouterInstance.Navigate.Execute(new StreamViewModel(streamState, HostScreen, RemoveSavedStreamCommand));
 
           Analytics.TrackEvent(dialog.Account, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Create" } });
 
@@ -577,6 +700,7 @@ namespace DesktopUI2.ViewModels
         }
         catch (Exception e)
         {
+          Log.CaptureException(e, Sentry.SentryLevel.Error);
           Dialogs.ShowDialog("Something went wrong...", e.Message, Material.Dialog.Icons.DialogIconKind.Error);
         }
       }
@@ -623,12 +747,13 @@ namespace DesktopUI2.ViewModels
             streamState.BranchName = commit.branchName;
           }
 
-          OpenStream(streamState);
+          MainViewModel.RouterInstance.Navigate.Execute(new StreamViewModel(streamState, HostScreen, RemoveSavedStreamCommand));
 
           Analytics.TrackEvent(account, Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Add From URL" } });
         }
         catch (Exception e)
         {
+          Log.CaptureException(e, Sentry.SentryLevel.Error);
           Dialogs.ShowDialog("Something went wrong...", e.Message, Material.Dialog.Icons.DialogIconKind.Error);
         }
       }
@@ -667,9 +792,41 @@ namespace DesktopUI2.ViewModels
       return !InProgress;
     }
 
-    private void OpenStream(StreamState streamState)
+
+
+    private async void OpenStreamCommand(object streamAccountWrapper)
     {
-      MainViewModel.RouterInstance.Navigate.Execute(new StreamViewModel(streamState, HostScreen, RemoveSavedStreamCommand));
+      if (await CheckIsOffline())
+        return;
+
+      if (streamAccountWrapper != null)
+      {
+        var streamState = new StreamState(streamAccountWrapper as StreamAccountWrapper);
+        MainViewModel.RouterInstance.Navigate.Execute(new StreamViewModel(streamState, HostScreen, RemoveSavedStreamCommand));
+        Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Open" } });
+      }
+    }
+
+
+    private async void OpenSavedStreamCommand(object streamViewModel)
+    {
+      if (await CheckIsOffline())
+        return;
+
+      if (streamViewModel != null && streamViewModel is StreamViewModel svm && !svm.NoAccess)
+      {
+        try
+        {
+          svm.UpdateVisualParentAndInit(HostScreen);
+          MainViewModel.RouterInstance.Navigate.Execute(svm);
+          Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Stream Edit" } });
+          _selectedSavedStream = svm;
+        }
+        catch (Exception ex)
+        {
+          Log.CaptureException(ex, Sentry.SentryLevel.Error);
+        }
+      }
     }
 
     public void ToggleDarkThemeCommand()
@@ -678,43 +835,52 @@ namespace DesktopUI2.ViewModels
       var materialTheme = Application.Current.LocateMaterialTheme<MaterialThemeBase>();
       var isDark = materialTheme.CurrentTheme.GetBaseTheme() == BaseThemeMode.Dark;
 
-      ChangeTheme(isDark);
+      MainViewModel.Instance.ChangeTheme(isDark);
 
       var config = ConfigManager.Load();
       config.DarkTheme = isDark;
       ConfigManager.Save(config);
-
     }
 
-    private void ChangeTheme(bool isDark)
-    {
-
-      if (Application.Current == null)
-        return;
-
-      var materialTheme = Application.Current.LocateMaterialTheme<MaterialThemeBase>();
-      var theme = materialTheme.CurrentTheme;
-
-      if (isDark)
-        theme.SetBaseTheme(Theme.Light);
-      else
-        theme.SetBaseTheme(Theme.Dark);
-
-      materialTheme.CurrentTheme = theme;
-
-
-    }
 
 
     public void RefreshCommand()
     {
       Analytics.TrackEvent(Analytics.Events.DUIAction, new Dictionary<string, object>() { { "name", "Refresh" } });
       ApiUtils.ClearCache();
-      Init();
+      Refresh();
     }
 
+    private void OneClickModeCommand()
+    {
+      var config = ConfigManager.Load();
+      config.OneClickMode = true;
+      ConfigManager.Save(config);
 
+      MainViewModel.Instance.NavigateToDefaultScreen();
+    }
+
+    private void NotificationsCommand()
+    {
+      MainViewModel.RouterInstance.Navigate.Execute(new NotificationsViewModel(HostScreen, Notifications.ToList()));
+    }
+
+    public void TestCommand()
+    {
+      MainUserControl.NotificationManager.Show(new PopUpNotificationViewModel()
+      {
+        Title = "🥳 Account removed",
+        Message = $"The account has been removed from all your Connectors!",
+        Expiration = TimeSpan.Zero,
+        Type = Avalonia.Controls.Notifications.NotificationType.Error
+      });
+
+      //var dialog = new ImportExportAlert();
+      //dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+      //dialog.Show();
+      //dialog.Activate();
+      //dialog.Focus();
+
+    }
   }
-
-
 }

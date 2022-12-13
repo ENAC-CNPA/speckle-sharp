@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -57,13 +58,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia">
-      <Version>0.10.16</Version>
+      <Version>0.10.18</Version>
     </PackageReference>
     <PackageReference Include="Avalonia.Desktop">
-      <Version>0.10.16</Version>
+      <Version>0.10.18</Version>
     </PackageReference>
     <PackageReference Include="Avalonia.ReactiveUI">
-      <Version>0.10.16</Version>
+      <Version>0.10.18</Version>
     </PackageReference>
     <PackageReference Include="MSBuild.AssemblyVersion">
       <Version>1.3.0</Version>
@@ -76,4 +77,22 @@
   </ItemGroup>
   <Import Project="..\ConnectorAutocadCivil\ConnectorAutocadCivilShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+ <!-- POST BUILD EVENTS START -->
+  <PropertyGroup>
+    <IsDesktopBuild Condition="'$(IsDesktopBuild)' == ''">true</IsDesktopBuild>
+  </PropertyGroup>
+  <Target Name="Clean">
+    <RemoveDir Directories="$(TargetDir);$(AppData)\Autodesk\ApplicationPlugins\Speckle2AutoCAD2023" />
+  </Target>
+  <Target Name="AfterBuild">
+    <CallTarget Condition="'$(Configuration)' == 'Debug' AND '$(IsDesktopBuild)' == true" Targets="AfterBuildDebug" />
+  </Target>
+  <Target Name="AfterBuildDebug">
+    <ItemGroup>
+      <SourceDLLs Include="$(TargetDir)\**\*.*" />
+    </ItemGroup>
+    <Copy DestinationFolder="$(AppData)\Autodesk\ApplicationPlugins\Speckle2AutoCAD2023\%(RecursiveDir)" SourceFiles="@(SourceDLLs)" />
+  </Target>
+
+  <!--END-->
 </Project>

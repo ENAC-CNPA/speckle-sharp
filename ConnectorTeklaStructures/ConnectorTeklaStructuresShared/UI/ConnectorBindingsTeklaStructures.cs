@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using DesktopUI2;
 using DesktopUI2.Models;
+using static DesktopUI2.ViewModels.MappingViewModel;
 using Speckle.Core.Models;
 using Speckle.ConnectorTeklaStructures.Util;
 using System.Timers;
@@ -13,6 +14,12 @@ namespace Speckle.ConnectorTeklaStructures.UI
   public partial class ConnectorBindingsTeklaStructures : ConnectorBindings
 
   {
+    public void OpenTeklaStructures()
+    {
+      var streams = GetStreamsInFile();
+      if (UpdateSavedStreams != null)
+        UpdateSavedStreams(streams);
+    }
     public static Model Model { get; set; }
     public List<Exception> Exceptions { get; set; } = new List<Exception>();
     public List<StreamState> DocumentStreams { get; set; } = new List<StreamState>();
@@ -21,7 +28,9 @@ namespace Speckle.ConnectorTeklaStructures.UI
     public ConnectorBindingsTeklaStructures(Model model)
     {
       Model = model;
- 
+
+
+
     }
 
     public override List<ReceiveMode> GetReceiveModes()
@@ -49,6 +58,12 @@ namespace Speckle.ConnectorTeklaStructures.UI
     public override List<string> GetObjectsInView()
     {
       throw new NotImplementedException();
+    }
+
+    public override async System.Threading.Tasks.Task<Dictionary<string, List<MappingValue>>> ImportFamilyCommand(Dictionary<string, List<MappingValue>> Mapping)
+    {
+      await System.Threading.Tasks.Task.Delay(TimeSpan.FromMilliseconds(500));
+      return new Dictionary<string, List<MappingValue>>();
     }
     #endregion
   }

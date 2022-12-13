@@ -54,15 +54,14 @@ namespace Speckle.Core.Models
       return valid;
     }
 
+    // Rule for multiple leading @.
+    private static Regex manyLeadingAtChars = new Regex(@"^@{2,}");
+    // Rule for invalid chars.
+    private static Regex invalidChars = new Regex(@"[\.\/]");
     public bool IsPropNameValid(string name, out string reason)
     {
-      // Regex rules
-      // Rule for multiple leading @.
-      var manyLeadingAtChars = new Regex(@"^@{2,}");
-      // Rule for invalid chars.
-      var invalidChars = new Regex(@"[\.\/]");
       // Existing members
-      var members = GetInstanceMembersNames();
+      //var members = GetInstanceMembersNames();
 
       // TODO: Check for detached/non-detached duplicate names? i.e: '@something' vs 'something'
       // TODO: Instance members will not be overwritten, this may cause issues.
@@ -95,7 +94,7 @@ namespace Speckle.Core.Models
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    [IgnoreTheItemAttribute]
+    [IgnoreTheItem]
     public object this[string key]
     {
       get
@@ -135,7 +134,7 @@ namespace Speckle.Core.Models
         }
         catch (Exception ex)
         {
-          throw new SpeckleException(ex.Message, ex);
+          throw new SpeckleException($"Failed to set value for {GetType().Name}.{prop.Name}", ex);
         }
       }
     }
@@ -146,7 +145,7 @@ namespace Speckle.Core.Models
     {
       if(!propInfoCache.ContainsKey(type))
       {
-        propInfoCache[type] = type.GetProperties(BindingFlags.Instance | BindingFlags.Public).Where(p => p.GetCustomAttribute(typeof(IgnoreTheItemAttribute)) == null).ToList();
+        propInfoCache[type] = type.GetProperties(BindingFlags.Instance | BindingFlags.Public).Where(p => !p.IsDefined(typeof(IgnoreTheItemAttribute), true)).ToList();
       }
     }
 
@@ -154,15 +153,16 @@ namespace Speckle.Core.Models
     /// Gets all of the property names on this class, dynamic or not.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Use `GetMembers(DynamicBaseMemberType.All).Keys` instead")]
     public override IEnumerable<string> GetDynamicMemberNames()
     {
-      var names = new List<string>();
-      foreach (var kvp in properties) names.Add(kvp.Key);
-
-      //var pinfos = GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
       PopulatePropInfoCache(GetType());
       var pinfos = propInfoCache[GetType()];
+      
+      var names = new List<string>(properties.Count + pinfos.Count);
       foreach (var pinfo in pinfos) names.Add(pinfo.Name);
+      foreach (var kvp in properties) names.Add(kvp.Key);
+      
       return names;
     }
 
@@ -170,11 +170,15 @@ namespace Speckle.Core.Models
     /// Gets the names of the defined class properties (typed).
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<string> GetInstanceMembersNames()
+    [Obsolete("Use GetMembers(DynamicBaseMemberType.InstanceAll).Keys instead")]
+    public IEnumerable<string> GetInstanceMembersNames() => GetInstanceMembersNames(GetType());
+    
+    public static IEnumerable<string> GetInstanceMembersNames(Type t)
     {
-      var names = new List<string>();
-      PopulatePropInfoCache(GetType());
-      var pinfos = propInfoCache[GetType()];
+      PopulatePropInfoCache(t);
+      var pinfos = propInfoCache[t];
+      
+      var names = new List<string>(pinfos.Count);
       foreach (var pinfo in pinfos) names.Add(pinfo.Name);
 
       return names;
@@ -184,11 +188,14 @@ namespace Speckle.Core.Models
     /// Gets the defined (typed) properties of this object.
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<PropertyInfo> GetInstanceMembers()
+    public IEnumerable<PropertyInfo> GetInstanceMembers() => GetInstanceMembers(GetType()); 
+    
+    public static IEnumerable<PropertyInfo> GetInstanceMembers(Type t)
     {
-      var names = new List<PropertyInfo>();
-      PopulatePropInfoCache(GetType());
-      var pinfos = propInfoCache[GetType()];
+      PopulatePropInfoCache(t);
+      var pinfos = propInfoCache[t];
+      
+      var names = new List<PropertyInfo>(pinfos.Count);
 
       foreach (var pinfo in pinfos)
         if (pinfo.Name != "Item") names.Add(pinfo);
@@ -200,40 +207,41 @@ namespace Speckle.Core.Models
     /// Gets the names of the typed and dynamic properties that don't have a [SchemaIgnore] attribute.
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<string> GetMemberNames()
-    {
-      var names = new List<string>();
-      foreach (var kvp in properties) names.Add(kvp.Key);
-
-      PopulatePropInfoCache(GetType());
-      var pinfos = propInfoCache[GetType()].Where(x => x.GetCustomAttribute(typeof(SchemaIgnore)) == null
-                    && x.GetCustomAttribute(typeof(ObsoleteAttribute)) == null);
-
-      foreach (var pinfo in pinfos) names.Add(pinfo.Name);
-
-      return names;
-    }
-
+    [Obsolete("Use GetMembers().Keys instead")]
+    public IEnumerable<string> GetMemberNames() => GetMembers().Keys;
+    
     /// <summary>
-    ///  Gets the typed and dynamic properties that don't have a [SchemaIgnore] attribute.
+    ///  Gets the typed and dynamic properties. 
     /// </summary>
-    /// <returns></returns>
-    public Dictionary<string, object> GetMembers()
+    /// <param name="includeMembers">Specifies which members should be included in the resulting dictionary. Can be concatenated with "|"</param>
+    /// <returns>A dictionary containing the key's and values of the object.</returns>
+    public Dictionary<string, object> GetMembers(DynamicBaseMemberType includeMembers = DynamicBaseMemberType.Instance | DynamicBaseMemberType.Dynamic)
     {
-      //typed members
+      // Initialize an empty dict
       var dic = new Dictionary<string, object>();
 
-      PopulatePropInfoCache(GetType());
-      var pinfos = propInfoCache[GetType()].Where(x => x.GetCustomAttribute(typeof(SchemaIgnore)) == null
-                    && x.GetCustomAttribute(typeof(ObsoleteAttribute)) == null);
+      // Add dynamic members
+      if (includeMembers.HasFlag(DynamicBaseMemberType.Dynamic))
+        dic = new Dictionary<string, object>(properties);
 
+      if (includeMembers.HasFlag(DynamicBaseMemberType.Instance))
+      {
+        PopulatePropInfoCache(GetType());
+        var pinfos = propInfoCache[GetType()].Where(x =>
+        {
+          var hasIgnored = x.IsDefined(typeof(SchemaIgnore), true);
+          var hasObsolete = x.IsDefined(typeof(ObsoleteAttribute), true);
+          
+          // If obsolete is false and prop has obsolete attr
+          // OR
+          // If schemaIgnored is true and prop has schemaIgnore attr
+          return !((!includeMembers.HasFlag(DynamicBaseMemberType.SchemaIgnored) && hasIgnored) ||
+                   (!includeMembers.HasFlag(DynamicBaseMemberType.Obsolete) && hasObsolete));
+        });
+        foreach (var pi in pinfos)
+          dic.Add(pi.Name, pi.GetValue(this));
+      }
 
-      foreach (var pi in pinfos)
-        dic.Add(pi.Name, pi.GetValue(this));
-
-      //dynamic members
-      foreach (var kvp in properties)
-        dic.Add(kvp.Key, kvp.Value);
       return dic;
     }
 
@@ -241,17 +249,11 @@ namespace Speckle.Core.Models
     /// Gets the dynamically added property names only.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Use GetMembers(DynamicBaseMemberType.Dynamic).Keys instead")]
     public IEnumerable<string> GetDynamicMembers()
     {
-      foreach (var kvp in properties)
-        yield return kvp.Key;
+      return properties.Keys;
     }
-
-    /// <summary>
-    /// Currently we assume having only 1 property means we auto-wrap it around a DynamicBase, therefore is a wrapper. This might change in the future.
-    /// </summary>
-    public bool IsWrapper() => properties.Count == 1;
-
   }
 
   /// <summary>

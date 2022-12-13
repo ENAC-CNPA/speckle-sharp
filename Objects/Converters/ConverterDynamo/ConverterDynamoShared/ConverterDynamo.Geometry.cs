@@ -83,9 +83,9 @@ namespace Objects.Converter.Dynamo
     /// </summary>
     /// <param name="points"></param>
     /// <returns></returns>
-    public double[] PointListToFlatArray(IEnumerable<DS.Point> points)
+    public List<double> PointListToFlatList(IEnumerable<DS.Point> points)
     {
-      return points.SelectMany(pt => PointToArray(pt)).ToArray();
+      return points.SelectMany(pt => PointToArray(pt)).ToList();
     }
 
     public double[] PointToArray(DS.Point pt)
@@ -195,7 +195,7 @@ namespace Objects.Converter.Dynamo
     {
       var u = units ?? ModelUnits;
       var l = new Line(
-        PointListToFlatArray(new DS.Point[] { line.StartPoint, line.EndPoint }),
+        PointListToFlatList(new DS.Point[] { line.StartPoint, line.EndPoint }),
         u);
 
       CopyProperties(l, line);
@@ -234,7 +234,7 @@ namespace Objects.Converter.Dynamo
     public Polyline PolylineToSpeckle(DS.Polygon polygon, string units = null)
     {
       var u = units ?? ModelUnits;
-      var poly = new Polyline(PointListToFlatArray(polygon.Points), u)
+      var poly = new Polyline(PointListToFlatList(polygon.Points), u)
       {
         closed = true,
       };
@@ -325,6 +325,7 @@ namespace Objects.Converter.Dynamo
       var u = units ?? ModelUnits;
       using (DS.Vector xAxis = DS.Vector.ByTwoPoints(a.CenterPoint, a.StartPoint))
       using (DS.Plane basePlane = DS.Plane.ByOriginNormalXAxis(a.CenterPoint, a.Normal, xAxis))
+      using (DS.Point midPoint = a.PointAtParameter(0.5))
       {
         var arc = new Arc(
           PlaneToSpeckle(basePlane, u),
@@ -334,11 +335,15 @@ namespace Objects.Converter.Dynamo
           a.SweepAngle.ToRadians(),
           u
         );
-
+        arc.startPoint = PointToSpeckle(a.StartPoint);
+        arc.midPoint = PointToSpeckle(midPoint);
+        arc.endPoint = PointToSpeckle(a.EndPoint);
+        
         CopyProperties(arc, a);
+        
         arc.length = a.Length;
-
         arc.bbox = BoxToSpeckle(a.BoundingBox);
+        
         return arc;
       }
     }
@@ -350,17 +355,8 @@ namespace Objects.Converter.Dynamo
     /// <returns></returns>
     public DS.Arc ArcToNative(Arc a)
     {
-      using (DS.Plane basePlane = PlaneToNative(a.plane))
-      using (DS.Point startPoint = (DS.Point)basePlane.Origin.Translate(basePlane.XAxis, ScaleToNative(a.radius.Value, a.units)))
-      {
-        var arc = DS.Arc.ByCenterPointStartPointSweepAngle(
-          basePlane.Origin,
-          startPoint,
-          a.angleRadians.ToDegrees(),
-          basePlane.Normal
-        );
+      var arc = DS.Arc.ByThreePoints(PointToNative(a.startPoint), PointToNative(a.midPoint), PointToNative(a.endPoint));
         return arc.SetDynamoProperties<DS.Arc>(GetDynamicMembersFromBase(a));
-      }
     }
 
     /// <summary>
@@ -617,7 +613,7 @@ namespace Objects.Converter.Dynamo
         // SpeckleCurve DisplayValue
         DS.Curve[] curves = curve.ApproximateWithArcAndLineSegments();
         List<double> polylineCoordinates =
-          curves.SelectMany(c => PointListToFlatArray(new DS.Point[2] { c.StartPoint, c.EndPoint })).ToList();
+          curves.SelectMany(c => PointListToFlatList(new DS.Point[2] { c.StartPoint, c.EndPoint })).ToList();
         polylineCoordinates.AddRange(PointToArray(curves.Last().EndPoint));
         curves.ForEach(c => c.Dispose());
 
@@ -626,7 +622,7 @@ namespace Objects.Converter.Dynamo
 
         Curve spkCurve = new Curve(displayValue, u);
         spkCurve.weights = curve.Weights().ToList();
-        spkCurve.points = PointListToFlatArray(curve.ControlPoints()).ToList();
+        spkCurve.points = PointListToFlatList(curve.ControlPoints());
         spkCurve.knots = dsKnots;
         spkCurve.degree = curve.Degree;
         spkCurve.periodic = curve.IsPeriodic;
@@ -663,7 +659,7 @@ namespace Objects.Converter.Dynamo
         // display value
         DS.Curve[] curves = helix.ApproximateWithArcAndLineSegments();
         List<double> polylineCoordinates =
-          curves.SelectMany(c => PointListToFlatArray(new DS.Point[2] { c.StartPoint, c.EndPoint })).ToList();
+          curves.SelectMany(c => PointListToFlatList(new DS.Point[2] { c.StartPoint, c.EndPoint })).ToList();
         polylineCoordinates.AddRange(PointToArray(curves.Last().EndPoint));
         curves.ForEach(c => c.Dispose());
         Polyline displayValue = new Polyline(polylineCoordinates, u);
@@ -692,9 +688,9 @@ namespace Objects.Converter.Dynamo
 
     public DS.Mesh BrepToNative(Brep brep)
     {
-      if (brep.displayMesh != null)
+      if (brep.displayValue != null)
       {
-        var meshToNative = MeshToNative(brep.displayMesh);
+        var meshToNative = MeshToNative(brep.displayValue[0]);
         return meshToNative;
       }
 
@@ -705,23 +701,23 @@ namespace Objects.Converter.Dynamo
     public Mesh MeshToSpeckle(DS.Mesh mesh, string units = null)
     {
       var u = units ?? ModelUnits;
-      var vertices = PointListToFlatArray(mesh.VertexPositions);
+      var vertices = PointListToFlatList(mesh.VertexPositions);
       var defaultColour = System.Drawing.Color.FromArgb(255, 100, 100, 100);
 
       var faces = mesh.FaceIndices.SelectMany(f =>
         {
           if (f.Count == 4)
           {
-            return new int[5] { 1, (int)f.A, (int)f.B, (int)f.C, (int)f.D };
+            return new int[] { 4, (int)f.A, (int)f.B, (int)f.C, (int)f.D };
           }
           else
           {
-            return new int[4] { 0, (int)f.A, (int)f.B, (int)f.C };
+            return new int[] { 3, (int)f.A, (int)f.B, (int)f.C };
           }
         })
-        .ToArray();
-
-      var colors = Enumerable.Repeat(defaultColour.ToArgb(), vertices.Count()).ToArray();
+        .ToList();
+      
+      //var colors = Enumerable.Repeat(defaultColour.ToArgb(), mesh.VertexPositions.Length).ToList();
       //double[] textureCoords;
 
       //if (SpeckleRhinoConverter.AddMeshTextureCoordinates)
@@ -730,7 +726,7 @@ namespace Objects.Converter.Dynamo
       //  return new SpeckleMesh(vertices, faces, Colors, textureCoords, properties: mesh.UserDictionary.ToSpeckle());
       //}
 
-      var speckleMesh = new Mesh(vertices, faces, colors, units: u);
+      var speckleMesh = new Mesh(vertices, faces, units: u);
 
       CopyProperties(speckleMesh, mesh);
 
@@ -761,9 +757,12 @@ namespace Objects.Converter.Dynamo
 
     public DS.Mesh MeshToNative(Mesh mesh)
     {
+      // Triangulate the mesh's NGons, since they're not supported in Dynamo
+      mesh.TriangulateMesh(true);
+      
       var points = ArrayToPointList(mesh.vertices, mesh.units);
-      List<IndexGroup> faces = new List<IndexGroup>();
-      int i = 0;
+      var faces = new List<IndexGroup>();
+      var i = 0;
       var faceIndices = new List<int>(mesh.faces);
       while (i < faceIndices.Count)
       {
@@ -784,11 +783,9 @@ namespace Objects.Converter.Dynamo
         }
         else
         {
-          // Ngon!
-          var triangleFaces = MeshTriangulationHelper.TriangulateFace(i, mesh);
-          faceIndices.AddRange(triangleFaces);
+          var fcount = faceIndices[i];
+          i += fcount + 1;
         }
-
       }
 
       var dsMesh = DS.Mesh.ByPointsFaceIndices(points, faces);

@@ -2,10 +2,20 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
-using DesktopUI2.ViewModels;
+using Avalonia;
+using Avalonia.ReactiveUI;
+using ConnectorRhinoShared;
+using DesktopUI2.ViewModels.MappingTool;
+using DesktopUI2.Views;
 using Rhino;
 using Rhino.PlugIns;
+using Rhino.Runtime;
+using Speckle.Core.Api;
+using Speckle.Core.Models.Extensions;
+
+[assembly: Guid("8dd5f30b-a13d-4a24-abdc-3e05c8c87143")]
 
 namespace SpeckleRhino
 {
@@ -18,36 +28,82 @@ namespace SpeckleRhino
     private static string SpeckleKey = "speckle2";
 
     public ConnectorBindingsRhino Bindings { get; private set; }
-    public MainViewModel ViewModel { get; private set; }
+    public MappingBindingsRhino MappingBindings { get; private set; }
 
-    private bool _initialized;
+    private bool SelectionExpired = false;
+    internal bool ExistingSchemaLogExpired = false;
+
+
+    public static AppBuilder appBuilder;
 
     public SpeckleRhinoConnectorPlugin()
     {
       Instance = this;
     }
 
-    internal void Init()
+    public void Init()
     {
       try
       {
-        if (_initialized)
+        if (appBuilder != null)
           return;
 
-        SpeckleCommand.InitAvalonia();
+#if MAC
+        InitAvaloniaMac();
+#else
+        appBuilder = BuildAvaloniaApp().SetupWithoutStarting();
+#endif
+
+
         Bindings = new ConnectorBindingsRhino();
-        ViewModel = new MainViewModel(Bindings);
+        MappingBindings = new MappingBindingsRhino();
 
         RhinoDoc.BeginOpenDocument += RhinoDoc_BeginOpenDocument;
         RhinoDoc.EndOpenDocument += RhinoDoc_EndOpenDocument;
 
-        _initialized = true;
+        //Mapping tool selection
+        RhinoDoc.ActiveDocumentChanged += RhinoDoc_ActiveDocumentChanged;
+        RhinoDoc.SelectObjects += (sender, e) => SelectionExpired = true;
+        RhinoDoc.DeselectObjects += (sender, e) => SelectionExpired = true;
+        RhinoDoc.DeselectAllObjects += (sender, e) => SelectionExpired = true;
+        RhinoDoc.DeleteRhinoObject += (sender, e) => ExistingSchemaLogExpired = true;
+        RhinoApp.Idle += RhinoApp_Idle;
       }
       catch (Exception ex)
       {
-
+        RhinoApp.CommandLineOut.WriteLine($"Speckle error — {ex.ToFormattedString()}");
       }
 
+    }
+
+
+    public static void InitAvaloniaMac()
+    {
+      var rhinoMenuPtr = MacOSHelpers.MainMenu;
+      var rhinoDelegate = MacOSHelpers.AppDelegate;
+      var titlePtr = MacOSHelpers.MenuItemGetTitle(MacOSHelpers.MenuItemGetSubmenu(MacOSHelpers.MenuItemAt(rhinoMenuPtr, 0)));
+
+      appBuilder = BuildAvaloniaApp().SetupWithoutStarting();
+
+      // don't use Avalonia's AppDelegate.. not sure what consequences this might have to Avalonia functionality
+      MacOSHelpers.AppDelegate = rhinoDelegate;
+      MacOSHelpers.MainMenu = rhinoMenuPtr;
+      MacOSHelpers.MenuItemSetTitle(MacOSHelpers.MenuItemGetSubmenu(MacOSHelpers.MenuItemAt(rhinoMenuPtr, 0)), MacOSHelpers.NewObject("NSString"));
+      MacOSHelpers.MenuItemSetTitle(MacOSHelpers.MenuItemGetSubmenu(MacOSHelpers.MenuItemAt(rhinoMenuPtr, 0)), titlePtr);
+
+    }
+
+    public static AppBuilder BuildAvaloniaApp()
+    {
+      return AppBuilder.Configure<DesktopUI2.App>()
+      .UsePlatformDetect()
+      .With(new X11PlatformOptions { UseGpu = false })
+      .With(new AvaloniaNativePlatformOptions { UseGpu = false, UseDeferredRendering = true })
+      .With(new MacOSPlatformOptions { ShowInDock = false, DisableDefaultApplicationMenuItems = true, DisableNativeMenus = true })
+      .With(new Win32PlatformOptions { AllowEglInitialization = true, EnableMultitouch = false })
+      .With(new SkiaOptions { MaxGpuResourceSizeBytes = 8096000 })
+      .LogToTrace()
+      .UseReactiveUI();
     }
 
     private void RhinoDoc_EndOpenDocument(object sender, DocumentOpenEventArgs e)
@@ -69,9 +125,16 @@ namespace SpeckleRhino
       if (Bindings.GetStreamsInFile().Count > 0)
       {
 #if MAC
-      SpeckleCommand.CreateOrFocusSpeckle();
+        try
+        {
+          SpeckleCommandMac.CreateOrFocusSpeckle();
+        } catch (Exception ex)
+        {
+          RhinoApp.CommandLineOut.WriteLine($"Speckle error - {ex.ToFormattedString()}");
+        }
 #else
-        Rhino.UI.Panels.OpenPanel(typeof(Panel).GUID);
+        Rhino.UI.Panels.OpenPanel(typeof(DuiPanel).GUID);
+        Rhino.UI.Panels.OpenPanel(typeof(MappingsPanel).GUID);
 #endif
 
       }
@@ -79,9 +142,6 @@ namespace SpeckleRhino
 
     private void RhinoDoc_BeginOpenDocument(object sender, DocumentOpenEventArgs e)
     {
-      //new document => new view model (used by the panel only)
-      ViewModel = new MainViewModel(Bindings);
-
       if (e.Merge) // this is a paste or import event
       {
         // get existing streams in doc before a paste or import operation to use for cleanup
@@ -94,15 +154,29 @@ namespace SpeckleRhino
     /// </summary>
     protected override LoadReturnCode OnLoad(ref string errorMessage)
     {
+      string processName = "";
+      System.Version processVersion = null;
+      HostUtils.GetCurrentProcessInfo(out processName, out processVersion);
+
+      // The user is probably using Rhino Inside and Avalonia was already initialized there  or will be initialized later and will throw an error
+      // https://speckle.community/t/revit-command-failure-for-external-command/3489/27
+      if (!processName.Equals("rhino", StringComparison.InvariantCultureIgnoreCase))
+      {
+
+        errorMessage = "Speckle does not currently support Rhino.Inside";
+        RhinoApp.CommandLineOut.WriteLine(errorMessage);
+        return LoadReturnCode.ErrorNoDialog;
+      }
+
+
       Init();
 
 #if !MAC
-      System.Type panelType = typeof(Panel);
-      // Register my custom panel class type with Rhino, the custom panel my be display
-      // by running the MyOpenPanel command and hidden by running the MyClosePanel command.
-      // You can also include the custom panel in any existing panel group by simply right
-      // clicking one a panel tab and checking or un-checking the "MyPane" option.
+      System.Type panelType = typeof(DuiPanel);
       Rhino.UI.Panels.RegisterPanel(this, panelType, "Speckle", Resources.icon);
+
+      System.Type mappingsPanelType = typeof(MappingsPanel);
+      Rhino.UI.Panels.RegisterPanel(this, mappingsPanelType, "Speckle Mapping Tool", Resources.icon);
 #endif
       // Get the version number of our plugin, that was last used, from our settings file.
       var plugin_version = Settings.GetString("PlugInVersion", null);
@@ -115,7 +189,7 @@ namespace SpeckleRhino
         {
           // Build a path to the user's staged RUI file.
           var sb = new StringBuilder();
-          sb.Append(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+          sb.Append(Helpers.InstallApplicationDataPath);
 #if RHINO6
           sb.Append(@"\McNeel\Rhinoceros\6.0\UI\Plug-ins\");
 #elif RHINO7
@@ -142,7 +216,59 @@ namespace SpeckleRhino
 
       return LoadReturnCode.Success;
     }
-
     public override PlugInLoadTime LoadTime => PlugInLoadTime.AtStartup;
+
+
+    private void RhinoApp_Idle(object sender, EventArgs e)
+    {
+
+      //do not hog rhino, to be refractored a bit
+      if (MappingsViewModel.Instance == null)
+        return;
+
+#if !MAC
+      if (!Rhino.UI.Panels.GetOpenPanelIds().Contains(typeof(MappingsPanel).GUID))
+        return;
+#else
+      if (SpeckleMappingsCommandMac.MainWindow == null || !SpeckleMappingsCommandMac.MainWindow.IsVisible)
+        return;
+#endif
+
+      try
+      {
+        if (SelectionExpired && MappingBindings.UpdateSelection != null)
+        {
+          SelectionExpired = false;
+          MappingBindings.UpdateSelection(MappingBindings.GetSelectionInfo());
+        }
+
+        if (ExistingSchemaLogExpired && MappingBindings.UpdateExistingSchemaElements != null)
+        {
+          ExistingSchemaLogExpired = false;
+          MappingBindings.UpdateExistingSchemaElements(MappingBindings.GetExistingSchemaElements());
+        }
+      }
+      catch (Exception ex)
+      {
+
+      }
+
+
+    }
+    private void RhinoDoc_DeselectObjects(object sender, Rhino.DocObjects.RhinoObjectSelectionEventArgs e)
+    {
+      SelectionExpired = true;
+    }
+
+    private void RhinoDoc_SelectObjects(object sender, Rhino.DocObjects.RhinoObjectSelectionEventArgs e)
+    {
+      SelectionExpired = true;
+    }
+
+    private void RhinoDoc_ActiveDocumentChanged(object sender, DocumentEventArgs e)
+    {
+      SelectionExpired = true;
+      // TODO: Parse new doc for existing stuff
+    }
   }
 }

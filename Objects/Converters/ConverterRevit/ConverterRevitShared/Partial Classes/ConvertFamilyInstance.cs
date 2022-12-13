@@ -13,23 +13,26 @@ namespace Objects.Converter.Revit
   public partial class ConverterRevit
   {
     //TODO: might need to clean this up and split the ConversionLog.Addic by beam, FI, etc...
-    public List<ApplicationPlaceholderObject> FamilyInstanceToNative(BuiltElements.Revit.FamilyInstance speckleFi)
+    public ApplicationObject FamilyInstanceToNative(BuiltElements.Revit.FamilyInstance speckleFi)
     {
-      DB.FamilySymbol familySymbol = GetElementType<FamilySymbol>(speckleFi);
       XYZ basePoint = PointToNative(speckleFi.basePoint);
-      DB.Level level = ConvertLevelToRevit(speckleFi.level);
-
-
+      DB.Level level = ConvertLevelToRevit(speckleFi.level, out ApplicationObject.State levelState);
       DB.FamilyInstance familyInstance = null;
       var isUpdate = false;
-      //try update existing
+
       var docObj = GetExistingElementByApplicationId(speckleFi.applicationId);
-      if (docObj != null && ReceiveMode == Speckle.Core.Kits.ReceiveMode.Ignore)
-        return new List<ApplicationPlaceholderObject>
+      var appObj = new ApplicationObject(speckleFi.id, speckleFi.speckle_type) { applicationId = speckleFi.applicationId };
+
+      // skip if element already exists in doc & receive mode is set to ignore
+      if (IsIgnore(docObj, appObj, out appObj))
+        return appObj;
+
+      if (!GetElementType<FamilySymbol>(speckleFi, appObj, out DB.FamilySymbol familySymbol))
       {
-        new ApplicationPlaceholderObject
-          {applicationId = speckleFi.applicationId, ApplicationGeneratedId = docObj.UniqueId, NativeObject = docObj}
-      };
+        appObj.Update(status: ApplicationObject.State.Failed);
+        return appObj;
+      }
+
       if (docObj != null)
       {
         try
@@ -38,9 +41,7 @@ namespace Objects.Converter.Revit
 
           // if family changed, tough luck. delete and let us create a new one.
           if (familySymbol.FamilyName != revitType.FamilyName)
-          {
             Doc.Delete(docObj.Id);
-          }
           else
           {
             familyInstance = (DB.FamilyInstance)docObj;
@@ -66,9 +67,7 @@ namespace Objects.Converter.Revit
 
             // check for a type change
             if (speckleFi.type != null && speckleFi.type != revitType.Name)
-            {
               familyInstance.ChangeTypeId(familySymbol.Id);
-            }
 
             TrySetParam(familyInstance, BuiltInParameter.FAMILY_LEVEL_PARAM, level);
             TrySetParam(familyInstance, BuiltInParameter.FAMILY_BASE_LEVEL_PARAM, level);
@@ -100,47 +99,21 @@ namespace Objects.Converter.Revit
           else if (familySymbol.Family.FamilyPlacementType == FamilyPlacementType.WorkPlaneBased)
           {
             if (CurrentHostElement == null)
-              Report.ConversionErrors.Add(new Exception($"Object with ID {speckleFi.id} is work plane based, but does not have a host element"));
-            if (CurrentHostElement is Wall wall)
+            {
+              appObj.Update(status: ApplicationObject.State.Failed, logItem: $"Object is work plane based but does not have a host element");
+              return appObj;
+            }
+            if (CurrentHostElement is Element el)
             {
               Doc.Regenerate();
 
               Options op = new Options();
               op.ComputeReferences = true;
-              GeometryElement wallGeom = wall.get_Geometry(op);
+              GeometryElement geomElement = el.get_Geometry(op);
               Reference faceRef = null;
+              var planeDist = double.MaxValue;
 
-              foreach (var geom in wallGeom)
-              {
-                if (geom is Solid solid)
-                {
-                  FaceArray faceArray = solid.Faces;
-
-                  double planeDist = double.PositiveInfinity;
-                  foreach (Face face in faceArray)
-                  {
-                    if (face is PlanarFace planarFace)
-                    {
-                      // some family instance base points may lie on the intersection of faces
-                      // this makes it so family instance families can only be placed on the
-                      // faces of walls
-                      if (NormalsAlign(planarFace.FaceNormal, wall.Orientation))
-                      {
-                        double newPlaneDist = ComputePlaneDistance(planarFace.Origin, planarFace.FaceNormal, basePoint);
-                        if (newPlaneDist < planeDist)
-                        {
-                          planeDist = newPlaneDist;
-                          faceRef = planarFace.Reference;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-
-              // last resort, just guess a face
-              if (faceRef == null)
-                faceRef = HostObjectUtils.GetSideFaces(wall, ShellLayerType.Interior)[0];
+              GetReferencePlane(geomElement, basePoint, ref faceRef, ref planeDist);
 
               XYZ norm = new XYZ(0, 0, 0);
               familyInstance = Doc.Create.NewFamilyInstance(faceRef, basePoint, norm, familySymbol);
@@ -150,19 +123,40 @@ namespace Objects.Converter.Revit
               IList<Parameter> lvlParams = familyInstance.GetParameters("Schedule Level");
 
               if (cutVoidsParams.ElementAtOrDefault(0) != null && cutVoidsParams[0].AsInteger() == 1)
-                InstanceVoidCutUtils.AddInstanceVoidCut(Doc, wall, familyInstance);
+                InstanceVoidCutUtils.AddInstanceVoidCut(Doc, el, familyInstance);
               if (lvlParams.ElementAtOrDefault(0) != null)
                 lvlParams[0].Set(level.Id);
             }
             else if (CurrentHostElement is Floor floor)
             {
               // TODO: support hosted elements on floors. Should be very similar to above implementation
-              Report.ConversionErrors.Add(new Exception($"Work Plane based families on floors to be supported soon"));
+              appObj.Update(status: ApplicationObject.State.Failed, logItem: $"Work Plane based families on floors to be supported soon");
+              return appObj;
+            }
+          }
+          else if (familySymbol.Family.FamilyPlacementType == FamilyPlacementType.OneLevelBased)
+          {
+            if (CurrentHostElement is FootPrintRoof roof)
+            {
+              // handle receiving mullions on a curtain roof
+              var curtainGrids = roof.CurtainGrids;
+              CurtainGrid lastGrid = null;
+              foreach (var curtainGrid in curtainGrids)
+                if (curtainGrid is CurtainGrid c)
+                  lastGrid = c;
+
+              if (lastGrid != null && speckleFi["isUGridLine"] is bool isUGridLine)
+              {
+                var gridLine = lastGrid.AddGridLine(isUGridLine, basePoint, false);
+                foreach (var seg in gridLine.AllSegmentCurves)
+                  gridLine.AddMullions(seg as Curve, familySymbol as MullionType, isUGridLine);
+              }
             }
           }
           else
           {
-            Report.ConversionErrors.Add(new Exception($"Unsupported FamilyPlacementType {familySymbol.Family.FamilyPlacementType}"));
+            appObj.Update(status: ApplicationObject.State.Failed, logItem: $"Unsupported FamilyPlacementType {familySymbol.Family.FamilyPlacementType}");
+            return appObj;
           }
           // try a catch all solution as a last resort
           if (familyInstance == null)
@@ -176,23 +170,17 @@ namespace Objects.Converter.Revit
         }
         //Otherwise, proceed as normal.
         else
-        {
           familyInstance = Doc.Create.NewFamilyInstance(basePoint, familySymbol, level, StructuralType.NonStructural);
-        }
       }
 
       //required for face flipping to work!
       Doc.Regenerate();
 
       if (familyInstance.CanFlipHand && speckleFi.handFlipped != familyInstance.HandFlipped)
-      {
         familyInstance.flipHand();
-      }
 
       if (familyInstance.CanFlipFacing && speckleFi.facingFlipped != familyInstance.FacingFlipped)
-      {
         familyInstance.flipFacing();
-      }
 
       // NOTE: do not check for the CanRotate prop as it doesn't work (at least on some families I tried)!
       // some point based families don't have a rotation, so keep this in a try catch
@@ -208,21 +196,46 @@ namespace Objects.Converter.Revit
 
       SetInstanceParameters(familyInstance, speckleFi);
       if (speckleFi.mirrored)
-      {
-        Report.ConversionErrors.Add(new Exception($"Element with id {familyInstance.Id} should be mirrored, but a Revit API limitation prevented us from doing so. (speckle object id: {speckleFi.id}"));
-      }
+        appObj.Update(logItem: $"Element with id {familyInstance.Id} should be mirrored, but a Revit API limitation prevented us from doing so.");
 
-      var placeholders = new List<ApplicationPlaceholderObject>()
+      var state = isUpdate ? ApplicationObject.State.Updated : ApplicationObject.State.Created;
+      appObj.Update(status: state, createdId: familyInstance.UniqueId, convertedItem: familyInstance);
+      return appObj;
+    }
+
+    private void GetReferencePlane(GeometryElement geomElement, XYZ basePoint, ref Reference faceRef, ref double planeDist)
+    {
+      foreach (var geom in geomElement)
       {
-        new ApplicationPlaceholderObject
+        if (geom is Solid solid)
         {
-        applicationId = speckleFi.applicationId,
-        ApplicationGeneratedId = familyInstance.UniqueId,
-        NativeObject = familyInstance
+          FaceArray faceArray = solid.Faces;
+
+          foreach (Face face in faceArray)
+          {
+            if (face is PlanarFace planarFace)
+            {
+              // some family instance base points may lie on the intersection of faces
+              // this makes it so family instance families can only be placed on the
+              // faces of walls
+              //if (NormalsAlign(planarFace.FaceNormal, wall.Orientation))
+              //{
+              double newPlaneDist = ComputePlaneDistance(planarFace.Origin, planarFace.FaceNormal, basePoint);
+              if (newPlaneDist < planeDist)
+              {
+                planeDist = newPlaneDist;
+                faceRef = planarFace.Reference;
+              }
+              //}
+            }
+          }
         }
-      };
-      Report.Log($"{(isUpdate ? "Updated" : "Created")} FamilyInstance ({familyInstance.Category.Name}) {familyInstance.Id}");
-      return placeholders;
+        else if (geom is GeometryInstance geomInst)
+        {
+          GeometryElement transformedGeom = geomInst.GetInstanceGeometry(geomInst.Transform);
+          GetReferencePlane(transformedGeom, basePoint, ref faceRef, ref planeDist);
+        }
+      }
     }
 
     /// <summary>
@@ -230,55 +243,73 @@ namespace Objects.Converter.Revit
     /// </summary>
     /// <param name="revitFi"></param>
     /// <returns></returns>
-    public Base FamilyInstanceToSpeckle(DB.FamilyInstance revitFi)
+    public Base FamilyInstanceToSpeckle(DB.FamilyInstance revitFi, out List<string> notes)
     {
+      notes = new List<string>();
+      Base @base = null;
+      Base extraProps = new Base();
 
-      if (!ShouldConvertHostedElement(revitFi, revitFi.Host))
+      if (!ShouldConvertHostedElement(revitFi, revitFi.Host, ref extraProps))
         return null;
 
       //adaptive components
       if (AdaptiveComponentInstanceUtils.IsAdaptiveComponentInstance(revitFi))
-      {
-        return AdaptiveComponentToSpeckle(revitFi);
-      }
+        @base = AdaptiveComponentToSpeckle(revitFi);
 
       //these elements come when the curtain wall is generated
-      //let's not send them to speckle unless we realize they are needed!
-      if (Categories.curtainWallSubElements.Contains(revitFi.Category))
+      //if they are contained in 'subelements' then they have already been accounted for from a wall
+      //else if they are mullions then convert them as a generic family instance but add a isUGridLine prop
+      if (@base == null && Categories.curtainWallSubElements.Contains(revitFi.Category))
       {
         if (SubelementIds.Contains(revitFi.Id))
           return null;
+        else if (Categories.Contains(new List<BuiltInCategory> { BuiltInCategory.OST_CurtainWallMullions }, revitFi.Category))
+        {
+          var direction = ((DB.Line)((Mullion)revitFi).LocationCurve).Direction;
+          // TODO: add support for more severly sloped mullions. This isn't very robust at the moment
+          extraProps["isUGridLine"] = Math.Abs(direction.X) > Math.Abs(direction.Y) ? true : false;
+        }
         else
           //TODO: sort these so we consistently get sub-elements from the wall element in case also sub-elements are sent
           SubelementIds.Add(revitFi.Id);
       }
 
       //beams & braces
-      if (Categories.beamCategories.Contains(revitFi.Category))
+      if (@base == null && Categories.beamCategories.Contains(revitFi.Category))
       {
         if (revitFi.StructuralType == StructuralType.Beam)
-        {
-          return BeamToSpeckle(revitFi);
-        }
+          @base = BeamToSpeckle(revitFi, out notes);
         else if (revitFi.StructuralType == StructuralType.Brace)
-        {
-          return BraceToSpeckle(revitFi);
-        }
+          @base = BraceToSpeckle(revitFi, out notes);
       }
 
       //columns
-      if (Categories.columnCategories.Contains(revitFi.Category) || revitFi.StructuralType == StructuralType.Column)
-      {
-        return ColumnToSpeckle(revitFi);
-      }
+      if (@base == null && Categories.columnCategories.Contains(revitFi.Category) || revitFi.StructuralType == StructuralType.Column)
+        @base = ColumnToSpeckle(revitFi, out notes);
 
       var baseGeometry = LocationToSpeckle(revitFi);
       var basePoint = baseGeometry as Point;
-      if (basePoint == null)
-      {
-        return RevitElementToSpeckle(revitFi);
-      }
+      if (@base == null && basePoint == null)
+        @base = RevitElementToSpeckle(revitFi, out notes);
 
+      if (@base == null)
+        @base = PointBasedFamilyInstanceToSpeckle(revitFi, basePoint, out notes);
+
+      // add additional props to base object
+      foreach (var prop in extraProps.GetDynamicMembers())
+        @base[prop] = extraProps[prop];
+
+      return @base; 
+    }
+
+    /// <summary>
+    /// Converts point-based family instances.
+    /// </summary>
+    /// <param name="revitFi"></param>
+    /// <returns></returns>
+    private Base PointBasedFamilyInstanceToSpeckle(DB.FamilyInstance revitFi, Point basePoint, out List<string> notes)
+    {
+      notes = new List<string>();
       var lev1 = ConvertAndCacheLevel(revitFi, BuiltInParameter.FAMILY_LEVEL_PARAM);
       var lev2 = ConvertAndCacheLevel(revitFi, BuiltInParameter.FAMILY_BASE_LEVEL_PARAM);
 
@@ -295,21 +326,15 @@ namespace Objects.Converter.Revit
       speckleFi.mirrored = revitFi.Mirrored;
 
       if (revitFi.Location is LocationPoint)
-      {
         speckleFi.rotation = ((LocationPoint)revitFi.Location).Rotation;
-      }
 
-      speckleFi.displayValue = GetElementMesh(revitFi, GetAllFamSubElements(revitFi));
+      speckleFi.displayValue = GetElementMesh(revitFi);
 
       var material = ConverterRevit.GetMEPSystemMaterial(revitFi);
 
       if (material != null)
-      {
         foreach (var mesh in speckleFi.displayValue)
-        {
           mesh["renderMaterial"] = material;
-        }
-      }
 
       GetAllRevitParamsAndIds(speckleFi, revitFi);
 
@@ -340,9 +365,6 @@ namespace Objects.Converter.Revit
 
 #endregion
 
-      // TODO:
-      // revitFi.GetSubelements();
-      Report.Log($"Converted FamilyInstance {revitFi.Id}");
       return speckleFi;
     }
 
@@ -359,9 +381,7 @@ namespace Objects.Converter.Revit
         var element = familyInstance.Document.GetElement(id);
         subElements.Add(element);
         if (element is Autodesk.Revit.DB.FamilyInstance)
-        {
           subElements.AddRange(GetAllFamSubElements(element as DB.FamilyInstance));
-        }
       }
       return subElements;
     }
@@ -374,7 +394,6 @@ namespace Objects.Converter.Revit
       double PointD = planeNormal.X * point.X + planeNormal.Y * point.Y + planeNormal.Z * point.Z;
       double value = Math.Abs(D - PointD);
 
-      //Report.Log($"point {point}");
       return value;
     }
 

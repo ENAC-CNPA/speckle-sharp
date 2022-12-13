@@ -2,14 +2,12 @@
 using Avalonia.Input;
 using DesktopUI2.ViewModels;
 using System;
-using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DesktopUI2.Views.Windows.Dialogs
 {
-  public  class DialogUserControl : UserControl, ICloseable
+  public class DialogUserControl : UserControl, ICloseable
   {
     private object? _dialogResult;
 
@@ -42,8 +40,8 @@ namespace DesktopUI2.Views.Windows.Dialogs
     public void Close(object dialogResult)
     {
       _dialogResult = dialogResult;
+      MainViewModel.Instance.DialogBody = null;
       Closed?.Invoke(this, null);
-      MainViewModel.Instance.DialogBody=null;
     }
   }
 }

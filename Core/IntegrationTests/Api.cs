@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using NUnit.Framework;
-using Speckle.Core.Api;
+﻿using Speckle.Core.Api;
 using Speckle.Core.Credentials;
+using Speckle.Core.Logging;
 using Speckle.Core.Models;
 using Speckle.Core.Transports;
 using Tests;
@@ -13,7 +11,7 @@ namespace TestsIntegration
   {
     public Account firstUserAccount, secondUserAccount;
 
-    public Client myClient;
+    public Client myClient, secondClient;
     public ServerTransport myServerTransport, otherServerTransport;
 
     private string streamId = "";
@@ -23,12 +21,13 @@ namespace TestsIntegration
     private string objectId = "";
 
     [OneTimeSetUp]
-    public void Setup()
+    public async Task Setup()
     {
-      firstUserAccount = Fixtures.SeedUser();
-      secondUserAccount = Fixtures.SeedUser();
+      firstUserAccount = await Fixtures.SeedUser();
+      secondUserAccount = await Fixtures.SeedUser();
 
       myClient = new Client(firstUserAccount);
+      secondClient = new Client(secondUserAccount);
       myServerTransport = new ServerTransport(firstUserAccount, null);
       myServerTransport.Api.CompressPayloads = false;
       otherServerTransport = new ServerTransport(firstUserAccount, null);
@@ -45,13 +44,35 @@ namespace TestsIntegration
     }
 
     [Test]
+    public async Task ActiveUserGet()
+    {
+      var res = await myClient.ActiveUserGet();
+      Assert.That(myClient.Account.userInfo.id, Is.EqualTo(res.id));
+    }
+
+    [Test]
+    public async Task OtherUserGet()
+    {
+      var res = await myClient.OtherUserGet(secondUserAccount.userInfo.id);
+      Assert.That(secondUserAccount.userInfo.name, Is.EqualTo(res.name));
+
+    }
+
+    [Test]
     public async Task UserSearch()
     {
       var res = await myClient.UserSearch(firstUserAccount.userInfo.email);
-
-      Assert.NotNull(res);
+      Assert.That(1, Is.EqualTo(res.Count));
+      Assert.That(firstUserAccount.userInfo.id, Is.EqualTo(res[0].id));
     }
 
+    [Test]
+    public async Task ServerVersion()
+    {
+      var res = await myClient.GetServerVersion();
+      
+      Assert.NotNull(res);
+    }
 
     [Test, Order(0)]
     public async Task StreamCreate()
@@ -107,42 +128,73 @@ namespace TestsIntegration
       Assert.IsTrue(res);
     }
 
-    // [Test, Order(30)]
-    // public async Task StreamGrantPermission()
-    // {
-    //   var res = await myClient.StreamGrantPermission(
-    //     new StreamGrantPermissionInput
-    //     {
-    //       streamId = streamId,
-    //       userId = secondUserAccount.userInfo.id,
-    //       role = "stream:owner"
-    //     }
-    //   );
-
-    //   Assert.IsTrue(res);
-    // }
-
-    // [Test, Order(40)]
-    // public async Task StreamRevokePermission()
-    // {
-    //   var res = await myClient.StreamRevokePermission(
-    //     new StreamRevokePermissionInput { streamId = streamId, userId = secondUserAccount.userInfo.id }
-    //   );
-
-    //   Assert.IsTrue(res);
-    // }
-
-    [Test, Order(41)]
+    [Test, Order(30)]
+    public void StreamGrantPermission()
+    {
+      var exception = Assert.ThrowsAsync<SpeckleException>(
+        async () => await myClient.StreamGrantPermission(
+          new StreamPermissionInput
+          {
+            streamId = streamId, userId = secondUserAccount.userInfo.id, role = "stream:owner"
+          }
+        )
+      );
+      
+      StringAssert.Contains("no longer supported", exception.Message);
+    }
+    
+    [Test, Order(31)]
     public async Task StreamInviteCreate()
     {
       var res = await myClient.StreamInviteCreate(
-        new StreamInviteCreateInput { streamId = streamId, email = "test@test.com", message = "Whasssup!" }
+        new StreamInviteCreateInput { streamId = streamId, email = secondUserAccount.userInfo.email, message = "Whasssup!" }
+      );
+
+      Assert.IsTrue(res);
+
+      Assert.ThrowsAsync<SpeckleException>(async () =>
+        await myClient.StreamInviteCreate(new StreamInviteCreateInput { streamId = streamId }));
+    }
+    
+    [Test, Order(32)]
+    public async Task StreamInviteGet()
+    {
+      var invites = await secondClient.GetAllPendingInvites();
+      
+      Assert.NotNull(invites);
+    }
+
+    [Test, Order(33)]
+    public async Task StreamInviteUse()
+    {
+      var invites = await secondClient.GetAllPendingInvites();
+
+      var res = await secondClient.StreamInviteUse(invites[ 0 ].streamId, invites[ 0 ].token);
+
+      Assert.IsTrue(res);
+    }
+    
+    [Test, Order(34)]
+    public async Task StreamUpdatePermission()
+    {
+      var res = await myClient.StreamUpdatePermission(new StreamPermissionInput
+      {
+        role = "stream:reviewer", streamId = streamId, userId = secondUserAccount.userInfo.id
+      });
+      
+      Assert.IsTrue(res);
+    }
+
+    [Test, Order(40)]
+    public async Task StreamRevokePermission()
+    {
+      var res = await myClient.StreamRevokePermission(
+        new StreamRevokePermissionInput { streamId = streamId, userId = secondUserAccount.userInfo.id }
       );
 
       Assert.IsTrue(res);
     }
-
-
+    
     #region branches
 
     [Test, Order(41)]
@@ -248,7 +300,7 @@ namespace TestsIntegration
       var res = await myClient.ObjectGet(streamId, objectId);
 
       Assert.NotNull(res);
-      Assert.AreEqual(100, res.totalChildrenCount);
+      Assert.That(100, Is.EqualTo(res.totalChildrenCount));
     }
 
     #endregion

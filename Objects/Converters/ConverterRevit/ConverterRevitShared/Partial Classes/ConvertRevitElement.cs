@@ -1,14 +1,16 @@
 ﻿using Autodesk.Revit.DB;
 using Objects.BuiltElements.Revit;
 using System;
+using System.Collections.Generic;
 
 namespace Objects.Converter.Revit
 {
   public partial class ConverterRevit
   {
 
-    public RevitElement RevitElementToSpeckle(Element revitElement)
+    public RevitElement RevitElementToSpeckle(Element revitElement, out List<string> notes)
     {
+      notes = new List<string>();
       var symbol = revitElement.Document.GetElement(revitElement.GetTypeId()) as FamilySymbol;
 
       RevitElement speckleElement = new RevitElement();
@@ -22,12 +24,26 @@ namespace Objects.Converter.Revit
         speckleElement.type = revitElement.Name;
       }
 
+      var baseGeometry = LocationToSpeckle(revitElement);
+      if (baseGeometry is Geometry.Point point)
+        speckleElement["basePoint"] = point;
+      else if (baseGeometry is Geometry.Line line)
+        speckleElement["baseLine"] = line;
+
       speckleElement.category = revitElement.Category.Name;
       speckleElement.displayValue = GetElementDisplayMesh(revitElement, new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = false });
 
       //Only send elements that have a mesh, if not we should probably support them properly via direct conversions
       if (speckleElement.displayValue == null || speckleElement.displayValue.Count == 0)
-        throw new Exception($"Skipped not supported type: {revitElement.GetType()}{GetElemInfo(revitElement)}");
+      {
+        speckleElement.displayValue = GetFabricationMeshes(revitElement);
+
+        if (speckleElement.displayValue == null || speckleElement.displayValue.Count == 0)
+        {
+          notes.Add("Not sending elements without display meshes");
+          return null;
+        }
+      }
 
       GetAllRevitParamsAndIds(speckleElement, revitElement);
 

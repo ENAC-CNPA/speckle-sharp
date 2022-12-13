@@ -3,11 +3,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Sentry;
 using Speckle.Core.Credentials;
+using Speckle.Core.Kits;
 using Speckle.Core.Logging;
 using Speckle.Core.Models;
 using Speckle.Core.Transports;
@@ -16,6 +20,7 @@ namespace Speckle.Core.Api
 {
   public static class Helpers
   {
+    private static string _feedsEndpoint = "https://releases.speckle.dev/manager2/feeds";
     /// <summary>
     /// Helper method to Receive from a Speckle Server.
     /// </summary>
@@ -36,14 +41,16 @@ namespace Speckle.Core.Api
       catch (SpeckleException e)
       {
         if (string.IsNullOrEmpty(sw.StreamId)) throw e;
-        
+
         //Fallback to a non authed account
-        account = new Account() {token = "",
-          serverInfo = new ServerInfo() {url = sw.ServerUrl},
+        account = new Account()
+        {
+          token = "",
+          serverInfo = new ServerInfo() { url = sw.ServerUrl },
           userInfo = new UserInfo()
         };
       }
-      
+
       var client = new Client(account);
 
       var transport = new ServerTransport(client.Account, sw.StreamId);
@@ -77,7 +84,11 @@ namespace Speckle.Core.Api
         objectId = branch.commits.items[0].referencedObject;
       }
 
-      Analytics.TrackEvent(client.Account, Analytics.Events.Receive);
+      Analytics.TrackEvent(client.Account, Analytics.Events.Receive, new Dictionary<string, object>()
+          {
+            { "sourceHostApp", HostApplications.GetHostAppFromString(commit.sourceApplication).Slug },
+            { "sourceHostAppVersion", commit.sourceApplication }
+          });
 
       var receiveRes = await Operations.Receive(
         objectId,
@@ -154,24 +165,28 @@ namespace Speckle.Core.Api
     public static async Task<bool> IsConnectorUpdateAvailable(string slug)
     {
 #if DEBUG
+      if (slug == "dui2")
+        slug = "revit";
       //when debugging the version is not correct, so don't bother
       return false;
 #endif
 
       try
       {
-        var latestUrl = $"https://releases.speckle.dev/installers/{slug}/latest.yml";
-        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(latestUrl);
-        request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-        Version latestVersion = null;
+        HttpClient client = new HttpClient();
+        var response = await client.GetStringAsync($"{_feedsEndpoint}/{slug}.json");
+        var connector = JsonSerializer.Deserialize<Connector>(response);
 
-        using (HttpWebResponse response = (HttpWebResponse)await request.GetResponseAsync())
-        using (System.IO.Stream stream = response.GetResponseStream())
-        using (StreamReader reader = new StreamReader(stream))
-        {
-          var res = await reader.ReadToEndAsync();
-          latestVersion = new Version(res.Replace("version:", "").Trim());
-        }
+        var os = Os.Win;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+          os = Os.OSX;
+
+        var versions = connector.Versions.Where(x => x.Os == os).OrderByDescending(x => x.Date).ToList();
+        var stables = versions.Where(x => !x.Prerelease);
+        if (!stables.Any())
+          return false;
+
+        var latestVersion = new System.Version(stables.First().Number);
 
         var currentVersion = Assembly.GetAssembly(typeof(Helpers)).GetName().Version;
 
@@ -180,11 +195,148 @@ namespace Speckle.Core.Api
       }
       catch (Exception ex)
       {
-        new SpeckleException($"Could not check for connector updates: {slug}", ex, true, SentryLevel.Warning);
+        //new SpeckleException($"Could not check for connector updates: {slug}", ex, true, SentryLevel.Warning);
       }
 
       return false;
     }
+
+
+    public static string TimeAgo(string timestamp)
+    {
+      return TimeAgo(DateTime.Parse(timestamp));
+    }
+    public static string TimeAgo(DateTime timestamp)
+    {
+      TimeSpan timeAgo;
+      try
+      {
+        timeAgo = DateTime.Now.Subtract(timestamp);
+      }
+      catch (FormatException e)
+      {
+        return "never";
+      }
+
+      if (timeAgo.TotalSeconds < 60)
+        return "just now";
+      if (timeAgo.TotalMinutes < 60)
+        return $"{timeAgo.Minutes} minute{PluralS(timeAgo.Minutes)} ago";
+      if (timeAgo.TotalHours < 24)
+        return $"{timeAgo.Hours} hour{PluralS(timeAgo.Hours)} ago";
+      if (timeAgo.TotalDays < 7)
+        return $"{timeAgo.Days} day{PluralS(timeAgo.Days)} ago";
+      if (timeAgo.TotalDays < 30)
+        return $"{timeAgo.Days / 7} week{PluralS(timeAgo.Days / 7)} ago";
+      if (timeAgo.TotalDays < 365)
+        return $"{timeAgo.Days / 30} month{PluralS(timeAgo.Days / 30)} ago";
+
+      return $"{timeAgo.Days / 356} year{PluralS(timeAgo.Days / 356)} ago";
+    }
+
+    public static string PluralS(int num)
+    {
+      return num != 1 ? "s" : "";
+    }
+
+
+    /// <summary>
+    /// Returns the correct location of the Speckle installation folder. Usually this would be the user's %appdata%/Speckle folder, unless the install was made for all users.
+    /// </summary>
+    /// <returns>The location of the Speckle installation folder</returns>
+    public static string InstallSpeckleFolderPath => Path.Combine(InstallApplicationDataPath, "Speckle");
+
+    /// <summary>
+    /// Returns the correct location of the Speckle folder for the current user. Usually this would be the user's %appdata%/Speckle folder.
+    /// </summary>
+    /// <returns>The location of the Speckle installation folder</returns>
+    public static string UserSpeckleFolderPath => Path.Combine(UserApplicationDataPath, "Speckle");
+
+
+    /// <summary>
+    /// Returns the correct location of the AppData folder where Speckle is installed. Usually this would be the user's %appdata% folder, unless the install was made for all users.
+    /// This folder contains Kits and othe data that can be shared among users of the same machine.
+    /// </summary>
+    /// <returns>The location of the AppData folder where Speckle is installed</returns>
+    public static string InstallApplicationDataPath =>
+
+        Assembly.GetAssembly(typeof(Helpers)).Location.Contains("ProgramData")
+          ? Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData, Environment.SpecialFolderOption.Create)
+          : UserApplicationDataPath;
+
+
+    /// <summary>
+    /// Envirenment Variable that allows to overwrite the <see cref="UserApplicationDataPath"/>
+    /// /// </summary>
+    private static string _speckleUserDataEnvVar = "SPECKLE_USERDATA_PATH";
+
+
+    /// <summary>
+    /// Returns the location of the User Application Data folder for the current roaming user, which contains user specific data such as accounts and cache.
+    /// </summary>
+    /// <returns>The location of the user's `%appdata%` folder.</returns>
+    public static string UserApplicationDataPath =>
+      !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(_speckleUserDataEnvVar)) ?
+      Environment.GetEnvironmentVariable(_speckleUserDataEnvVar) :
+      Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create);
+
+
+
+
+    /// <summary>
+    /// Checks if the user has a valid internet connection by pinging cloudfare
+    /// </summary>
+    /// <returns>True if the user is connected to the internet, false otherwise.</returns>
+    public static Task<bool> UserHasInternet()
+    {
+      return Ping("1.1.1.1"); //cloudfare
+    }
+
+    /// <summary>
+    /// Pings a specific url to verify it's accessible.
+    /// </summary>
+    /// <param name="hostnameOrAddress">The hostname or address to ping.</param>
+    /// <returns>True if the the status code is 200, false otherwise.</returns>
+    public static async Task<bool> Ping(string hostnameOrAddress)
+    {
+      try
+      {
+        Ping myPing = new Ping();
+        var hostname = (Uri.CheckHostName(hostnameOrAddress) != UriHostNameType.Unknown) ? hostnameOrAddress : (new Uri(hostnameOrAddress)).DnsSafeHost;
+        byte[] buffer = new byte[32];
+        int timeout = 1000;
+        PingOptions pingOptions = new PingOptions();
+        PingReply reply = myPing.Send(hostname, timeout, buffer, pingOptions);
+        return (reply.Status == IPStatus.Success);
+      }
+      catch (Exception)
+      {
+        return false;
+      }
+    }
+
+    /// <summary>
+    /// Pings and tries gettign data from a specific address to verify it's online.
+    /// </summary>
+    /// <param name="address">Theaddress to use.</param>
+    /// <returns>True if the the status code is 200, false otherwise.</returns>
+    public static async Task<bool> PingAndGet(string address)
+    {
+      try
+      {
+        var ping = await Ping(address);
+        if (!ping)
+          return false;
+
+        HttpClient client = new HttpClient();
+        var response = await client.GetAsync(address);
+        return response.IsSuccessStatusCode;
+
+      }
+      catch (Exception)
+      {
+        return false;
+      }
+    }
   }
 }
-

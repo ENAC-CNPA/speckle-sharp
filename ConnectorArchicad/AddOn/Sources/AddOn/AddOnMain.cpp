@@ -4,15 +4,23 @@
 #include "DGModule.hpp"
 #include "Process.hpp"
 #include "ResourceIds.hpp"
+#include "FileSystem.hpp"
 
 #include "Commands/GetModelForElements.hpp"
-#include "Commands/GetSelectedApplicationIds.hpp"
+#include "Commands/GetElementIds.hpp"
 #include "Commands/GetElementTypes.hpp"
 #include "Commands/GetWallData.hpp"
+#include "Commands/GetDoorData.hpp"
+#include "Commands/GetWindowData.hpp"
+#include "Commands/GetBeamData.hpp"
 #include "Commands/GetSlabData.hpp"
 #include "Commands/GetRoomData.hpp"
 #include "Commands/GetProjectInfo.hpp"
+#include "Commands/GetSubElementInfo.hpp"
 #include "Commands/CreateWall.hpp"
+#include "Commands/CreateDoor.hpp"
+#include "Commands/CreateWindow.hpp"
+#include "Commands/CreateBeam.hpp"
 #include "Commands/CreateSlab.hpp"
 #include "Commands/CreateZone.hpp"
 #include "Commands/CreateDirectShape.hpp"
@@ -72,33 +80,59 @@ private:
 #endif
     static const char* FolderName = "ConnectorArchicad";
 
-
     IO::Location ownFileLoc;
-    const auto err = ACAPI_GetOwnLocation(&ownFileLoc);
+    auto err = ACAPI_GetOwnLocation(&ownFileLoc);
     if (err != NoError) {
       return "";
     }
 
-    ownFileLoc.DeleteLastLocalName();
-    ownFileLoc.AppendToLocal(IO::Name(FolderName));
-    ownFileLoc.AppendToLocal(IO::Name(FileName));
+    IO::Location location (ownFileLoc);
+    location.DeleteLastLocalName();
+    location.AppendToLocal(IO::Name(FolderName));
+    location.AppendToLocal(IO::Name(FileName));
+    
+    bool exist (false);
+    err = IO::fileSystem.Contains (location, &exist);
+    if (err != NoError || !exist) {
+        location = ownFileLoc;
+        location.DeleteLastLocalName();
+        location.DeleteLastLocalName();
+        location.DeleteLastLocalName();
+        location.DeleteLastLocalName();
+
+        location.AppendToLocal(IO::Name(FolderName));
+        location.AppendToLocal(IO::Name("bin"));
+        location.AppendToLocal(IO::Name("Debug"));
+        location.AppendToLocal(IO::Name("net6.0"));
+        location.AppendToLocal(IO::Name(FileName));
+    }
 
     GS::UniString executableStr;
-    ownFileLoc.ToPath(&executableStr);
+    location.ToPath(&executableStr);
 
     return executableStr;
   }
 
   GS::Array<GS::UniString> GetExecutableArguments()
   {
-    UShort portNumber;
-    const auto err = ACAPI_Goodies(APIAny_GetHttpConnectionPortID, &portNumber);
+    UShort portNumber = 0;
+    {
+      const auto err = ACAPI_Goodies(APIAny_GetHttpConnectionPortID, &portNumber);
 
-    if (err != NoError) {
-      throw GS::IllegalArgumentException();
+      if (err != NoError) {
+        throw GS::IllegalArgumentException();
+      }
     }
 
-    return GS::Array<GS::UniString> { GS::ValueToUniString(portNumber) };
+    UShort archicadVersion = 0;
+    {
+      API_ServerApplicationInfo serverApplicationInfo;
+      ACAPI_GetReleaseNumber (&serverApplicationInfo);
+
+      archicadVersion = serverApplicationInfo.mainVersion;
+    }
+
+    return GS::Array<GS::UniString> { GS::ValueToUniString(portNumber), GS::ValueToUniString(archicadVersion) };
   }
 
   GS::Optional<GS::Process> avaloniaProcess;
@@ -128,13 +162,20 @@ static GSErrCode MenuCommandHandler(const API_MenuParams* menuParams)
 static GSErrCode RegisterAddOnCommands()
 {
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetModelForElements>()));
-  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetSelectedApplicationIds>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetElementIds>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetElementTypes>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetWallData>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetDoorData>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetWindowData>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetSubElementInfo>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetBeamData>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetRoomData>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetSlabData>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::GetProjectInfo>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateWall>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateDoor>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateWindow>()));
+  CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateBeam>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateSlab>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateZone>()));
   CHECKERROR(ACAPI_Install_AddOnCommandHandler(NewOwned<AddOnCommands::CreateDirectShape>()));

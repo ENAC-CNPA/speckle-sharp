@@ -76,6 +76,7 @@ namespace Objects.Converter.Revit
       BuiltInCategory.OST_MassFloor,
       BuiltInCategory.OST_Materials,
       BuiltInCategory.OST_MechanicalEquipment,
+      BuiltInCategory.OST_MEPSpaces,
       BuiltInCategory.OST_Parking,
       BuiltInCategory.OST_PipeCurves,
       BuiltInCategory.OST_PipingSystem,
@@ -123,7 +124,7 @@ namespace Objects.Converter.Revit
       BuiltInCategory.OST_Ramps,
       BuiltInCategory.OST_SpecialityEquipment,
       BuiltInCategory.OST_Rebar,
-#if !REVIT2019 && !REVIT2020 && !REVIT2021
+#if !REVIT2020 && !REVIT2021
       BuiltInCategory.OST_AudioVisualDevices,
       BuiltInCategory.OST_FireProtection,
       BuiltInCategory.OST_FoodServiceEquipment,
@@ -133,7 +134,7 @@ namespace Objects.Converter.Revit
       BuiltInCategory.OST_TemporaryStructure,
       BuiltInCategory.OST_VerticalCirculation,
 #endif
-#if !REVIT2019 && !REVIT2020 && !REVIT2021 && !REVIT2022
+#if !REVIT2020 && !REVIT2021 && !REVIT2022
        BuiltInCategory.OST_MechanicalControlDevices,
 #endif
 

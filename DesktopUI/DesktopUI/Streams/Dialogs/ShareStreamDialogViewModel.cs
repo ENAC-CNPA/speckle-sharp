@@ -57,9 +57,9 @@ namespace Speckle.DesktopUI.Streams
       }
     }
 
-    private BindableCollection<User> _userSearchResults;
+    private BindableCollection<LimitedUser> _userSearchResults;
 
-    public BindableCollection<User> UserSearchResults
+    public BindableCollection<LimitedUser> UserSearchResults
     {
       get => _userSearchResults;
       set => SetAndNotify(ref _userSearchResults, value);
@@ -113,7 +113,7 @@ namespace Speckle.DesktopUI.Streams
       {
         var users = await StreamState.Client.UserSearch(UserQuery);
         DropdownState = true; // open search dropdown when there are results
-        UserSearchResults = new BindableCollection<User>(users);
+        UserSearchResults = new BindableCollection<LimitedUser>(users);
       }
       catch (Exception e)
       {
@@ -126,7 +126,7 @@ namespace Speckle.DesktopUI.Streams
     {
       try
       {
-        var res = await StreamState.Client.StreamGrantPermission(new StreamGrantPermissionInput()
+        var res = await StreamState.Client.StreamGrantPermission(new StreamPermissionInput
         {
           streamId = StreamState.Stream.id,
           role = SelectedRole.Role,

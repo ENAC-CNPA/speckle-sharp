@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Speckle.Core.Api
 {
@@ -20,7 +21,7 @@ namespace Speckle.Core.Api
     public bool isPublic { get; set; } = true;
   }
 
-  public class StreamGrantPermissionInput
+  public class StreamPermissionInput
   {
     public string streamId { get; set; }
     public string userId { get; set; }
@@ -36,8 +37,10 @@ namespace Speckle.Core.Api
   public class StreamInviteCreateInput
   {
     public string streamId { get; set; }
+    public string userId { get; set; }
     public string email { get; set; }
     public string message { get; set; }
+    public string role { get; set; }
   }
 
   public class BranchCreateInput
@@ -114,6 +117,7 @@ namespace Speckle.Core.Api
     public int favoritesCount { get; set; }
 
     public List<Collaborator> collaborators { get; set; }
+    public List<PendingStreamCollaborator> pendingCollaborators { get; set; } = new List<PendingStreamCollaborator>();
     public Branches branches { get; set; }
 
     /// <summary>
@@ -152,6 +156,23 @@ namespace Speckle.Core.Api
     {
       return $"Collaborator ({name} | {role} | {id})";
     }
+  }
+
+  public class StreamInvitesResponse
+  {
+    public List<PendingStreamCollaborator> streamInvites { get; set; }
+  }
+  public class PendingStreamCollaborator
+  {
+    public string id { get; set; }
+    public string inviteId { get; set; }
+    public string streamId { get; set; }
+    public string streamName { get; set; }
+    public string title { get; set; }
+    public string role { get; set; }
+    public User invitedBy { get; set; }
+    public User user { get; set; }
+    public string token { get; set; }
   }
 
   public class Branches
@@ -252,20 +273,30 @@ namespace Speckle.Core.Api
     public List<Stream> items { get; set; }
   }
 
-  public class User
+  public class UserBase
   {
     public string id { get; set; }
-    public string email { get; set; }
     public string name { get; set; }
     public string bio { get; set; }
     public string company { get; set; }
     public string avatar { get; set; }
-
     public bool verified { get; set; }
-
-    //public object profiles { get; set; }
     public string role { get; set; }
     public Streams streams { get; set; }
+  }
+
+  public class LimitedUser : UserBase
+  {
+    public override string ToString()
+    {
+      return $"Other user profile: ({name} | {id})";
+    }
+
+  }
+
+  public class User : UserBase
+  {
+    public string email { get; set; }
     public Streams favoriteStreams { get; set; }
 
     public override string ToString()
@@ -274,6 +305,99 @@ namespace Speckle.Core.Api
     }
   }
 
+
+  public class Resource
+  {
+    public string resourceId { get; set; }
+    public ResourceType resourceType { get; set; }
+  }
+
+  public enum ResourceType
+  {
+    commit,
+    stream,
+    @object,
+    comment
+  }
+
+  public class Location
+  {
+    public double x { get; set; }
+    public double y { get; set; }
+    public double z { get; set; }
+  }
+
+  public class UserData
+  {
+    public User user { get; set; }
+  }
+
+
+  /// <summary>
+  /// GraphQL DTO model for active user data
+  /// </summary>
+  public class ActiveUserData
+  {
+    /// <summary>
+    ///  User profile of the active user.
+    /// </summary>
+    public User activeUser { get; set; }
+  }
+
+
+  /// <summary>
+  /// GraphQL DTO model for limited user data. Mostly referring to other user's profile.
+  /// </summary>
+  public class LimitedUserData
+  {
+    /// <summary>
+    /// The limited user profile of another (non active user)
+    /// </summary>
+    public LimitedUser otherUser { get; set; }
+  }
+
+  public class UserSearchData
+  {
+    public UserSearch userSearch { get; set; }
+  }
+
+  public class UserSearch
+  {
+    public string cursor { get; set; }
+    public List<LimitedUser> items { get; set; }
+  }
+
+  public class ServerInfoResponse
+  {
+    // TODO: server and user models are duplicated here and in Core.Credentials.Responses
+    // a bit weird and unnecessary - shouldn't both Credentials and Api share the same models since they're
+    // all server models that should be consistent? am creating a new obj here as to not reference Credentials in
+    // this file but it should prob be refactored in the futrue
+    public ServerInfo serverInfo { get; set; }
+  }
+
+  // TODO: prob remove and bring one level up and shared w Core.Credentials
+  public class ServerInfo
+  {
+    public string name { get; set; }
+    public string company { get; set; }
+    public string url { get; set; }
+    public string version { get; set; }
+    public string adminContact { get; set; }
+    public string description { get; set; }
+  }
+
+  public class StreamData
+  {
+    public Stream stream { get; set; }
+  }
+
+  public class StreamsData
+  {
+    public Streams streams { get; set; }
+  }
+
+  #region comments
   public class Comments
   {
     public int totalCount { get; set; }
@@ -297,7 +421,7 @@ namespace Speckle.Core.Api
     public string authorId { get; set; }
     public bool archived { get; set; }
     public string screenshot { get; set; }
-    public Text text { get; set; }
+    public string rawText { get; set; }
     public CommentData data { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
@@ -307,79 +431,11 @@ namespace Speckle.Core.Api
     public List<Resource> resources { get; set; }
   }
 
-  public partial class Text
-  {
-    public Doc Doc { get; set; }
-  }
-
-  public partial class Doc
-  {
-    public string Type { get; set; }
-    public DocContent[] Content { get; set; }
-  }
-
-  public partial class DocContent
-  {
-    public string Type { get; set; }
-    public ContentContent[] Content { get; set; }
-  }
-
   public partial class ContentContent
   {
     public string Type { get; set; }
     //public Mark[] Marks { get; set; }
     public string Text { get; set; }
-  }
-
-
-  public class Resource
-  {
-    public string resourceId { get; set; }
-    public ResourceType resourceType { get; set; }
-  }
-
-  public enum ResourceType
-  {
-    commit,
-    stream,
-    @object,
-    comment
-  }
-
-
-
-  public class Location
-  {
-    public double x { get; set; }
-    public double y { get; set; }
-    public double z { get; set; }
-  }
-
-
-  public class UserData
-  {
-    public User user { get; set; }
-  }
-
-  public class UserSearchData
-  {
-    public UserSearch userSearch { get; set; }
-  }
-
-  public class UserSearch
-  {
-    public string cursor { get; set; }
-    public List<User> items { get; set; }
-  }
-
-  public class StreamData
-  {
-    public Stream stream { get; set; }
-  }
-
-  public class StreamsData
-  {
-    public Streams streams { get; set; }
   }
 
   public class CommentsData
@@ -391,4 +447,98 @@ namespace Speckle.Core.Api
   {
     public CommentItem comment { get; set; }
   }
+
+  public class CommentActivityMessage
+  {
+    public string type { get; set; }
+    public CommentItem comment { get; set; }
+  }
+
+  public class CommentActivityResponse
+  {
+    public CommentActivityMessage commentActivity { get; set; }
+  }
+  #endregion
+
+  #region manager api
+
+  public class Connector
+  {
+    public List<Version> Versions { get; set; } = new List<Version>();
+  }
+
+  public class Version
+  {
+    public string Number { get; set; }
+    public string Url { get; set; }
+    public Os Os { get; set; }
+    public Architecture Architecture { get; set; } = Architecture.Any;
+    public DateTime Date { get; set; }
+
+    [JsonIgnore]
+    public string DateTimeAgo => Helpers.TimeAgo(Date);
+    public bool Prerelease { get; set; } = false;
+
+    public Version(string number, string url, Os os = Os.Win, Architecture architecture = Architecture.Any)
+    {
+      Number = number;
+      Url = url;
+      Date = DateTime.Now;
+      Prerelease = Number.Contains("-");
+      Os = os;
+      Architecture = architecture;
+    }
+  }
+
+  public enum Os
+  {
+    Win,
+    OSX
+  }
+
+  public enum Architecture
+  {
+    Any,
+    Arm,
+    Intel
+  }
+
+
+  //GHOST API
+  public class Meta
+  {
+    public Pagination pagination { get; set; }
+  }
+
+  public class Pagination
+  {
+    public int page { get; set; }
+    public string limit { get; set; }
+    public int pages { get; set; }
+    public int total { get; set; }
+    public object next { get; set; }
+    public object prev { get; set; }
+  }
+
+  public class Tags
+  {
+    public List<Tag> tags { get; set; }
+    public Meta meta { get; set; }
+  }
+
+  public class Tag
+  {
+    public string id { get; set; }
+    public string name { get; set; }
+    public string slug { get; set; }
+    public string description { get; set; }
+    public string feature_image { get; set; }
+    public string visibility { get; set; }
+    public string codeinjection_head { get; set; }
+    public object codeinjection_foot { get; set; }
+    public object canonical_url { get; set; }
+    public string accent_color { get; set; }
+    public string url { get; set; }
+  }
+  #endregion
 }

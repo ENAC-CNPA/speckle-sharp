@@ -1,4 +1,4 @@
-﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.DB;
 using Objects.Other;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace Objects.Converter.Revit
 {
   public partial class ConverterRevit
   {
-    public List<Mesh> GetElementMesh(DB.Element element, List<DB.Element> subElements = null)
+    public List<Mesh> GetElementMesh(DB.Element element)
     {
       var allSolids = GetElementSolids(element, opt: new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = true });
       if (!allSolids.Any()) //it's a mesh!
@@ -19,16 +19,7 @@ namespace Objects.Converter.Revit
         return GetMeshes(geom, element.Document);
       }
 
-      if (subElements != null)
-      {
-        foreach (var sb in subElements)
-        {
-          allSolids.AddRange(GetElementSolids(sb));
-        }
-      }
-
       return GetMeshesFromSolids(allSolids, element.Document);
-
     }
 
     /// <summary>
@@ -119,6 +110,48 @@ namespace Objects.Converter.Revit
     }
 
     /// <summary>
+    /// Get meshes from fabrication parts which have different geometry hierarchy than other revit elements.
+    /// </summary>
+    /// <param name="element"></param>
+    /// <param name="subElements"></param>
+    /// <returns></returns>
+    public List<Mesh> GetFabricationMeshes(Element element, List<Element> subElements = null)
+    {
+      //Search for solids on geometry element level
+      var allSolids = GetElementSolids(element, opt: new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = true });
+
+      List<Mesh> meshes = new List<Mesh>();
+
+      var geom = element.get_Geometry(new Options());
+      if (geom == null)
+        return null;
+
+      foreach (GeometryInstance instance in geom)
+      {
+        //Get instance geometry from fabrication part geometry
+        var symbolGeometry = instance.GetInstanceGeometry();
+
+        //Get meshes
+        var symbolMeshes = GetMeshes(symbolGeometry, element.Document);
+        meshes.AddRange(symbolMeshes);
+
+        //Get solids
+        var symbolSolids = GetSolids(symbolGeometry);
+        allSolids.AddRange(symbolSolids);
+      }
+
+
+      if (subElements != null)
+        foreach (var sb in subElements)
+          allSolids.AddRange(GetElementSolids(sb));
+
+      //Convert solids to meshes
+      meshes.AddRange(GetMeshesFromSolids(allSolids, element.Document));
+
+      return meshes;
+    }
+
+    /// <summary>
     /// Helper class for a single <see cref="Objects.Geometry.Mesh"/> object for each <see cref="DB.Material"/>
     /// </summary>
     private class MeshBuildHelper
@@ -186,7 +219,7 @@ namespace Objects.Converter.Revit
       {
         if (geometryObject is Solid gSolid) // already solid
         {
-          if (gSolid.Faces.Size > 0 && Math.Abs(gSolid.Volume) > 0) // skip invalid solid
+          if (gSolid.Faces.Size > 0 && Math.Abs(gSolid.SurfaceArea) > 0) // skip invalid solid
             solids.Add(gSolid);
         }
         else if (geometryObject is GeometryInstance gInstance) // find solids from GeometryInstance
@@ -243,7 +276,7 @@ namespace Objects.Converter.Revit
         {
           DB.Material faceMaterial = d.GetElement(face.MaterialElementId) as DB.Material;
           Mesh m = meshBuildHelper.GetOrCreateMesh(faceMaterial, ModelUnits);
-          if(!MeshMap.ContainsKey(m))
+          if (!MeshMap.ContainsKey(m))
           {
             MeshMap.Add(m, new List<DB.Mesh>());
           }
@@ -251,7 +284,7 @@ namespace Objects.Converter.Revit
         }
       }
 
-      foreach(var meshData in MeshMap)
+      foreach (var meshData in MeshMap)
       {
         //It's cheaper to resize lists manually, since we would otherwise be resizing a lot!
         int numberOfVertices = 0;
@@ -296,7 +329,7 @@ namespace Objects.Converter.Revit
       {
         var triangle = mesh.get_Triangle(i);
 
-        faces.Add(0); // TRIANGLE flag
+        faces.Add(3); // TRIANGLE flag
         faces.Add((int)triangle.get_Index(0) + faceIndexOffset);
         faces.Add((int)triangle.get_Index(1) + faceIndexOffset);
         faces.Add((int)triangle.get_Index(2) + faceIndexOffset);

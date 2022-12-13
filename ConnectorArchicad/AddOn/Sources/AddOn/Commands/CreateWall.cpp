@@ -27,7 +27,11 @@ namespace AddOnCommands
     GS::UniString guidString;
     os.Get(ApplicationIdFieldName, guidString);
     element.header.guid = APIGuidFromString(guidString.ToCStr());
+#ifdef ServerMainVers_2600
+    element.header.type.typeID = API_WallID;
+#else
     element.header.typeID = API_WallID;
+#endif
 
     err = Utility::GetBaseElementData(element, nullptr);
     if (err != NoError)
@@ -187,6 +191,15 @@ namespace AddOnCommands
     if (os.Contains(Wall::InsideSlantAngleFieldName))
       os.Get(Wall::InsideSlantAngleFieldName, element.wall.slantBeta);
     ACAPI_ELEMENT_MASK_SET(wallMask, API_WallType, slantBeta);
+    
+    // Door & window
+    if (os.Contains(Wall::HasDoorFieldName))
+      os.Get(Wall::HasDoorFieldName, element.wall.hasDoor);
+    ACAPI_ELEMENT_MASK_SET(wallMask, API_WallType, hasDoor);
+
+    if (os.Contains(Wall::HasWindowFieldName))
+      os.Get(Wall::HasWindowFieldName, element.wall.hasWindow);
+    ACAPI_ELEMENT_MASK_SET(wallMask, API_WallType, hasWindow);
 
     return NoError;
   }

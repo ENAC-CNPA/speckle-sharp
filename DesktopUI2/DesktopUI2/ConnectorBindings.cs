@@ -3,9 +3,12 @@ using DesktopUI2.Models.Filters;
 using DesktopUI2.Models.Settings;
 using DesktopUI2.ViewModels;
 using Sentry.Reflection;
+using Speckle.Core.Api;
 using Speckle.Core.Kits;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using static DesktopUI2.ViewModels.MappingViewModel;
 
 namespace DesktopUI2
 {
@@ -32,15 +35,45 @@ namespace DesktopUI2
 
     #endregion
 
-    public virtual bool CanSelectObjects()
+    #region virtual methods & properties
+    public virtual bool CanSelectObjects => false;
+
+    public virtual bool CanTogglePreview => false;
+
+    /// <summary>
+    /// Indicates if previewing send has been implemented
+    /// </summary>
+    /// <returns></returns>
+    public virtual bool CanPreviewSend => false;
+
+    /// <summary>
+    /// Indicates if previewing receive has been implemented
+    /// </summary>
+    /// <returns></returns>
+    public virtual bool CanPreviewReceive => false;
+
+
+    /// <summary>
+    /// Returns true if the <see cref="Open3DView"/> method is overwritten and implemented. 
+    /// </summary>
+    /// <returns></returns>
+    public virtual bool CanOpen3DView => false;
+
+
+    /// <summary>
+    /// Opens a 3D view in the host application
+    /// </summary>
+    /// <param name="viewCoordinates">First three values are the camera position, second three the target. TODO: update to use <see cref="Base"/></param>
+    /// <param name="viewName">Id or Name of the view</param>
+    /// <returns></returns>
+    public virtual Task Open3DView(List<double> viewCoordinates, string viewName = "")
     {
-      return false;
+      return Task.CompletedTask;
     }
 
-    public virtual bool CanTogglePreview()
-    {
-      return false;
-    }
+    #endregion
+
+
 
     #region abstract methods
 
@@ -78,6 +111,11 @@ namespace DesktopUI2
     public abstract string GetDocumentLocation();
 
     /// <summary>
+    /// Clears the document state of selections and previews
+    /// </summary>
+    public abstract void ResetDocument();
+
+    /// <summary>
     /// Gets the current opened/focused file's view, if applicable.
     /// </summary>
     /// <returns></returns>
@@ -88,7 +126,6 @@ namespace DesktopUI2
     /// </summary>
     /// <returns></returns>
     public abstract List<StreamState> GetStreamsInFile();
-
 
     /// <summary>
     /// Writes serialised clients to the current open host file.
@@ -113,11 +150,28 @@ namespace DesktopUI2
     public abstract Task<string> SendStream(StreamState state, ProgressViewModel progress);
 
     /// <summary>
+    /// Previews a send operation
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="progress"></param>
+    /// <returns></returns>
+    public abstract void PreviewSend(StreamState state, ProgressViewModel progress);
+
+
+    /// <summary>
     /// Receives stream data from the server
     /// </summary>
     /// <param name="state"></param>
     /// <returns></returns>
     public abstract Task<StreamState> ReceiveStream(StreamState state, ProgressViewModel progress);
+
+    /// <summary>
+    /// Previews a receive operation
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="progress"></param>
+    /// <returns></returns>
+    public abstract Task<StreamState> PreviewReceive(StreamState state, ProgressViewModel progress);
 
     /// <summary>
     /// Adds the current selection to the provided client.
@@ -140,7 +194,7 @@ namespace DesktopUI2
     /// clients should be able to select/preview/hover one way or another their associated objects
     /// </summary>
     /// <param name="args"></param>
-    public abstract void SelectClientObjects(string args);
+    public abstract void SelectClientObjects(List<string> objs, bool deselect = false);
 
     /// <summary>
     /// Should return a list of filters that the application supports. 
@@ -162,6 +216,11 @@ namespace DesktopUI2
 
     public abstract List<ISetting> GetSettings();
 
+    /// <summary>
+    /// Imports family symbols in Revit 
+    /// </summary>
+    /// <returns></returns>
+    public abstract Task<Dictionary<string, List<MappingValue>>> ImportFamilyCommand(Dictionary<string, List<MappingValue>> Mapping);
     #endregion
   }
 }

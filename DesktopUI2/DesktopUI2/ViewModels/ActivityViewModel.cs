@@ -29,10 +29,8 @@ namespace DesktopUI2.ViewModels
 
     public ActivityViewModel(ActivityItem item, Client client)
     {
-
       _activity = item;
       _client = client;
-
 
       switch (item.actionType)
       {
@@ -40,13 +38,13 @@ namespace DesktopUI2.ViewModels
           Margin = new Thickness(50, 10, 10, 0);
           Icon = "ArrowBottomLeft";
           Align = HorizontalAlignment.Right;
-          Message = $"received in {item.info.sourceApplication} • {Formatting.TimeAgo(item.time)}";
+          Message = $"received in {item?.info?.sourceApplication} • {Formatting.TimeAgo(item.time)}";
           break;
         case "commit_create":
           Margin = new Thickness(10, 10, 50, 0);
           Icon = "ArrowTopRight";
           Align = HorizontalAlignment.Left;
-          Message = $"sent from {item.info.commit.sourceApplication} • {Formatting.TimeAgo(item.time)}";
+          Message = $"sent from {item?.info?.commit?.sourceApplication} • {Formatting.TimeAgo(item.time)}";
           break;
         case "stream_create":
           Margin = new Thickness(10, 10, 10, 0);
@@ -64,8 +62,5 @@ namespace DesktopUI2.ViewModels
       //this.RaisePropertyChanged("Icon");
       //this.RaisePropertyChanged("Align");
     }
-
-
-
   }
 }

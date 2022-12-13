@@ -1,11 +1,14 @@
-﻿using DesktopUI2.ViewModels.Share;
+﻿using Avalonia;
+using Avalonia.Controls;
+using DesktopUI2.Models;
 using DesktopUI2.Views.Pages;
-using DesktopUI2.Views.Pages.ShareControls;
-using DesktopUI2.Views.Windows.Dialogs;
+using Material.Styles.Themes;
 using ReactiveUI;
+using Speckle.Core.Credentials;
 using Speckle.Core.Logging;
 using Splat;
 using System;
+using System.Linq;
 using System.Reactive;
 
 namespace DesktopUI2.ViewModels
@@ -23,9 +26,11 @@ namespace DesktopUI2.ViewModels
 
     internal static MainViewModel Instance { get; private set; }
 
+    public static HomeViewModel Home { get; private set; }
+
     public bool DialogVisible
     {
-      get => _dialogBody!=null;
+      get => _dialogBody != null;
     }
 
     public double DialogOpacity
@@ -33,11 +38,12 @@ namespace DesktopUI2.ViewModels
       get => _dialogBody != null ? 1 : 0;
     }
 
-    private DialogUserControl _dialogBody;
-    public DialogUserControl DialogBody
+    private UserControl _dialogBody;
+    public UserControl DialogBody
     {
       get => _dialogBody;
-      set  {
+      set
+      {
 
         this.RaiseAndSetIfChanged(ref _dialogBody, value);
         this.RaisePropertyChanged("DialogVisible");
@@ -54,12 +60,13 @@ namespace DesktopUI2.ViewModels
     }
     public MainViewModel()
     {
-     
+
       Init();
     }
 
     private void Init()
     {
+
       Instance = this;
       Setup.Init(Bindings.GetHostAppNameVersion(), Bindings.GetHostAppName());
 
@@ -69,35 +76,83 @@ namespace DesktopUI2.ViewModels
 
       Locator.CurrentMutable.Register(() => new StreamEditView(), typeof(IViewFor<StreamViewModel>));
       Locator.CurrentMutable.Register(() => new HomeView(), typeof(IViewFor<HomeViewModel>));
+      Locator.CurrentMutable.Register(() => new OneClickView(), typeof(IViewFor<OneClickViewModel>));
       Locator.CurrentMutable.Register(() => new CollaboratorsView(), typeof(IViewFor<CollaboratorsViewModel>));
       Locator.CurrentMutable.Register(() => new SettingsView(), typeof(IViewFor<SettingsPageViewModel>));
+      Locator.CurrentMutable.Register(() => new NotificationsView(), typeof(IViewFor<NotificationsViewModel>));
+      Locator.CurrentMutable.Register(() => new LogInView(), typeof(IViewFor<LogInViewModel>));
       Locator.CurrentMutable.Register(() => Bindings, typeof(ConnectorBindings));
 
       RouterInstance = Router; // makes the router available app-wide
-      Router.Navigate.Execute(new HomeViewModel(this));
 
-      Bindings.UpdateSavedStreams = HomeViewModel.Instance.UpdateSavedStreams;
-      Bindings.UpdateSelectedStream = HomeViewModel.Instance.UpdateSelectedStream;
+      var config = ConfigManager.Load();
+      ChangeTheme(config.DarkTheme);
 
-      Router.PropertyChanged += Router_PropertyChanged;
+      //reusing the same view model not to lose its state
+      Home = new HomeViewModel(this);
+      NavigateToDefaultScreen();
+    }
+
+    internal void NavigateToDefaultScreen()
+    {
+      var config = ConfigManager.Load();
+
+      if (!AccountManager.GetAccounts().Any())
+      {
+        Router.Navigate.Execute(new LogInViewModel(this));
+      }
+      else if (config.OneClickMode)
+      {
+        Router.Navigate.Execute(new OneClickViewModel(this));
+      }
+      else
+      {
+        Home.Refresh();
+        Router.Navigate.Execute(Home);
+      }
     }
 
     //https://github.com/AvaloniaUI/Avalonia/issues/5290
     private void CatchReactiveException(Exception e)
     {
-      //do nothing
+      Log.CaptureException(e, Sentry.SentryLevel.Error);
     }
 
-    private void Router_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-      throw new System.NotImplementedException();
-    }
 
     public static void GoHome()
     {
-      if (RouterInstance != null && HomeViewModel.Instance != null)
-        RouterInstance.Navigate.Execute(HomeViewModel.Instance);
+      if (RouterInstance == null)
+        return;
+
+      var config = ConfigManager.Load();
+      if (!config.OneClickMode)
+      {
+        RouterInstance.Navigate.Execute(Home);
+      }
     }
+
+    public static void CloseDialog()
+    {
+      Instance.DialogBody = null;
+    }
+
+    internal void ChangeTheme(bool isDark)
+    {
+
+      if (Application.Current == null)
+        return;
+
+      var materialTheme = Application.Current.LocateMaterialTheme<MaterialThemeBase>();
+      var theme = materialTheme.CurrentTheme;
+
+      if (isDark)
+        theme.SetBaseTheme(Theme.Light);
+      else
+        theme.SetBaseTheme(Theme.Dark);
+
+      materialTheme.CurrentTheme = theme;
+    }
+
 
   }
 }
