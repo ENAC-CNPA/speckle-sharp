@@ -156,9 +156,6 @@ Source: "{#SrcFolder}\x64\libSkiaSharp.so"; DestDir: "{code:GetTopDir}\bin\x64";
 Source: "{#SrcFolder}\x64\SQLite.Interop.dll"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 
 ; Speckle AppData files : %appdata%\Roaming\Speckle
-Source: "{#SpeckleSrcFolder}\Accounts.db"; DestDir: "{userappdata}\Speckle"; Flags: ignoreversion;
-Source: "{#SpeckleSrcFolder}\Config.db"; DestDir: "{userappdata}\Speckle"; Flags: ignoreversion;
-Source: "{#SpeckleSrcFolder}\Data.db"; DestDir: "{userappdata}\Speckle"; Flags: ignoreversion;
 Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.Converter.TopSolid716.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
 Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
 
