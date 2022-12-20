@@ -42,6 +42,7 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
         /// Instance of the initial face color
         /// </summary>
         private static TopSolid.Kernel.SX.Drawing.Color initialFaceColor;
+        private System.Windows.Forms.Panel specklePanel;
 
         /// <summary>
         /// Instance of the previous selected shape entity
@@ -163,11 +164,6 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
             {
                 listBox.Items.Add(entity);
             }
-
-
-            listBox.Items.Add("EPFL");
-            listBox.Items.Add("Super");
-            listBox.Items.Add("Speckle");
 
         }
 
@@ -293,5 +289,7 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
             listBox.Items.Add("Super");
             listBox.Items.Add("Speckle");
         }
+
+
     }
 }

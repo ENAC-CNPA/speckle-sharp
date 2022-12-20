@@ -1,4 +1,6 @@
-﻿using TopSolid.Kernel.WX.Controls;
+﻿using System.Linq;
+using System.Windows;
+using TopSolid.Kernel.WX.Controls;
 
 namespace Speckle.ConnectorTopSolid.UI.CustomWindows
 {
@@ -32,22 +34,19 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
         /// </summary>
         private void InitializeComponent()
         {
-            this.Treeview = new TopSolid.Kernel.WX.Controls.TreeView();
             this.listBox = new TopSolid.Kernel.WX.Controls.ListBox();
             this.button = new TopSolid.Kernel.WX.Controls.Button();
+            this.specklePanel = new System.Windows.Forms.Panel();
             this.SuspendLayout();
             // 
-            // treeview
+            // specklePanel
             // 
-            this.Treeview.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.Treeview.Location = new System.Drawing.Point(3, 3);
-            this.Treeview.MaximumSize = new System.Drawing.Size(382, 186);
-            this.Treeview.MinimumSize = new System.Drawing.Size(382, 186);
-            this.Treeview.Name = "treeview";
-            this.Treeview.Size = new System.Drawing.Size(382, 186);
-            this.Treeview.TabIndex = 1;
+            this.specklePanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.specklePanel.Location = new System.Drawing.Point(0, 0);
+            this.specklePanel.Name = "specklePanel";
+            this.specklePanel.Size = new System.Drawing.Size(665, 909);
+            this.specklePanel.TabIndex = 0;
+            //
             // 
             // listBox
             // 
@@ -77,18 +76,19 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.listBox);
-            this.Controls.Add(this.Treeview);
-            this.Controls.Add(this.button);
+            this.specklePanel.Controls.Add(this.listBox);
+            this.specklePanel.Controls.Add(this.Treeview);
+            this.specklePanel.Controls.Add(this.button);
+            this.Controls.Add(this.specklePanel);
             this.Name = "SpeckleWindow";
             this.Size = new System.Drawing.Size(388, 428);
             this.ResumeLayout(false);
 
         }
 
-		#endregion
+        #endregion
 
-		private ListBox listBox;
+        private ListBox listBox;
         private Button button;
 
         public TreeView Treeview { get => treeview; set => treeview = value; }
