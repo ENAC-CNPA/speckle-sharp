@@ -15,6 +15,7 @@ using DesktopUI2.ViewModels;
 using DesktopUI2.Views;
 using Speckle.ConnectorTopSolid.UI;
 using Application = TopSolid.Kernel.UI.Application;
+using Avalonia.Collections;
 
 
 namespace Speckle.ConnectorTopSolid.UI.Entry

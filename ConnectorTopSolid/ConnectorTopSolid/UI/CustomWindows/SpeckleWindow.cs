@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Avalonia.Collections;
+using DesktopUI2.Views;
+using System;
 using System.Linq;
-using Speckle.ConnectorTopSolid.UI.LaunchCommand;
 using TopSolid.Cad.Design.DB.Documents;
 using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.Entities;
@@ -17,6 +18,9 @@ using TopSolid.Kernel.WX.Docking;
 using TopSolid.Kernel.WX.EnhancedContainers;
 using Application = TopSolid.Kernel.WX.Application;
 using TreeNode = TopSolid.Kernel.WX.Controls.TreeNode;
+using System.Windows;
+using System.Windows.Controls;
+using DesktopUI2.Views;
 
 namespace Speckle.ConnectorTopSolid.UI.CustomWindows
 {
@@ -69,6 +73,7 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
         public SpeckleWindow()
         {
             InitializeComponent();
+            //AvaloniaHost.MessageHook += AvaloniaHost_MessageHook; // TODO
 
             // Add the preview display in the display of the document
             PartDocument partDocument = Application.ActiveDocument as PartDocument;
@@ -93,7 +98,21 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
             listBox.LostFocus += ListBoxOnLostFocus;
             partDocument.Saving += PartDocumentOnSaving;
             button.Click += ButtonOnClick;
+
         }
+
+        private const UInt32 DLGC_WANTARROWS = 0x0001;
+        private const UInt32 DLGC_HASSETSEL = 0x0008;
+        private const UInt32 DLGC_WANTCHARS = 0x0080;
+        private const UInt32 WM_GETDLGCODE = 0x0087;
+
+        private IntPtr AvaloniaHost_MessageHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg != WM_GETDLGCODE) return IntPtr.Zero;
+            handled = true;
+            return new IntPtr(DLGC_WANTCHARS | DLGC_WANTARROWS | DLGC_HASSETSEL);
+        }
+
 
         // Methods:
 
@@ -144,6 +163,12 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
             {
                 listBox.Items.Add(entity);
             }
+
+
+            listBox.Items.Add("EPFL");
+            listBox.Items.Add("Super");
+            listBox.Items.Add("Speckle");
+
         }
 
         private void ClearDisplay(PartDocument partDocument)
@@ -246,7 +271,7 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
         private void ListBoxOnLostFocus(object sender, EventArgs e)
         {
             listBox.ClearSelected();
-
+            
             PartDocument partDocument = Application.ActiveDocument as PartDocument;
             if (partDocument == null) return;
             ClearDisplay(partDocument);
@@ -263,7 +288,10 @@ namespace Speckle.ConnectorTopSolid.UI.CustomWindows
         {
             //SmartSurfaceCommand cmd = new SmartSurfaceCommand();
             //cmd.DoInvoke();
-            MessageBox.Show("SUper EPFL");
+
+            listBox.Items.Add("EPFL");
+            listBox.Items.Add("Super");
+            listBox.Items.Add("Speckle");
         }
     }
 }
