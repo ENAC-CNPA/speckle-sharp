@@ -120,4 +120,7 @@
   <data name="$Description" xml:space="preserve">
     <value>Speckle UI</value>
   </data>
+  <data name="SpeckleWindow" xml:space="preserve">
+    <value>Speckle</value>
+  </data>
 </root>

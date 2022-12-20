@@ -1,13 +1,14 @@
 using System;
-using System.Resources;
+using System.Drawing;
+using System.Reflection;
 using TopSolid.Kernel.SX.Resources;
-using ResourceManager = System.Resources.ResourceManager;
 
 namespace Speckle.ConnectorTopSolid.UI
 {
-	/// <summary>
-	/// Manages the resources.
-	/// </summary>
+    /// <summary>
+    /// Manages the resources.
+    /// </summary>
+    [Obfuscation(Exclude = true)]
 	public static class Resources
 	{
 		// Static fields:
@@ -34,5 +35,14 @@ namespace Speckle.ConnectorTopSolid.UI
 				return manager;
 			}
 		}
-	}
+
+        /// <summary>
+        /// Gets the folder icon.
+        /// </summary>
+        /// <param name="inDesiredSize">Desired size.</param>
+        public static Icon GetFolderIcon(Size inDesiredSize)
+        {
+            return TopSolid.Kernel.SX.ResourceDictionary.GetIconWithExtension(typeof(Resources), "SpeckleWindow.ico", inDesiredSize);
+        }
+    }
 }

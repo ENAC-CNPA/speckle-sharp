@@ -1,25 +1,34 @@
-﻿using System;
-using TopSolid.Cad.Design.DB.Documents;
-using TopSolid.Kernel.DB.D3.Documents;
-using TopSolid.Kernel.DB.D3.Planes;
-using TopSolid.Kernel.DB.Documents;
-using TopSolid.Kernel.DB.Parameters;
-using TopSolid.Kernel.G.D3;
-using TopSolid.Kernel.GR.Displays;
-using TopSolid.Kernel.TX.Units;
+﻿
 using TopSolid.Kernel.UI.Commands;
-using TopSolid.Kernel.WX;
+using Speckle.ConnectorTopSolid.UI.CustomWindows;
+
 
 
 namespace Speckle.ConnectorTopSolid.UI.LaunchCommand
 {
     class LaunchSpeckleCommand : MenuCommand
     {
- 
+
+        private static SpeckleWindow newSpeckleWindow;
         protected override void Invoke()
         {
-          
-            SpeckleCommand();
+
+            //SpeckleCommand();
+
+            base.Invoke();
+            if (newSpeckleWindow == null)
+            {
+                newSpeckleWindow = new SpeckleWindow();
+                newSpeckleWindow.AddOrModifyDockedWindow();
+            }
+            else
+            {
+                if (newSpeckleWindow.DockedContent != null)
+                {
+                    newSpeckleWindow.DockedContent.Visible = true;
+                }
+            }
+
         }
        
         /// <summary>
