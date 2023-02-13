@@ -41,6 +41,7 @@ using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using TopSolid.Cad.Design.DB;
 using G = TopSolid.Kernel.G;
+using DB = TopSolid.Kernel.DB;
 using TopSolid.Kernel.G.D3.Sketches;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
 
@@ -118,6 +119,15 @@ namespace Objects.Converter.TopSolid
 
                 case TsShape o:
                     return BrepToSpeckle(o);
+
+                case G.D3.Sketches.Sketch o:
+                    return D3SketchToSpeckle(o);
+
+                case DB.D3.Sketches.SketchEntity o:
+                    return D3SketchEntityToSpeckle(o);
+
+                case DB.D2.Sketches.SketchEntity o:
+                    return D2SketchEntityToSpeckle(o);
 
                 case Element o:
                     return ElementToSpeckle(o);
@@ -207,6 +217,11 @@ namespace Objects.Converter.TopSolid
                 case Polyhedron o:
                     return PolyhedronToSpeckle(o);
 
+                case G.D3.Sketches.Planar.PlanarSketch o:
+                    return PlanarSketchToSpeckle(o);
+
+                case G.D3.Sketches.PositionedSketch o:
+                    return PositionedSketchToSpeckle(o);
 
                 // TODO: using multi type (TsGeometry isn't compatible)
                 //case TsVector o:
@@ -250,7 +265,7 @@ namespace Objects.Converter.TopSolid
                         case Polyhedron _:
                         case Sketch _:
                         case G.D2.Sketches.Sketch _:
-                            
+
                             return true;
 
                         default:
@@ -267,6 +282,7 @@ namespace Objects.Converter.TopSolid
                         case TsBSplineSurface _:
                         case TsShape _:
                         case Polyhedron _:
+                        case G.D3.Sketches.Planar.PlanarSketch _:
                             return true;
 
                         default:

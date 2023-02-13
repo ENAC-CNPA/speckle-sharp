@@ -49,6 +49,12 @@
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D2">
+      <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D2.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D2.Sketches">
+      <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D2.Sketches.dll</HintPath>
+    </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3">
       <HintPath>..\..\..\..\..\Topsolid 7.16\Debug x64\TopSolid.Kernel.DB.D3.dll</HintPath>
       <Private>False</Private>

@@ -28,7 +28,7 @@ using TsPolylineCurve = TopSolid.Kernel.G.D3.Curves.PolylineCurve;
 using TsUnitVector = TopSolid.Kernel.G.D3.UnitVector;
 using TsVector = TopSolid.Kernel.G.D3.Vector;
 using TsBsplineCurve = TopSolid.Kernel.G.D3.Curves.BSplineCurve;
-
+using G = TopSolid.Kernel.G;
 using TX = TopSolid.Kernel.TX;
 using SX = TopSolid.Kernel.SX;
 using TopSolid.Kernel.G.D3.Shapes;
@@ -243,6 +243,34 @@ namespace Objects.Converter.TopSolid
         public TsLineCurve LineToNative(Line line, string units = null)
         {
             return new TsLineCurve(PointToNative(line.start), PointToNative(line.end));
+        }
+        #endregion
+
+
+        // Sketch
+        #region Sketch
+        public Line PlanarSketchToSpeckle(G.D3.Sketches.Planar.PlanarSketch topSolidSketch, string units = null)
+        {
+            var u = units ?? ModelUnits;
+            Line speckleLine = null;  //new Line(PointToSpeckle(topSolidSketch), PointToSpeckle(topSolidSketch.Pe), u);
+            SetInstanceParameters(speckleLine, topSolidSketch);
+            return speckleLine;
+        }
+        public G.D3.Sketches.Planar.PlanarSketch PlanarSketchToNative(Line line, string units = null)
+        {
+            return new G.D3.Sketches.Planar.PlanarSketch();
+        }
+
+        public Line PositionedSketchToSpeckle(G.D3.Sketches.PositionedSketch topSolidSketch, string units = null)
+        {
+            var u = units ?? ModelUnits;
+            Line speckleLine = null;  //new Line(PointToSpeckle(topSolidSketch), PointToSpeckle(topSolidSketch.Pe), u);
+            SetInstanceParameters(speckleLine, topSolidSketch);
+            return speckleLine;
+        }
+        public G.D3.Sketches.PositionedSketch PositionedSketchToNative(Line line, string units = null)
+        {
+            return new G.D3.Sketches.PositionedSketch();
         }
         #endregion
 
