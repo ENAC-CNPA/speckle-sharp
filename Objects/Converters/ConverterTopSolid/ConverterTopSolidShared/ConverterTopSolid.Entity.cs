@@ -24,10 +24,10 @@ namespace Objects.Converter.TopSolid
         public Base ElementToSpeckle(Element topSolidElement, string units = null)
         {
             var u = units ?? ModelUnits;
-           Base speckleElement = new Base();
+            Base speckleElement = new Base();
 
             //speckleElement["renderMaterial"] = new Other.RenderMaterial() { opacity = 0.2, diffuse = System.Drawing.Color.AliceBlue.ToArgb() };
-     
+
 
             SetInstanceParameters(speckleElement, topSolidElement);
             GetHostedElements(speckleElement, topSolidElement);
@@ -53,14 +53,14 @@ namespace Objects.Converter.TopSolid
 
             var placeholders = new List<ApplicationObject>();
 
-              //{
-              //  new ApplicationPlaceholderObject
-              //  {
-              //  applicationId = speckleElement.applicationId,
-              //  ApplicationGeneratedId = topSolidElement.Id.ToString(),
-              //  NativeObject = topSolidElement
-              //  }
-              //};
+            //{
+            //  new ApplicationPlaceholderObject
+            //  {
+            //  applicationId = speckleElement.applicationId,
+            //  ApplicationGeneratedId = topSolidElement.Id.ToString(),
+            //  NativeObject = topSolidElement
+            //  }
+            //};
 
             var hostedElements = SetHostedElements(speckleElement, topSolidElement);
             placeholders.AddRange(hostedElements);
@@ -131,8 +131,7 @@ namespace Objects.Converter.TopSolid
             var u = units ?? ModelUnits;
             Base speckleSketchEntity = new Base();
 
-            //speckleSketchEntity["renderMaterial"] = new Other.RenderMaterial() { opacity = 0.2, diffuse = System.Drawing.Color.AliceBlue.ToArgb() };
-
+            speckleSketchEntity["renderMaterial"] = new Other.RenderMaterial() { opacity = 1 - topSolidSketchEntity.ExplicitTransparency.ToFloat(), diffuse = topSolidSketchEntity.ExplicitColor.Argb.ToArgb() };
 
             //SetInstanceParameters(speckleElement, topSolidElement);
             GetHostedElements(speckleSketchEntity, topSolidSketchEntity);

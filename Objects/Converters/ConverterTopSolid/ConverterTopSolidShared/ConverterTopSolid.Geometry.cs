@@ -306,7 +306,7 @@ namespace Objects.Converter.TopSolid
             }
 
             speckleSketch["Profiles"] = list;
-            //speckleSketch["Vertices"] = topSolidSketch.Vertices.Where(X => !X.IsInternal).Select(x => ObjectToSpeckle(x.Geometry));
+            speckleSketch["Vertices"] = topSolidSketch.Vertices.Where(X => !X.IsInternal).Select(x => ObjectToSpeckle(x.Geometry));
             return speckleSketch;
         }
         public G.D3.Sketches.Planar.PlanarSketch PlanarSketchToNative(Line line, string units = null)

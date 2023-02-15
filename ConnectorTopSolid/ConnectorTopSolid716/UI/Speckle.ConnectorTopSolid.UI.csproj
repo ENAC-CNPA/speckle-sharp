@@ -166,9 +166,6 @@
     <Compile Include="..\..\ConnectorTopSolid\UI\Session.cs">
       <Link>Session.cs</Link>
     </Compile>
-    <Compile Include="..\..\ConnectorTopSolid\UI\SpeckleStreamTS.cs">
-      <Link>SpeckleStreamTS.cs</Link>
-    </Compile>
     <Compile Include="..\..\ConnectorTopSolid\UI\Storage\SpeckleStreamManager.cs">
       <Link>Storage\SpeckleStreamManager.cs</Link>
     </Compile>
