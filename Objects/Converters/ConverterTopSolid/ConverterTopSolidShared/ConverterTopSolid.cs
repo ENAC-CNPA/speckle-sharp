@@ -128,6 +128,12 @@ namespace Objects.Converter.TopSolid
                 case G.D3.Sketches.PositionedSketch o:
                     return PositionedSketchToSpeckle(o);
 
+                case DB.D3.Sketches.PositionedSketchEntity o:
+                    return PositionedSketchToSpeckle(o.Geometry as PositionedSketch);
+
+                case DB.D3.Sketches.Planar.PlanarSketchEntity o:
+                    return PlanarSketchToSpeckle(o.Geometry as PlanarSketch);
+
                 case Element o:
                     return ElementToSpeckle(o);
 
