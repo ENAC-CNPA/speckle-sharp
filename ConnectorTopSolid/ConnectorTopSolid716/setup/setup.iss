@@ -115,6 +115,9 @@ Source: "{#SrcFolder}\Microsoft.CodeAnalysis.dll"; DestDir: "{code:GetTopDir}\bi
 ; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Microsoft.CodeAnalysis.Scripting.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 ; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.Scripting.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+
+Source: "{#SrcFolder}\Microsoft.Data.Sqlite.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+
 Source: "{#SrcFolder}\Newtonsoft.Json.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\ReactiveUI.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Sentry.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
