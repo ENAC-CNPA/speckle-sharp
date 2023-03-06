@@ -56,6 +56,20 @@ Source: "{#SrcFolder}\Speckle.ConnectorTopSolid.DB.dll"; DestDir: "{code:GetTopD
 Source: "{#SrcFolder}\fr\Speckle.ConnectorTopSolid.AddIn.resources.dll"; DestDir: "{code:GetTopDir}\bin\fr"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\fr\Speckle.ConnectorTopSolid.UI.resources.dll"; DestDir: "{code:GetTopDir}\bin\fr"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 
+; Speckle AppData files : %appdata%\Roaming\Speckle
+Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.Converter.TopSolid716.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
+Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
+
+
+; Source: "{#SrcFolder}\DesktopUI2.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\HarfBuzzSharp.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.CSharp.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.CSharp.Scripting.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.Scripting.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\SkiaSharp.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\Speckle.Newtonsoft.Json.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+; Source: "{#SrcFolder}\SpeckleCore2.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Avalonia.Animation.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Avalonia.Base.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Avalonia.Controls.DataGrid.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
@@ -85,14 +99,12 @@ Source: "{#SrcFolder}\Avalonia.Visuals.dll"; DestDir: "{code:GetTopDir}\bin"; Fl
 Source: "{#SrcFolder}\Avalonia.Win32.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Avalonia.X11.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\DesktopUI2.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\DesktopUI2.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\DynamicData.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\GraphQL.Client.Abstractions.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\GraphQL.Client.Abstractions.Websocket.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\GraphQL.Client.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\GraphQL.Primitives.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\HarfBuzzSharp.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\HarfBuzzSharp.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\JetBrains.Annotations.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\libHarfBuzzSharp.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\libHarfBuzzSharp.dylib"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
@@ -108,25 +120,18 @@ Source: "{#SrcFolder}\Material.Ripple.dll"; DestDir: "{code:GetTopDir}\bin"; Fla
 Source: "{#SrcFolder}\Material.Styles.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Microsoft.Bcl.AsyncInterfaces.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Microsoft.CodeAnalysis.CSharp.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.CSharp.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Microsoft.CodeAnalysis.CSharp.Scripting.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.CSharp.Scripting.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Microsoft.CodeAnalysis.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Microsoft.CodeAnalysis.Scripting.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\Microsoft.CodeAnalysis.Scripting.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-
-Source: "{#SrcFolder}\Microsoft.Data.Sqlite.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-
+Source: "{#SrcFolder}\musl-x64\libHarfBuzzSharp.so"; DestDir: "{code:GetTopDir}\bin\musl-x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+Source: "{#SrcFolder}\musl-x64\libSkiaSharp.so"; DestDir: "{code:GetTopDir}\bin\musl-x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+Source: "{#SrcFolder}\Native\libAvalonia.Native.OSX.dylib"; DestDir: "{code:GetTopDir}\bin\Native"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Newtonsoft.Json.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\ReactiveUI.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Sentry.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\SkiaSharp.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\SkiaSharp.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Speckle.Newtonsoft.Json.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\Speckle.Newtonsoft.Json.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\SpeckleCore2.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-; Source: "{#SrcFolder}\SpeckleCore2.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\SpeckleCore2.xml"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Splat.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Stylet.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
@@ -148,20 +153,18 @@ Source: "{#SrcFolder}\System.Text.Json.dll"; DestDir: "{code:GetTopDir}\bin"; Fl
 Source: "{#SrcFolder}\System.Threading.Tasks.Extensions.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\System.ValueTuple.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\Tmds.DBus.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-
-Source: "{#SrcFolder}\musl-x64\libHarfBuzzSharp.so"; DestDir: "{code:GetTopDir}\bin\musl-x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-Source: "{#SrcFolder}\musl-x64\libSkiaSharp.so"; DestDir: "{code:GetTopDir}\bin\musl-x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
-Source: "{#SrcFolder}\Native\libAvalonia.Native.OSX.dylib"; DestDir: "{code:GetTopDir}\bin\Native"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\libHarfBuzzSharp.dll"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\libHarfBuzzSharp.so"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\libSkiaSharp.dll"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\libSkiaSharp.so"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 Source: "{#SrcFolder}\x64\SQLite.Interop.dll"; DestDir: "{code:GetTopDir}\bin\x64"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 
-; Speckle AppData files : %appdata%\Roaming\Speckle
-Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.Converter.TopSolid716.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
-Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
 
+Source: "{#SrcFolder}\Microsoft.Data.Sqlite.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+Source: "{#SrcFolder}\e_sqlite3.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+Source: "{#SrcFolder}\SQLitePCLRaw.batteries_v2.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+Source: "{#SrcFolder}\SQLitePCLRaw.core.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
+Source: "{#SrcFolder}\SQLitePCLRaw.provider.e_sqlite3.dll"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;
 
 
 [Registry]
