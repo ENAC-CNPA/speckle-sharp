@@ -15,6 +15,7 @@ using DesktopUI2.ViewModels;
 using DesktopUI2.Views;
 using Speckle.ConnectorTopSolid.UI;
 using Application = TopSolid.Kernel.UI.Application;
+using Avalonia.Collections;
 
 
 namespace Speckle.ConnectorTopSolid.UI.Entry
@@ -25,6 +26,10 @@ namespace Speckle.ConnectorTopSolid.UI.Entry
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr value);
         const int GWL_HWNDPARENT = -8;
+        private const UInt32 DLGC_WANTARROWS = 0x0001;
+        private const UInt32 DLGC_HASSETSEL = 0x0008;
+        private const UInt32 DLGC_WANTCHARS = 0x0080;
+        private const UInt32 WM_GETDLGCODE = 0x0087;
         #endregion
 
         private static Avalonia.Application AvaloniaApp { get; set; }
@@ -48,6 +53,17 @@ namespace Speckle.ConnectorTopSolid.UI.Entry
         public static void InitAvalonia()
         {
             BuildAvaloniaApp().Start(AppMain, null);
+        }
+
+        /// <summary>
+        /// WPF was handling all the text input events and they where not being passed to the Avalonia control
+        /// This ensures they are passed, see: https://github.com/AvaloniaUI/Avalonia/issues/8198#issuecomment-1168634451
+        /// </summary>
+        private IntPtr AvaloniaHost_MessageHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg != WM_GETDLGCODE) return IntPtr.Zero;
+            handled = true;
+            return new IntPtr(DLGC_WANTCHARS | DLGC_WANTARROWS | DLGC_HASSETSEL);
         }
 
         public static void CreateOrFocusSpeckle(bool showWindow = true)

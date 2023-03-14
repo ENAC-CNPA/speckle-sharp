@@ -81,7 +81,10 @@ namespace Speckle.ConnectorTopSolid.UI
         #region local streams 
         public override void WriteStreamsToFile(List<StreamState> streams)
         {
-            //SpeckleStreamManager.WriteStreamStateList(Doc, streams);
+            // Start undo Sequence
+            UndoSequence.Start("SpeckleCreation", false); // no Ghost
+
+            Storage.SpeckleStreamManager.WriteStreamStateList(Doc, streams);
         }
 
         //public override List<StreamState> GetStreamsInFile()
@@ -270,9 +273,6 @@ namespace Speckle.ConnectorTopSolid.UI
 
             try
             {
-                // Start undo Sequence
-                UndoSequence.Start("SpeckleCreation", false); // no Ghost
-
 
                 // set the context doc for conversion - this is set inside the transaction loop because the converter retrieves this transaction for all db editing when the context doc is set!
                 converter.SetContextDocument(Doc);

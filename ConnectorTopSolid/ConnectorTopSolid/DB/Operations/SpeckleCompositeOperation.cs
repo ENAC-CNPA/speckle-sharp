@@ -15,15 +15,18 @@ using TopSolid.Kernel.DB.SmartObjects;
 using TopSolid.Kernel.G.D3;
 using TopSolid.Kernel.G.D3.Shapes.Extruded;
 using TopSolid.Kernel.TX.Units;
-using TopSolid.Kernel.SX.Collections.Generic;
 using Extent = TopSolid.Kernel.G.D2.Extent;
+using DesktopUI2.Models;
+using System.Collections.Generic;
 
 namespace Speckle.ConnectorTopSolid.DB.Operations
 {
     [Guid("86E85324-254E-4DB1-A9A8-9456FC6430B3")]
-    public sealed partial class SpeckleCompositeOperation : CreationsCompositeOperation
+    public partial class SpeckleCompositeOperation : CreationsCompositeOperation
     {
-       
+
+        public StreamState currentState;
+        public List<StreamState> states;
 
         /// <summary>
         /// The pocket operation
@@ -37,10 +40,10 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
         /// </summary>
         /// <param name="inDocument">Container document (referenced).</param>
         /// <param name="inId">Element identifier, or zero for automatic.</param>
-        public SpeckleCompositeOperation(TopSolid.Kernel.DB.Documents.Document inDocument, int inId)
+        public SpeckleCompositeOperation(ref TopSolid.Kernel.DB.Documents.Document inDocument, int inId)
             : base(inDocument, inId)
         {
-         
+            
         }
 
         /// <summary>
@@ -81,7 +84,7 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
             return new SpeckleCompositeOperation(this, inDocument, inId);
         }
 
-       
+
 
         /// <summary>
         /// Gets or sets the offset.

@@ -189,6 +189,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ContextMenu.fr.resx">
       <DependentUpon>ContextMenu.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ContextMenu.resx">
       <DependentUpon>ContextMenu.cs</DependentUpon>

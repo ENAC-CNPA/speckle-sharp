@@ -9,6 +9,9 @@ using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.TX.Undo;
+using Speckle.ConnectorTopSolid.DB.Operations;
+using TopSolid.Kernel.SX.Globalization;
+using TopSolid.Kernel.DB.Operations;
 
 namespace Speckle.ConnectorTopSolid.UI.Storage
 {
@@ -25,7 +28,7 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
     public static class SpeckleStreamManager
     {
         // readonly static string SpeckleExtensionDictionary = "Speckle";
-        readonly static string SpeckleStreamStates = "StreamStates";
+        readonly static string SpeckleStreamStates = "SpeckleStream"; // "StreamStates";
         readonly static string SpeckleCommit = "Commit";
 
         /// <summary>
@@ -57,26 +60,67 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
         /// </summary>
         /// <param name="doc"></param>
         /// <param name="wrap"></param>
-        public static void WriteStreamStateList(GeometricDocument doc, List<StreamState> streamStates)
+        public static void WriteStreamStateList(TopSolid.Kernel.DB.Documents.Document doc, List<StreamState> streamStates)
         {
             if (doc == null)
                 return;
 
+            //if (doc.IsReadOnly) doc.IsReadOnly = false;
+            doc.EnsureIsDirty();
 
             string value = JsonConvert.SerializeObject(streamStates) as string;
 
-            Element element = doc.Elements[SpeckleStreamStates];
+            Element element = (TextParameterEntity)doc.Elements[SpeckleStreamStates];
             if (element != null && element is TextParameterEntity parameter)
             {
-                parameter.Value = value;
+                try
+                {
+                    parameter.Value = value;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error create State stream : " + ex.Message);
+                }
             }
             else
             {
-                TextParameterEntity stateParameter = new TextParameterEntity(doc, 0);
-                stateParameter.Name = SpeckleStreamStates;
-                stateParameter.Create();
-                stateParameter.Value = value;
+                try
+                {
+                    TextParameterEntity stateParameter = new TextParameterEntity(doc, 0, true);
+                    stateParameter.Name = SpeckleStreamStates;
+                    //stateParameter.ExplicitDescription = new LocalizableString(SpeckleStreamStates);
+                    stateParameter.Value = value;
+                    doc.ParametersFolderEntity.InsertEntity(0, stateParameter);
+
+                }
+                catch (Exception ex)
+                {
+
+                    Console.WriteLine("Error create State stream : " + ex.Message);
+                }
             }
+
+            try
+            {
+
+                //FolderOperation folderOperation = new FolderOperation(doc, 0);
+                //folderOperation.Name = SpeckleStreamStates + " : " + streamStates[0].Id;
+                //folderOperation.Create();
+
+                SpeckleCompositeOperationReceive scor = new SpeckleCompositeOperationReceive(ref doc, 0)
+                {
+                    states = streamStates,
+                    Name = SpeckleStreamStates + " : " + 
+                    streamStates[0].CachedStream.name + "-" + streamStates[0].BranchName + "-" + streamStates[0].CommitId
+                };
+                scor.Create();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error create State stream : " + ex.Message);
+            }
+       
 
         }
 
@@ -122,6 +166,10 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
             string value = "";
             if (commit != null && commit != "") value = JsonConvert.SerializeObject(commit) as string;
 
+            //if (doc.IsReadOnly) doc.IsReadOnly = false;
+            doc.EnsureIsDirty();
+
+
             Element element = doc.Elements[SpeckleCommit];
             if (element != null && element is TextParameterEntity parameter)
             {
@@ -134,7 +182,6 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
                 commitParameter.Create();
                 commitParameter.Value = value;
             }
-
 
         }
 

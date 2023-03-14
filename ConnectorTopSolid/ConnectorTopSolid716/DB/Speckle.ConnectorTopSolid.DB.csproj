@@ -128,6 +128,12 @@
     <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleCompositeOperation.cs">
       <Link>Operations\SpeckleCompositeOperation.cs</Link>
     </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleCompositeOperationReceive.cs">
+      <Link>Operations\SpeckleCompositeOperationReceive.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleCompositeOperationSend.cs">
+      <Link>Operations\SpeckleCompositeOperationSend.cs</Link>
+    </Compile>
     <Compile Include="..\..\ConnectorTopSolid\DB\Properties\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
@@ -145,7 +151,22 @@
     <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleCompositeOperation.resx">
       <Link>Operations\SpeckleCompositeOperation.resx</Link>
       <DependentUpon>SpeckleCompositeOperation.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleCompositeOperationReceive.resx">
+      <Link>Operations\SpeckleCompositeOperationReceive.resx</Link>
+      <DependentUpon>SpeckleCompositeOperationReceive.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleCompositeOperationSend.resx">
+      <Link>Operations\SpeckleCompositeOperationSend.resx</Link>
+      <DependentUpon>SpeckleCompositeOperationSend.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\DesktopUI2\DesktopUI2\DesktopUI2.csproj">
+      <Project>{8f879d45-e34b-472e-a597-46ca51052258}</Project>
+      <Name>DesktopUI2</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
