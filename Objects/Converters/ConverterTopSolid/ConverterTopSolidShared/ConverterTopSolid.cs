@@ -42,6 +42,7 @@ using TopSolid.Kernel.G.D3.Shapes;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using TopSolid.Cad.Design.DB;
+using TopSolid.Kernel;
 using G = TopSolid.Kernel.G;
 using DB = TopSolid.Kernel.DB;
 using TopSolid.Kernel.G.D3.Sketches;
@@ -49,6 +50,10 @@ using TopSolid.Kernel.DB.D3.Modeling.Documents;
 
 using Application = TopSolid.Kernel.UI.Application;
 using TopSolid.Kernel.G.D3.Sketches.Planar;
+using TopSolid.Kernel.DB.Operations;
+
+using Speckle.ConnectorTopSolid.DB.Operations;
+
 
 namespace Objects.Converter.TopSolid
 {
@@ -59,6 +64,8 @@ namespace Objects.Converter.TopSolid
 #else
         public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v716);
 #endif
+
+        public SpeckleFolderOperation sfo = null;
 
         public ConverterTopSolid()
         {
@@ -87,8 +94,10 @@ namespace Objects.Converter.TopSolid
 
         public void SetPreviousContextObjects(List<ApplicationObject> objects) => throw new NotImplementedException();
 
-        public void SetContextDocument(object doc)
+        public void SetContextDocument(Object doc)
         {
+          
+
             // TODO: if documnent init is necessary for TopSolid
         }
 
@@ -314,6 +323,24 @@ namespace Objects.Converter.TopSolid
 
         public bool CanConvertToNative(Base @object)
         {
+
+            DB.Documents.Document sDoc = Doc;
+            if (sDoc != null)
+            {
+                //sDoc.Elements[Convert.ToInt32(10000)];
+                //var op = sDoc.RootOperation.SearchDeepOperation(typeof(FolderOperation));
+
+                if (sfo == null)
+                {
+                    var op = sDoc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleStream : ToulouseCube-main-latest").FirstOrDefault();
+                    if (op != null)
+                    {
+                        sfo = op as SpeckleFolderOperation;
+                        Console.WriteLine(sfo.Name);
+                    }
+                }
+            }
+
             switch (@object)
             {
                 case Box _:

@@ -22,8 +22,11 @@ using System.Collections.Generic;
 namespace Speckle.ConnectorTopSolid.DB.Operations
 {
     [Guid("86E85324-254E-4DB1-A9A8-9456FC6430B3")]
-    public partial class SpeckleCompositeOperation : CreationsCompositeOperation
+    public partial class SpeckleFolderOperation : FolderOperation
     {
+        // TODO : Disable action :  Can movin / can move out
+        // TODO : menu commande 
+
 
         public StreamState currentState;
         public List<StreamState> states;
@@ -36,40 +39,44 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
         // Constructors:
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpeckleCompositeOperation"/> class.
+        /// Initializes a new instance of the <see cref="SpeckleFolderOperation"/> class.
         /// </summary>
         /// <param name="inDocument">Container document (referenced).</param>
         /// <param name="inId">Element identifier, or zero for automatic.</param>
-        public SpeckleCompositeOperation(ref TopSolid.Kernel.DB.Documents.Document inDocument, int inId)
+        public SpeckleFolderOperation(Document inDocument, int inId)
             : base(inDocument, inId)
         {
-            
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpeckleCompositeOperation"/> class by reading
+        /// Initializes a new instance of the <see cref="SpeckleFolderOperation"/> class by reading
         /// data from a stream.
         /// </summary>
         /// <param name="inReader">Reader to use.</param>
         /// <param name="inDocument">Container document (referenced).</param>
-        //private SpeckleCompositeOperation(TopSolid.Kernel.SX.IO.IReader inReader, object inDocument)
-        //    : base(inReader, inDocument)
-        //{
-           
+        private SpeckleFolderOperation(TopSolid.Kernel.SX.IO.IReader inReader, object inDocument)
+            : base(inReader, inDocument)
+        {
 
-        //}
+
+        }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpeckleCompositeOperation"/> class by copy.
+        /// Initializes a new instance of the <see cref="SpeckleFolderOperation"/> class by copy.
         /// </summary>
         /// <param name="inOriginal">Original instance to copy.</param>
         /// <param name="inDocument">Container document (referenced).</param>
         /// <param name="inId">Clone element identifier, or zero for automatic.</param>
-        private SpeckleCompositeOperation(SpeckleCompositeOperation inOriginal, TopSolid.Kernel.DB.Documents.Document inDocument, int inId)
+        private SpeckleFolderOperation(SpeckleFolderOperation inOriginal, TopSolid.Kernel.DB.Documents.Document inDocument, int inId)
             : base(inOriginal, inDocument, inId)
         {
            
         }
+
+        
+
+
+
 
         /// <summary>
         /// Clones this element.
@@ -81,7 +88,7 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
         /// </returns>
         public override TopSolid.Kernel.DB.Elements.Element Clone(TopSolid.Kernel.DB.Documents.Document inDocument, int inId)
         {
-            return new SpeckleCompositeOperation(this, inDocument, inId);
+            return new SpeckleFolderOperation(this, inDocument, inId);
         }
 
 
@@ -121,7 +128,7 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
         /// <inheritdoc />
         public override void GetReferences(TopSolid.Kernel.DB.References.ReferenceList outRefs)
         {
-            //base.GetReferences(outRefs);
+            base.GetReferences(outRefs);
             //if (this.femalePartHandle != null)
             //{
             //    this.femalePartHandle.GetReferences(outRefs);
@@ -204,7 +211,7 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
             //// Update part entity and operation pairs.
             //this.UpdatePartEntityOperationPairs();
 
-            //#region Pocket Operation
+            #region Pocket Operation
             ////Get the operation
             //pocketOperation = femaleEntityOperationPair.Operation as PocketOperation;
 
@@ -269,9 +276,9 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
             //    //Set the pocket operation as the operation of the femaleEntityOperationPair
             //    femaleEntityOperationPair.Operation = pocketOperation;
             //}
-            //#endregion
+            #endregion
 
-            //#region Boss Operation
+            #region Boss Operation
             ////Get the operation
             //bossOperation = maleEntityOperationPair.Operation as BossOperation;
 
@@ -333,7 +340,7 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
             //    bossOperation.Create(this.Owner);
             //    maleEntityOperationPair.Operation = bossOperation;
             //}
-            //#endregion
+            #endregion
         }
 
 

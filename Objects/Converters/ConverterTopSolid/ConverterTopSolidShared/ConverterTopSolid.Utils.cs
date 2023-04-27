@@ -316,7 +316,7 @@ namespace Objects.Converter.TopSolid
                 }
             }
 
-            if (paramBase.GetDynamicMembers().Any())
+            if (paramBase.GetMembers().Any())
                 speckleElement["parameters"] = paramBase;
             speckleElement["elementId"] = topSolidElement.Id.ToString();
             speckleElement.applicationId = topSolidElement.Id.ToString();
@@ -361,10 +361,11 @@ namespace Objects.Converter.TopSolid
                 }
             }
 
-            if (paramBase.GetDynamicMembers().Any())
+            if (paramBase.GetMembers().Any())
                 speckleElement["parameters"] = paramBase;
             speckleElement["units"] = ModelUnits;
             speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
+            speckleElement["elementId"] = topSolidElement.Owner != null ? (topSolidElement.Owner as Element).Id.ToString() : "-";
 
             if (owner != null)
             {

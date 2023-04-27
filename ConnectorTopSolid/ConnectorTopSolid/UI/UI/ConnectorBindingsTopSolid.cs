@@ -58,7 +58,7 @@ namespace Speckle.ConnectorTopSolid.UI
 
         public override List<ReceiveMode> GetReceiveModes()
         {
-            return new List<ReceiveMode> { ReceiveMode.Create };
+            return new List<ReceiveMode> { ReceiveMode.Update, ReceiveMode.Create, ReceiveMode.Ignore };
         }
 
         public override List<string> GetObjectsInView() // this returns all visible doc objects.

@@ -20,9 +20,9 @@ using Extent = TopSolid.Kernel.G.D2.Extent;
 
 namespace Speckle.ConnectorTopSolid.DB.Operations
 {
-    public sealed class SpeckleCompositeOperationSend : SpeckleCompositeOperation
+    public sealed class SpeckleFolderOperationSend : SpeckleFolderOperation
     {
-       
+
         /// <summary>
         /// The pocket operation
         /// </summary>
@@ -31,11 +31,11 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
         // Constructors:
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpeckleCompositeOperation"/> class.
+        /// Initializes a new instance of the <see cref="SpeckleFolderOperation"/> class.
         /// </summary>
         /// <param name="inDocument">Container document (referenced).</param>
         /// <param name="inId">Element identifier, or zero for automatic.</param>
-        public SpeckleCompositeOperationSend(ref TopSolid.Kernel.DB.Documents.Document inDocument, int inId): base(ref inDocument, inId)
+        public SpeckleFolderOperationSend(Document inDocument, int inId): base(inDocument, inId)
         {
             return;
         }

@@ -68,6 +68,7 @@ using TopSolid.Kernel.G.D1;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using Speckle.Core.Models;
 
+
 namespace Objects.Converter.TopSolid
 {
     public partial class ConverterTopSolid
@@ -1163,7 +1164,10 @@ namespace Objects.Converter.TopSolid
                     if (loop.IsOuter)
                         outerindex = ind;
                 }
-                spcklBrep.Faces.Add(new BrepFace(spcklBrep, faceind, faceLoopIndices, outerindex, face.IsReversed()));
+                var brepFace = new BrepFace(spcklBrep, faceind, faceLoopIndices, outerindex, face.IsReversed());
+                brepFace["faceMoniker"] = face.Moniker.ToString();
+                brepFace["faceId"] = face.Id.ToString();
+                spcklBrep.Faces.Add(brepFace);
                 faceind++;
             }
 
@@ -1284,7 +1288,6 @@ namespace Objects.Converter.TopSolid
             }
 
             spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
-
             //Find display values in geometries
             List<Mesh> displayValue = new List<Mesh>();
             displayValue.Add(ShapeDisplayToMesh(shape, u));
@@ -1308,7 +1311,7 @@ namespace Objects.Converter.TopSolid
 
             FolderOperation folderOperation = new FolderOperation(doc, 0);
             //folderOperation.Name = $"Speckle creation : {brep.GetId()}";
-            folderOperation.Create();
+            folderOperation.Create(sfo);
 
             EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
@@ -1345,7 +1348,9 @@ namespace Objects.Converter.TopSolid
             for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
             {
                 //shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
-                sewOperation.AddTool(new ProvidedSmartShape(sewOperation, shapesCreation.ChildrenEntities.ElementAt(i)));
+                ProvidedSmartShape pss = new ProvidedSmartShape(sewOperation, shapesCreation.ChildrenEntities.ElementAt(i));
+                sewOperation.AddTool(pss);
+                // TODO :  Récupérer les id de face qu'on a effectué une couture dans la shape résultante
             }
 
             if (tol != 0)
@@ -1378,7 +1383,7 @@ namespace Objects.Converter.TopSolid
             //TODO Move the Shape creation in specific function
 
 
-            //ShapeEntity se = new ShapeEntity(doc, 0);
+            //ShapeEntity se = new ShapeEntity(doc, 32);
             //se.Geometry = shape;
             //se.Create(doc.ShapesFolderEntity);
 
@@ -1461,6 +1466,7 @@ namespace Objects.Converter.TopSolid
 
             }
 
+            // Recupérer la valeur de sheetMaker (list, etc)
             sheetMaker.Surface = new OrientedSurface(bsSurface, false);
             sheetMaker.SurfaceMoniker = new ItemMoniker(false, (byte)ItemType.ShapeFace, key, 1);
 

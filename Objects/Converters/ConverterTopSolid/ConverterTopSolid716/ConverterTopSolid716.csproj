@@ -29,6 +29,7 @@
   </Target>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ConnectorTopSolid\ConnectorTopSolid716\DB\Speckle.ConnectorTopSolid.DB.csproj" />
     <ProjectReference Include="..\..\..\..\Core\Core\Core.csproj" />
     <ProjectReference Include="..\..\..\Objects\Objects.csproj" />
   </ItemGroup>

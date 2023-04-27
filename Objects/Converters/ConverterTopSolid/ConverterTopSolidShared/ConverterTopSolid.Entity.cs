@@ -136,6 +136,7 @@ namespace Objects.Converter.TopSolid
             //SetInstanceParameters(speckleElement, topSolidElement);
             GetHostedElements(speckleSketchEntity, topSolidSketchEntity);
 
+
             Console.WriteLine(speckleSketchEntity);
             return speckleSketchEntity;
         }
@@ -154,6 +155,7 @@ namespace Objects.Converter.TopSolid
             {
                 throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${speckleElement.applicationId}.");
             }
+
 
             var placeholders = new List<ApplicationObject>();
 

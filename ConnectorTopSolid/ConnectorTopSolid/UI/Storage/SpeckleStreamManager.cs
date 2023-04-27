@@ -102,18 +102,38 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
 
             try
             {
-
-                //FolderOperation folderOperation = new FolderOperation(doc, 0);
-                //folderOperation.Name = SpeckleStreamStates + " : " + streamStates[0].Id;
-                //folderOperation.Create();
-
-                SpeckleCompositeOperationReceive scor = new SpeckleCompositeOperationReceive(ref doc, 0)
+                string streamName = SpeckleStreamStates + " : " +
+                    streamStates[0].CachedStream.name + "-" + streamStates[0].BranchName + "-" + streamStates[0].CommitId;
+                Element opExist = doc.Elements[streamName];
+                if (opExist != null && opExist is SpeckleFolderOperationReceive)
                 {
-                    states = streamStates,
-                    Name = SpeckleStreamStates + " : " + 
-                    streamStates[0].CachedStream.name + "-" + streamStates[0].BranchName + "-" + streamStates[0].CommitId
-                };
-                scor.Create();
+                    SpeckleFolderOperationReceive op = opExist as SpeckleFolderOperationReceive;
+                    if (op.states.Count > 0)
+                    {
+                        Console.WriteLine("Stream existing");
+                    }
+                } else
+                {
+                    //FolderOperation folderOperation = new FolderOperation(doc, 0);
+                    //folderOperation.Name = streamName;
+                    //folderOperation.Create();
+
+                    SpeckleFolderOperation scor = new SpeckleFolderOperation(doc, 0)
+                    {
+                        states = streamStates,
+                        Name = streamName
+                    };
+                    scor.Create();
+
+                    //SpeckleFolderOperation op = new SpeckleFolderOperation( doc, 0)
+                    //{
+                    //    states = streamStates,
+                    //    Name = "Super"
+                    //};
+                    //op.Create(scor);
+                    
+
+                }
 
             }
             catch (Exception ex)
