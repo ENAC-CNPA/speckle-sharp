@@ -230,10 +230,10 @@ namespace Objects.Converter.TopSolid
 
                 if (convertedHostedElements.Any())
                 {
-                    if (@base["elements"] == null || !(@base["elements"] is List<Base>))
-                        @base["elements"] = new List<Base>();
+                    if (@base["@elements"] == null || !(@base["@elements"] is List<Base>))
+                        @base["@elements"] = new List<Base>();
 
-                    (@base["elements"] as List<Base>).AddRange(convertedHostedElements);
+                    (@base["@elements"] as List<Base>).AddRange(convertedHostedElements);
                 }
 
 
@@ -251,7 +251,7 @@ namespace Objects.Converter.TopSolid
         public List<ApplicationObject> SetHostedElements(Base @base, Element host)
         {
             var placeholders = new List<ApplicationObject>();
-            if (@base["elements"] != null && @base["elements"] is List<Base> elements)
+            if (@base["@elements"] != null && @base["@elements"] is List<Base> elements)
             {
                 CurrentHostElement = host;
 
