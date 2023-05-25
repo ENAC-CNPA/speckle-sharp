@@ -1026,6 +1026,9 @@ namespace Objects.Converter.TopSolid
             Shape _shape = shape;
             Brep spcklBrep = new Brep();
 
+            //_shape.Faces.First().Moniker.ToString()
+            Console.WriteLine(_shape.Faces.Count());
+
             //Variables and global counters (not to be reinitialized for each face)
             double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
             var u = units ?? ModelUnits;
@@ -1301,7 +1304,6 @@ namespace Objects.Converter.TopSolid
         {
             var u = units ?? ModelUnits;
             ModelingDocument doc = Doc;
-
 
 
             //Brep rs = null;

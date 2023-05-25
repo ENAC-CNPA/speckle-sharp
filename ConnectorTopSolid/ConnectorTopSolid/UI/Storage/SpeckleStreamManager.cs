@@ -12,6 +12,7 @@ using TopSolid.Kernel.TX.Undo;
 using Speckle.ConnectorTopSolid.DB.Operations;
 using TopSolid.Kernel.SX.Globalization;
 using TopSolid.Kernel.DB.Operations;
+using Avalonia.Data.Core;
 
 namespace Speckle.ConnectorTopSolid.UI.Storage
 {
@@ -28,8 +29,6 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
     public static class SpeckleStreamManager
     {
         // readonly static string SpeckleExtensionDictionary = "Speckle";
-        readonly static string SpeckleStreamStates = "SpeckleStream"; // "StreamStates";
-        readonly static string SpeckleCommit = "Commit";
 
         /// <summary>
         /// Returns all the speckle stream states present in the current document.
@@ -43,14 +42,13 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
             if (doc == null)
                 return streams;
 
-            string parameterValue = "";
-            Element element = doc.Elements[SpeckleStreamStates];
-            if (element != null && element is TextParameterEntity parameter)
+            var op = doc.RootOperation.DeepConstituents.Where(x => x.Name == ConnectorBindingsTopSolid.streamName).FirstOrDefault();
+            if (op != null)
             {
-                parameterValue = parameter.Value;
-            }
+                SpeckleFolderOperation sop = op as SpeckleFolderOperation;
+                streams = sop.states;
 
-            streams = JsonConvert.DeserializeObject<List<StreamState>>(parameterValue);
+            }
 
             return streams;
         }
@@ -68,44 +66,13 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
             //if (doc.IsReadOnly) doc.IsReadOnly = false;
             doc.EnsureIsDirty();
 
-            string value = JsonConvert.SerializeObject(streamStates) as string;
-
-            Element element = (TextParameterEntity)doc.Elements[SpeckleStreamStates];
-            if (element != null && element is TextParameterEntity parameter)
-            {
-                try
-                {
-                    parameter.Value = value;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error create State stream : " + ex.Message);
-                }
-            }
-            else
-            {
-                try
-                {
-                    TextParameterEntity stateParameter = new TextParameterEntity(doc, 0, true);
-                    stateParameter.Name = SpeckleStreamStates;
-                    //stateParameter.ExplicitDescription = new LocalizableString(SpeckleStreamStates);
-                    stateParameter.Value = value;
-                    doc.ParametersFolderEntity.InsertEntity(0, stateParameter);
-
-                }
-                catch (Exception ex)
-                {
-
-                    Console.WriteLine("Error create State stream : " + ex.Message);
-                }
-            }
 
             try
             {
-                string streamName = SpeckleStreamStates + " : " +
-                    streamStates[0].CachedStream.name + "-" + streamStates[0].BranchName + "-" + streamStates[0].CommitId;
-                Element opExist = doc.Elements[streamName];
-                if (opExist != null && opExist is SpeckleFolderOperationReceive)
+                ConnectorBindingsTopSolid.SetStreamName(streamStates.FirstOrDefault().CachedStream);
+
+                Element opExist = doc.Elements[ConnectorBindingsTopSolid.streamName];
+                if (opExist != null)
                 {
                     SpeckleFolderOperationReceive op = opExist as SpeckleFolderOperationReceive;
                     if (op.states.Count > 0)
@@ -121,7 +88,7 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
                     SpeckleFolderOperation scor = new SpeckleFolderOperation(doc, 0)
                     {
                         states = streamStates,
-                        Name = streamName
+                        Name = ConnectorBindingsTopSolid.streamName
                     };
                     scor.Create();
 
@@ -131,7 +98,7 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
                     //    Name = "Super"
                     //};
                     //op.Create(scor);
-                    
+
 
                 }
 
@@ -157,16 +124,13 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
             if (doc == null)
                 return null;
 
-
-            string parameterValue = "";
-            Element element = doc.Elements[SpeckleCommit];
-            if (element != null && element is TextParameterEntity parameter)
+            var op = doc.RootOperation.DeepConstituents.Where(x => x.Name == ConnectorBindingsTopSolid.streamName).FirstOrDefault();
+            if (op != null)
             {
-                parameterValue = parameter.Value;
-            }
+                SpeckleFolderOperation sop = op as SpeckleFolderOperation;
+                commit = sop.commit;
 
-            // TODO : Structure commit like Object
-            commit = JsonConvert.DeserializeObject<string>(parameterValue);
+            }
 
             return commit;
         }
@@ -189,18 +153,20 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
             //if (doc.IsReadOnly) doc.IsReadOnly = false;
             doc.EnsureIsDirty();
 
+            var op = doc.RootOperation.DeepConstituents.Where(x => x.Name == ConnectorBindingsTopSolid.streamName).FirstOrDefault();
+            if (op != null)
+            {
+                SpeckleFolderOperation sop = op as SpeckleFolderOperation;
+                sop.commit = commit;
 
-            Element element = doc.Elements[SpeckleCommit];
-            if (element != null && element is TextParameterEntity parameter)
+            } else
             {
-                parameter.Value = value;
-            }
-            else
-            {
-                TextParameterEntity commitParameter = new TextParameterEntity(doc, 0);
-                commitParameter.Name = SpeckleCommit;
-                commitParameter.Create();
-                commitParameter.Value = value;
+                    SpeckleFolderOperation scor = new SpeckleFolderOperation(doc, 0)
+                    {
+                        commit = commit,
+                        Name = ConnectorBindingsTopSolid.streamName
+                    };
+                    scor.Create();
             }
 
         }

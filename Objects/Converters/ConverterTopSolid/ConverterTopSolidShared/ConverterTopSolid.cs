@@ -53,7 +53,7 @@ using TopSolid.Kernel.G.D3.Sketches.Planar;
 using TopSolid.Kernel.DB.Operations;
 
 using Speckle.ConnectorTopSolid.DB.Operations;
-
+using Speckle.Core.Api;
 
 namespace Objects.Converter.TopSolid
 {
@@ -92,6 +92,10 @@ namespace Objects.Converter.TopSolid
 
         public void SetContextObjects(List<ApplicationObject> objects) => ContextObjects = objects;
 
+        public void SetConverterSettings(object settings)
+        {
+            Settings = settings as Dictionary<string, string>;
+        }
         public void SetPreviousContextObjects(List<ApplicationObject> objects) => throw new NotImplementedException();
 
         public void SetContextDocument(Object doc)
@@ -332,7 +336,10 @@ namespace Objects.Converter.TopSolid
 
                 if (sfo == null)
                 {
-                    var op = sDoc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleStream : ToulouseCube-main-latest").FirstOrDefault();
+                    //Speckle.ConnectorTopSolid.DB.Operations.SpeckleFolderOperation.
+                    Settings.TryGetValue("stream-name", out string streamName);
+               
+                    var op = sDoc.RootOperation.DeepConstituents.Where(x => x.Name == streamName).FirstOrDefault();
                     if (op != null)
                     {
                         sfo = op as SpeckleFolderOperation;
@@ -356,11 +363,6 @@ namespace Objects.Converter.TopSolid
                 default:
                     return false;
             }
-        }
-
-        public void SetConverterSettings(object settings)
-        {
-            Settings = settings as Dictionary<string, string>;
         }
     }
 }

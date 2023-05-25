@@ -30,6 +30,7 @@ namespace Speckle.ConnectorTopSolid.DB.Operations
 
         public StreamState currentState;
         public List<StreamState> states;
+        public string commit;
 
         /// <summary>
         /// The pocket operation

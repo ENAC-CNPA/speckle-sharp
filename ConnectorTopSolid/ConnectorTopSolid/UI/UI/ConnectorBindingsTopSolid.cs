@@ -3,6 +3,7 @@ using DesktopUI2.Models;
 using DesktopUI2.Models.Filters;
 using DesktopUI2.Models.Settings;
 using DesktopUI2.ViewModels;
+using DynamicData;
 using Speckle.Core.Api;
 using Speckle.Core.Kits;
 using Speckle.Core.Logging;
@@ -23,6 +24,7 @@ using TopSolid.Kernel.DB.Layers;
 using TopSolid.Kernel.DB.Operations;
 using TopSolid.Kernel.SX;
 using TopSolid.Kernel.TX.Undo;
+using TopSolid.Kernel.WX.Printing;
 using static DesktopUI2.ViewModels.MappingViewModel;
 using Application = TopSolid.Kernel.UI.Application;
 
@@ -32,6 +34,7 @@ namespace Speckle.ConnectorTopSolid.UI
     {
         public static ModelingDocument Doc => Application.CurrentDocument as ModelingDocument;
 
+        public static string streamName = null;
 
 
         // TopSolid API should only be called on the main thread.
@@ -153,11 +156,11 @@ namespace Speckle.ConnectorTopSolid.UI
         public override List<ISelectionFilter> GetSelectionFilters()
         {
             return new List<ISelectionFilter>()
-      {
-        new ManualSelectionFilter(),
-        new ListSelectionFilter {Slug="layer",  Name = "Layers", Icon = "LayersTriple", Description = "Selects objects based on their layers.", Values = new List<string>()},
-        new AllSelectionFilter {Slug="all",  Name = "Everything", Icon = "CubeScan", Description = "Selects all document objects." }
-      };
+              {
+                new ManualSelectionFilter(),
+                new ListSelectionFilter {Slug="layer",  Name = "Layers", Icon = "LayersTriple", Description = "Selects objects based on their layers.", Values = new List<string>()},
+                new AllSelectionFilter {Slug="all",  Name = "Everything", Icon = "CubeScan", Description = "Selects all document objects." }
+              };
         }
 
         public override List<ISetting> GetSettings()
@@ -165,6 +168,11 @@ namespace Speckle.ConnectorTopSolid.UI
             return new List<ISetting>();
         }
 
+            //List<string> sn = new List<string>() { ConnectorBindingsTopSolid.streamName };
+            //{
+            //    new ListBoxSetting {Slug = "stream-infos", Name = "Stream infos", Icon ="Link", Values = sn, Selection = ConnectorBindingsTopSolid.streamName, Description = "Stream infos"}
+                
+            //};
         //TODO
         public override List<MenuItem> GetCustomStreamMenuItems()
         {
@@ -195,6 +203,21 @@ namespace Speckle.ConnectorTopSolid.UI
         {
             return null;
         }
+
+        public void SetSettings(ISpeckleConverter converter, Stream stream)
+        {
+            Dictionary<string, string> settings = new Dictionary<string, string>();
+            settings.Add("stream-name", SetStreamName(stream));
+            converter.SetConverterSettings(settings);
+
+        }
+
+        public static string SetStreamName(Stream stream)
+        {
+            ConnectorBindingsTopSolid.streamName = stream.name + " (" + stream.id + ")";
+            return ConnectorBindingsTopSolid.streamName;
+        }
+
         public override async Task<StreamState> ReceiveStream(StreamState state, ProgressViewModel progress)
         {
             var kit = KitManager.GetDefaultKit();
@@ -204,6 +227,8 @@ namespace Speckle.ConnectorTopSolid.UI
             var transport = new ServerTransport(state.Client.Account, state.StreamId);
 
             var stream = await state.Client.StreamGet(state.StreamId);
+          
+            SetSettings(converter, stream); // Send to Converter settings (streamName, etc)
 
             if (progress.CancellationTokenSource.Token.IsCancellationRequested)
                 return null;
