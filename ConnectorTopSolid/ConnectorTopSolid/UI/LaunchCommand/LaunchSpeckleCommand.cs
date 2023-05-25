@@ -31,6 +31,33 @@ namespace Speckle.ConnectorTopSolid.UI.LaunchCommand
             Speckle.ConnectorTopSolid.UI.Entry.SpeckleTopSolidCommand.SpeckleCommand(); //.SendCommand();
             
         }
+        
+    }
+
+    class LaunchSpeckleInfoCommand : MenuCommand
+    {
+ 
+        protected override void Invoke()
+        {
+            SpeckleCommand(); // TODO : Create new info panel
+        }
+
+        protected override bool CanInvoke
+        {
+            get {
+                if (!base.CanInvoke) return false;
+                return this.CurrentDocument is DesignDocument; // PartDocument / AssemblyDocument ...
+            }
+        }
+
+        /// <summary>
+        /// Main command to initialize Speckle Connector
+        /// </summary>
+        public static void SpeckleCommand()
+        {
+            Speckle.ConnectorTopSolid.UI.Entry.SpeckleTopSolidCommand.SpeckleCommand(); //.SendCommand();
+            
+        }
 
     }
 }
