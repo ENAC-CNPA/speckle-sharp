@@ -14,6 +14,7 @@ using Polyline = Objects.Geometry.Polyline;
 using Surface = Objects.Geometry.Surface;
 using Vector = Objects.Geometry.Vector;
 using Curve = Objects.Geometry.Curve;
+using Speckle.Newtonsoft.Json;
 #endregion
 
 #region TopSolid objects using
@@ -1025,10 +1026,10 @@ namespace Objects.Converter.TopSolid
         {
             Shape _shape = shape;
             Brep spcklBrep = new Brep();
-
-            //_shape.Faces.First().Moniker.ToString()
-            Console.WriteLine(_shape.Faces.Count());
-
+            Alias alias = new Alias();
+            alias.Faces = new List<GeometryAlias>();
+            alias.Edges = new List<GeometryAlias>();
+            
             //Variables and global counters (not to be reinitialized for each face)
             double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
             var u = units ?? ModelUnits;
@@ -1058,6 +1059,13 @@ namespace Objects.Converter.TopSolid
                 var tsEgdes = globalEdgeList[faceindex];
                 var boolList = globalBoolList[faceindex];
 
+                alias.Faces.Add(new GeometryAlias
+                {
+                    Index = faceindex,
+                    Id = face.Id,
+                    Moniker = face.Moniker.ToString()
+                });
+                
                 //GetTopological info of face
                 OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, false, false, false, boolList, loop2d, loop3d, tsEgdes);
 
@@ -1295,7 +1303,7 @@ namespace Objects.Converter.TopSolid
             List<Mesh> displayValue = new List<Mesh>();
             displayValue.Add(ShapeDisplayToMesh(shape, u));
             spcklBrep.displayValue = displayValue;
-            SetInstanceParameters(spcklBrep, shape);
+            SetInstanceParameters(spcklBrep, shape, alias);
             return spcklBrep;
         }
 
@@ -1305,107 +1313,133 @@ namespace Objects.Converter.TopSolid
             var u = units ?? ModelUnits;
             ModelingDocument doc = Doc;
 
+            Alias alias = GetAlias(brep);
 
-            //Brep rs = null;
-            double tol = 0;
-            tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
-            ShapeList shape = BrepToShapeList(brep, tol);
-
-            FolderOperation folderOperation = new FolderOperation(doc, 0);
-            //folderOperation.Name = $"Speckle creation : {brep.GetId()}";
-            folderOperation.Create(sfo);
-
-            EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
-
-            SewOperation sewOperation = new SewOperation(doc, 0);
-            //sewOperation.Name = $"brep : {brep.GetId()}";
-
-            foreach (var ts in shape)
+            if (alias != null)
             {
-                ShapeEntity se = new ShapeEntity(doc, 0);
-                //se.Name = $"brep : {brep.GetId()}";
-                se.Geometry = ts;
-                //se.Parent = shapesCreation;
-                //se.Create(doc.ShapesFolderEntity);
-                shapesCreation.AddChildEntity(se);
-                shapesCreation.CanDeleteFromChild(se);
+                Console.WriteLine(alias.ToString());
             }
 
-            if (shape.Count == 1)
+            try
             {
-                shapesCreation.Create(folderOperation);
-
-                return shape[0];
-            }
 
 
-            //shapesCreation.Owner = sewOperation;
-            //shapesCreation.Create(folderOperation);
-            //shapesCreation.Create();
+                //Brep rs = null;
+                double tol = 0;
+                tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
+                ShapeList shape = BrepToShapeList(brep, tol);
 
-            if (shapesCreation.ChildrenEntities.Count() != 0)
-            {
-                sewOperation.ModifiedEntity = shapesCreation.ChildrenEntities.First() as ShapeEntity; // TODO : Question : Why ChildrenEntities is empty ???
-            }
-            for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
-            {
-                //shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
-                ProvidedSmartShape pss = new ProvidedSmartShape(sewOperation, shapesCreation.ChildrenEntities.ElementAt(i));
-                sewOperation.AddTool(pss);
-                // TODO :  Récupérer les id de face qu'on a effectué une couture dans la shape résultante
-            }
+                FolderOperation folderOperation = new FolderOperation(doc, 0);
+                //folderOperation.Name = $"Speckle creation : {brep.GetId()}";
+                folderOperation.Create(sfo);
 
-            if (tol != 0)
-                sewOperation.GapWidth = new BasicSmartReal(sewOperation, tol, UnitType.Length, doc);
-            else
-                sewOperation.GapWidth = new BasicSmartReal(sewOperation, global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, UnitType.Length, doc);
+                EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
-            sewOperation.NbIterations = new BasicSmartInteger(sewOperation, 5);
-            sewOperation.AddOperation(shapesCreation);
-            // var op = Doc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleCreation").FirstOrDefault() as FolderOperation;
-            //if (op != null)
-            //{
-            //    sewOperation.Owner = op;
-            //}
-            sewOperation.Create(folderOperation);
-            doc.Update(true, true);
+                SewOperation sewOperation = new SewOperation(doc, 0);
+                //sewOperation.Name = $"brep : {brep.GetId()}";
+                int shapeIndex = 0;
 
-            //Hides other shapes when successfull, otherwise keep them shown
-            bool isInvalid = sewOperation.IsInvalid;
-            if (!isInvalid)
-            {
-                for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
+                foreach (var ts in shape)
                 {
-                    //shapesCreation.ChildrenEntities.ElementAt(i).Hide();
-                    shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
+                    int defId = 0;
+                    if (alias.Faces.Count == shape.Count)
+                    {
+                        defId = alias.Faces[shapeIndex].Id; // TODO : Fix when ID is used
+                        if (doc.Elements[defId] != null) defId = 0;
+                    }
+
+                    ShapeEntity se = new ShapeEntity(doc, defId);
+                    //se.Name = $"brep : {brep.GetId()}";
+                    se.Geometry = ts;
+                    //se.Parent = shapesCreation;
+                    //se.Create(doc.ShapesFolderEntity);
+                    shapesCreation.AddChildEntity(se);
+                    shapesCreation.CanDeleteFromChild(se);
+
+                    shapeIndex++;
                 }
 
+                if (shape.Count == 1)
+                {
+                    shapesCreation.Create(folderOperation);
+
+                    return shape[0];
+                }
+
+
+                //shapesCreation.Owner = sewOperation;
+                //shapesCreation.Create(folderOperation);
+                //shapesCreation.Create();
+
+                if (shapesCreation.ChildrenEntities.Count() != 0)
+                {
+                    sewOperation.ModifiedEntity = shapesCreation.ChildrenEntities.First() as ShapeEntity; // TODO : Question : Why ChildrenEntities is empty ???
+                }
+                for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
+                {
+                    //shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
+                    ProvidedSmartShape pss = new ProvidedSmartShape(sewOperation, shapesCreation.ChildrenEntities.ElementAt(i));
+                    sewOperation.AddTool(pss);
+                    // TODO :  Récupérer les id de face qu'on a effectué une couture dans la shape résultante
+                }
+
+                if (tol != 0)
+                    sewOperation.GapWidth = new BasicSmartReal(sewOperation, tol, UnitType.Length, doc);
+                else
+                    sewOperation.GapWidth = new BasicSmartReal(sewOperation, global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, UnitType.Length, doc);
+
+                sewOperation.NbIterations = new BasicSmartInteger(sewOperation, 5);
+                sewOperation.AddOperation(shapesCreation);
+                // var op = Doc.RootOperation.DeepConstituents.Where(x => x.Name == "SpeckleCreation").FirstOrDefault() as FolderOperation;
+                //if (op != null)
+                //{
+                //    sewOperation.Owner = op;
+                //}
+                sewOperation.Create(folderOperation);
+                doc.Update(true, true);
+
+                //Hides other shapes when successfull, otherwise keep them shown
+                bool isInvalid = sewOperation.IsInvalid;
+                if (!isInvalid)
+                {
+                    for (int i = 1; i < shapesCreation.ChildEntityCount; i++)
+                    {
+                        //shapesCreation.ChildrenEntities.ElementAt(i).Hide();
+                        shapesCreation.ChildrenEntities.ElementAt(i).IsGhost = true;
+                    }
+
+                }
+
+                //TODO Move the Shape creation in specific function
+
+
+                //ShapeEntity se = new ShapeEntity(doc, 32);
+                //se.Geometry = shape;
+                //se.Create(doc.ShapesFolderEntity);
+
+                var ent = sewOperation.ModifiedShapeEntity;
+                if (ent != null)
+                {
+                    var display = DiplayToNative(brep);
+                    ent.ExplicitColor = display.Item1;
+                    ent.ExplicitTransparency = display.Item2;
+                    //ent.Name = $"brep : {brep.GetId()}";
+                    doc.ShapesFolderEntity.AddEntity(ent);
+                }
+
+
+                //operationsList.Add(sewOperation);           
+
+                //return sewOperation.ShapeEntities.First().Geometry as Shape;
+                return ent.Geometry as Shape;
+
             }
-
-            //TODO Move the Shape creation in specific function
-
-
-            //ShapeEntity se = new ShapeEntity(doc, 32);
-            //se.Geometry = shape;
-            //se.Create(doc.ShapesFolderEntity);
-
-            var ent = sewOperation.ModifiedShapeEntity;
-            if (ent != null)
+            catch (Exception ex)
             {
-                var display = DiplayToNative(brep);
-                ent.ExplicitColor = display.Item1;
-                ent.ExplicitTransparency = display.Item2;
-                //ent.Name = $"brep : {brep.GetId()}";
-                doc.ShapesFolderEntity.AddEntity(ent);
+                Console.WriteLine(ex.Message);
+                return null;
             }
 
-
-            //operationsList.Add(sewOperation);           
-
-
-
-            //return sewOperation.ShapeEntities.First().Geometry as Shape;
-            return ent.Geometry as Shape;
         }
 
         public ShapeList BrepToShapeList(Brep brep, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, string units = null)

@@ -75,10 +75,10 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
                 if (opExist != null)
                 {
                     SpeckleFolderOperationReceive op = opExist as SpeckleFolderOperationReceive;
-                    if (op.states.Count > 0)
-                    {
-                        Console.WriteLine("Stream existing");
-                    }
+                    //if (op.states.Count > 0)
+                    //{
+                    Console.WriteLine("Stream existing");
+                    //}
                 } else
                 {
                     //FolderOperation folderOperation = new FolderOperation(doc, 0);

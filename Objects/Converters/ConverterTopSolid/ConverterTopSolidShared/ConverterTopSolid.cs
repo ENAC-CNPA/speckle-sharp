@@ -54,6 +54,7 @@ using TopSolid.Kernel.DB.Operations;
 
 using Speckle.ConnectorTopSolid.DB.Operations;
 using Speckle.Core.Api;
+using TopSolid.Kernel.DB.Scheduling;
 
 namespace Objects.Converter.TopSolid
 {
@@ -364,5 +365,20 @@ namespace Objects.Converter.TopSolid
                     return false;
             }
         }
+    }
+
+
+    public class Alias
+    {
+        public List<GeometryAlias> Faces { get; set; } 
+        public List<GeometryAlias> Edges { get; set; } 
+
+    }
+    public class GeometryAlias
+    {
+        public double Index { get; set; }
+        public int Id { get; set; }
+        public string Moniker { get; set; }        
+
     }
 }

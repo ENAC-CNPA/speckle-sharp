@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Speckle.Core.Kits;
+using Speckle.Newtonsoft.Json;
 
 using TopSolid.Kernel.DB.D3.Documents;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
@@ -30,6 +31,7 @@ using TKG = TopSolid.Kernel.G;
 using TopSolid.Kernel.DB.Entities;
 using TopSolid.Kernel.G;
 using TopSolid.Kernel.SX.Drawing;
+using Speckle.Core.Api;
 
 namespace Objects.Converter.TopSolid
 {
@@ -295,7 +297,7 @@ namespace Objects.Converter.TopSolid
         /// </summary>
         /// <param name="topSolidElement"></param>
         /// <param name="speckleElement"></param>
-        public void SetInstanceParameters(Base speckleElement, Element topSolidElement)
+        public void SetInstanceParameters(Base speckleElement, Element topSolidElement, Alias alias = null)
         {
             if (topSolidElement == null)
                 return;
@@ -318,10 +320,15 @@ namespace Objects.Converter.TopSolid
 
             if (paramBase.GetMembers().Any())
                 speckleElement["parameters"] = paramBase;
-            speckleElement["elementId"] = topSolidElement.Id.ToString();
-            speckleElement.applicationId = topSolidElement.Id.ToString();
-            speckleElement["units"] = ModelUnits;
-            speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
+                speckleElement["elementId"] = topSolidElement.Id.ToString();
+                speckleElement.applicationId = topSolidElement.Id.ToString();
+                speckleElement["units"] = ModelUnits;
+                speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
+
+            if (alias != null)
+            {
+                speckleElement["alias"] = JsonConvert.SerializeObject(alias);
+            }
 
             var owner = (topSolidElement.Owner as Entity);
             if (owner != null)
@@ -337,7 +344,7 @@ namespace Objects.Converter.TopSolid
         /// </summary>
         /// <param name="topSolidElement"></param>
         /// <param name="speckleElement"></param>
-        public void SetInstanceParameters(Base speckleElement, IGeometry topSolidElement)
+        public void SetInstanceParameters(Base speckleElement, IGeometry topSolidElement, Alias alias = null)
         {
             if (topSolidElement == null)
                 return;
@@ -361,11 +368,17 @@ namespace Objects.Converter.TopSolid
                 }
             }
 
+
             if (paramBase.GetMembers().Any())
                 speckleElement["parameters"] = paramBase;
-            speckleElement["units"] = ModelUnits;
-            speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
-            speckleElement["elementId"] = topSolidElement.Owner != null ? (topSolidElement.Owner as Element).Id.ToString() : "-";
+                speckleElement["units"] = ModelUnits;
+                speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
+                speckleElement["elementId"] = topSolidElement.Owner != null ? (topSolidElement.Owner as Element).Id.ToString() : "-";
+
+            if (alias != null)
+            {
+                speckleElement["alias"] = JsonConvert.SerializeObject(alias);
+            }
 
             if (owner != null)
             {
@@ -373,6 +386,25 @@ namespace Objects.Converter.TopSolid
                 double opacity = ((double)owner.Transparency.Opacity);
                 speckleElement["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
             }
+
+        }
+
+
+        public Alias GetAlias(Base specleElement)
+        {
+            Alias alias = null;
+
+            foreach (var p in specleElement.GetMembers(DynamicBaseMemberType.Dynamic))
+            {
+                if (p.Key == "alias")
+                {
+                    string aliasStr = p.Value.ToString();
+                    alias = JsonConvert.DeserializeObject<Alias>(aliasStr);
+                    break;
+                }
+            }
+
+            return alias;
 
         }
 
