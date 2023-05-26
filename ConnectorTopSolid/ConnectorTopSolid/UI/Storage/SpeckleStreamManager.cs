@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -81,9 +81,6 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
                     //}
                 } else
                 {
-                    //FolderOperation folderOperation = new FolderOperation(doc, 0);
-                    //folderOperation.Name = streamName;
-                    //folderOperation.Create();
 
                     SpeckleFolderOperation scor = new SpeckleFolderOperation(doc, 0)
                     {
@@ -91,14 +88,6 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
                         Name = ConnectorBindingsTopSolid.streamName
                     };
                     scor.Create();
-
-                    //SpeckleFolderOperation op = new SpeckleFolderOperation( doc, 0)
-                    //{
-                    //    states = streamStates,
-                    //    Name = "Super"
-                    //};
-                    //op.Create(scor);
-
 
                 }
 
@@ -140,15 +129,12 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
         /// </summary>
         /// <param name="doc"></param>
         /// <param name="wrap"></param>
-        public static void WriteCommit(GeometricDocument doc, string commit)
+        public static void WriteCommit(GeometricDocument doc, string _commit)
         {
 
             if (doc == null)
                 return;
 
-         
-            string value = "";
-            if (commit != null && commit != "") value = JsonConvert.SerializeObject(commit) as string;
 
             //if (doc.IsReadOnly) doc.IsReadOnly = false;
             doc.EnsureIsDirty();
@@ -157,13 +143,13 @@ namespace Speckle.ConnectorTopSolid.UI.Storage
             if (op != null)
             {
                 SpeckleFolderOperation sop = op as SpeckleFolderOperation;
-                sop.commit = commit;
+                sop.commit = _commit;
 
             } else
             {
                     SpeckleFolderOperation scor = new SpeckleFolderOperation(doc, 0)
                     {
-                        commit = commit,
+                        commit = _commit,
                         Name = ConnectorBindingsTopSolid.streamName
                     };
                     scor.Create();

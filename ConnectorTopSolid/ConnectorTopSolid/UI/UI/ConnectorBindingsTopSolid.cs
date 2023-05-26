@@ -1,4 +1,4 @@
-﻿using DesktopUI2;
+using DesktopUI2;
 using DesktopUI2.Models;
 using DesktopUI2.Models.Filters;
 using DesktopUI2.Models.Settings;
@@ -14,6 +14,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -84,7 +85,7 @@ namespace Speckle.ConnectorTopSolid.UI
         #region local streams 
         public override void WriteStreamsToFile(List<StreamState> streams)
         {
-            // Start undo Sequence
+            // Start undo Sequence // inSequence
             UndoSequence.Start("SpeckleCreation", false); // no Ghost
 
             Storage.SpeckleStreamManager.WriteStreamStateList(Doc, streams);
@@ -200,11 +201,11 @@ namespace Speckle.ConnectorTopSolid.UI
         #region receiving 
         public override bool CanPreviewReceive => false;
         public override Task<StreamState> PreviewReceive(StreamState state, ProgressViewModel progress)
-        {
-            return null;
+        {       
+          return null;
         }
 
-        public void SetSettings(ISpeckleConverter converter, Stream stream)
+        public void SetSettings(ISpeckleConverter converter, Speckle.Core.Api.Stream stream)
         {
             Dictionary<string, string> settings = new Dictionary<string, string>();
             settings.Add("stream-name", SetStreamName(stream));
@@ -212,94 +213,113 @@ namespace Speckle.ConnectorTopSolid.UI
 
         }
 
-        public static string SetStreamName(Stream stream)
+        public static string SetStreamName(Speckle.Core.Api.Stream stream)
         {
             ConnectorBindingsTopSolid.streamName = stream.name + " (" + stream.id + ")";
             return ConnectorBindingsTopSolid.streamName;
         }
 
-        public override async Task<StreamState> ReceiveStream(StreamState state, ProgressViewModel progress)
+    public override async Task<StreamState> ReceiveStream(StreamState state, ProgressViewModel progress)
+    {
+      var kit = KitManager.GetDefaultKit();
+      var converter = kit.LoadConverter(Utils.VersionedAppName);
+      if (converter == null)
+        throw new Exception("Could not find any Kit!");
+      var transport = new ServerTransport(state.Client.Account, state.StreamId);
+
+      var stream = await state.Client.StreamGet(state.StreamId);
+
+      SetSettings(converter, stream); // Send to Converter settings (streamName, etc)
+
+      try
+      {
+
+        // Start undo Sequence // inSequence
+        UndoSequence.Start("SpeckleCreation", false); // no Ghost
+
+        if (progress.CancellationTokenSource.Token.IsCancellationRequested)
+          return null;
+
+        if (Doc == null)
         {
-            var kit = KitManager.GetDefaultKit();
-            var converter = kit.LoadConverter(Utils.VersionedAppName);
-            if (converter == null)
-                throw new Exception("Could not find any Kit!");
-            var transport = new ServerTransport(state.Client.Account, state.StreamId);
-
-            var stream = await state.Client.StreamGet(state.StreamId);
-          
-            SetSettings(converter, stream); // Send to Converter settings (streamName, etc)
-
-            if (progress.CancellationTokenSource.Token.IsCancellationRequested)
-                return null;
-
-            if (Doc == null)
-            {
-                progress.Report.LogOperationError(new Exception($"No Document is open."));
-                progress.CancellationTokenSource.Cancel();
-            }
-
-            //if "latest", always make sure we get the latest commit when the user clicks "receive"
-            Commit commit = null;
-            if (state.CommitId == "latest")
-            {
-                var res = await state.Client.BranchGet(progress.CancellationTokenSource.Token, state.StreamId, state.BranchName, 1);
-                commit = res.commits.items.FirstOrDefault();
-            }
-            else
-            {
-                commit = await state.Client.CommitGet(progress.CancellationTokenSource.Token, state.StreamId, state.CommitId);
-            }
-            string referencedObject = commit.referencedObject;
-            Base commitObject = null;
-            try
-            {
-                commitObject = await Operations.Receive(
-                  referencedObject,
-                  progress.CancellationTokenSource.Token,
-                  transport,
-                  onProgressAction: dict => progress.Update(dict),
-                  onErrorAction: (s, e) =>
-                  {
-                      progress.Report.LogOperationError(e);
-                      progress.CancellationTokenSource.Cancel();
-                  },
-                  onTotalChildrenCountKnown: count => { progress.Max = count; },
-                  disposeTransports: true
-                  );
-
-                await state.Client.CommitReceived(new CommitReceivedInput
-                {
-                    streamId = stream?.id,
-                    commitId = commit?.id,
-                    message = commit?.message,
-                    sourceApplication = Utils.VersionedAppName
-                });
-            }
-            catch (Exception e)
-            {
-                progress.Report.OperationErrors.Add(new Exception($"Could not receive or deserialize commit: {e.Message}"));
-            }
-            if (progress.Report.OperationErrorsCount != 0 || commitObject == null)
-                return state;
-
-            // invoke conversions on the main thread via control
-            if (Control.InvokeRequired)
-                Control.Invoke(new ReceivingDelegate(ConvertReceiveCommit), new object[] { commitObject, converter, state, progress, stream, commit.id });
-            else
-                ConvertReceiveCommit(commitObject, converter, state, progress, stream, commit.id);
-
-            return state;
+          progress.Report.LogOperationError(new Exception($"No Document is open."));
+          progress.CancellationTokenSource.Cancel();
         }
 
-        delegate void ReceivingDelegate(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, Stream stream, string id);
-        private void ConvertReceiveCommit(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, Stream stream, string id)
+        //if "latest", always make sure we get the latest commit when the user clicks "receive"
+        Commit commit = null;
+        if (state.CommitId == "latest")
         {
+          var res = await state.Client.BranchGet(progress.CancellationTokenSource.Token, state.StreamId, state.BranchName, 1);
+          commit = res.commits.items.FirstOrDefault();
+        }
+        else
+        {
+          commit = await state.Client.CommitGet(progress.CancellationTokenSource.Token, state.StreamId, state.CommitId);
+        }
+        string referencedObject = commit.referencedObject;
+        Base commitObject = null;
+        try
+        {
+          commitObject = await Operations.Receive(
+            referencedObject,
+            progress.CancellationTokenSource.Token,
+            transport,
+            onProgressAction: dict => progress.Update(dict),
+            onErrorAction: (s, e) =>
+            {
+              progress.Report.LogOperationError(e);
+              progress.CancellationTokenSource.Cancel();
+            },
+            onTotalChildrenCountKnown: count => { progress.Max = count; },
+            disposeTransports: true
+            );
+
+          await state.Client.CommitReceived(new CommitReceivedInput
+          {
+            streamId = stream?.id,
+            commitId = commit?.id,
+            message = commit?.message,
+            sourceApplication = Utils.VersionedAppName
+          });
+        }
+        catch (Exception e)
+        {
+          progress.Report.OperationErrors.Add(new Exception($"Could not receive or deserialize commit: {e.Message}"));
+        }
+        if (progress.Report.OperationErrorsCount != 0 || commitObject == null)
+          return state;
+
+        // invoke conversions on the main thread via control
+        if (Control.InvokeRequired)
+          Control.Invoke(new ReceivingDelegate(ConvertReceiveCommit), new object[] { commitObject, converter, state, progress, stream, commit.id });
+        else
+          ConvertReceiveCommit(commitObject, converter, state, progress, stream, commit.id);
+
+
+        UndoSequence.End();
+
+      }
+      catch (Exception)
+      {
+        // TODO : Message box
+        UndoSequence.UndoCurrent(); // Cancel
+        throw;
+      }
+
+      return state;
+    }
+
+    delegate void ReceivingDelegate(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, Speckle.Core.Api.Stream stream, string id);
+        private void ConvertReceiveCommit(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, Speckle.Core.Api.Stream stream, string id)
+        {
+
 
             try
             {
 
                 // set the context doc for conversion - this is set inside the transaction loop because the converter retrieves this transaction for all db editing when the context doc is set!
+               
                 converter.SetContextDocument(Doc);
 
                 // keep track of conversion progress here
@@ -508,6 +528,8 @@ namespace Speckle.ConnectorTopSolid.UI
             if (state.Filter != null)
                 state.SelectedObjectIds = GetObjectsFromFilter(state.Filter, converter);
 
+
+            SetSettings(converter, state.CachedStream); // Send to Converter settings (streamName, etc)
 
             // remove deleted object ids
             var deletedElements = new List<string>();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -55,6 +55,7 @@ using TopSolid.Kernel.DB.Operations;
 using Speckle.ConnectorTopSolid.DB.Operations;
 using Speckle.Core.Api;
 using TopSolid.Kernel.DB.Scheduling;
+using DesktopUI2.Models;
 
 namespace Objects.Converter.TopSolid
 {
@@ -99,14 +100,44 @@ namespace Objects.Converter.TopSolid
         }
         public void SetPreviousContextObjects(List<ApplicationObject> objects) => throw new NotImplementedException();
 
-        public void SetContextDocument(Object doc)
-        {
-          
+    public void SetContextDocument(Object doc)
+    {
 
-            // TODO: if documnent init is necessary for TopSolid
+      // init is necessary for TopSolid
+      DB.Documents.Document sDoc = Doc;
+      if (sDoc != null)
+      {
+        //sDoc.Elements[Convert.ToInt32(10000)];
+        //var op = sDoc.RootOperation.SearchDeepOperation(typeof(FolderOperation));
+
+        if (sfo == null)
+        {
+          //Speckle.ConnectorTopSolid.DB.Operations.SpeckleFolderOperation.
+          Settings.TryGetValue("stream-name", out string streamName);
+
+          var op = sDoc.RootOperation.DeepConstituents.Where(x => x.Name == streamName).FirstOrDefault();
+          if (op != null)
+          {
+            sfo = op as SpeckleFolderOperation;
+            Console.WriteLine(sfo.Name);
+          }
+          else
+          {
+            SpeckleFolderOperation scor = new SpeckleFolderOperation(sDoc, 0)
+            {
+              Name = streamName
+            };
+            scor.Create();
+            sfo = scor;
+          }
         }
 
-        public Element CurrentHostElement { get; set; }
+      }
+
+
+    }
+
+    public Element CurrentHostElement { get; set; }
 
         public Base ConvertToSpeckle(object @object)
         {
@@ -328,26 +359,6 @@ namespace Objects.Converter.TopSolid
 
         public bool CanConvertToNative(Base @object)
         {
-
-            DB.Documents.Document sDoc = Doc;
-            if (sDoc != null)
-            {
-                //sDoc.Elements[Convert.ToInt32(10000)];
-                //var op = sDoc.RootOperation.SearchDeepOperation(typeof(FolderOperation));
-
-                if (sfo == null)
-                {
-                    //Speckle.ConnectorTopSolid.DB.Operations.SpeckleFolderOperation.
-                    Settings.TryGetValue("stream-name", out string streamName);
-               
-                    var op = sDoc.RootOperation.DeepConstituents.Where(x => x.Name == streamName).FirstOrDefault();
-                    if (op != null)
-                    {
-                        sfo = op as SpeckleFolderOperation;
-                        Console.WriteLine(sfo.Name);
-                    }
-                }
-            }
 
             switch (@object)
             {
