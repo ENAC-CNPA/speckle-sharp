@@ -1,13 +1,15 @@
-﻿using Autodesk.Revit.DB;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Structure;
 using Objects.BuiltElements.Revit;
 using Objects.Geometry;
+using Objects.Structural;
 using Objects.Structural.Geometry;
 using Objects.Structural.Materials;
 using Objects.Structural.Properties;
 using Speckle.Core.Models;
-using System.Collections.Generic;
-using System.Linq;
 using DB = Autodesk.Revit.DB;
 
 
@@ -55,27 +57,134 @@ namespace Objects.Converter.Revit
 
     public ApplicationObject AnalyticalSurfaceToNative(Element2D speckleElement)
     {
-      switch (speckleElement.property.type)
+      var appObj = new ApplicationObject(speckleElement.id, speckleElement.speckle_type) { applicationId = speckleElement.applicationId };
+      if (speckleElement.property is not Property2D prop2D)
+      {
+        appObj.Update(status: ApplicationObject.State.Failed, logItem: "\"Property\" cannot be null");
+        return appObj;
+      }
+
+#if REVIT2020 || REVIT2021 || REVIT2022
+      appObj = CreatePhysicalMember(speckleElement);
+      // TODO: set properties?
+#else
+      var elementType = GetElementType<ElementType>(speckleElement, appObj, out bool isExactMatch);
+      if (elementType == null)
+      {
+        appObj.Update(status: ApplicationObject.State.Failed);
+        return appObj;
+      }
+
+      var analyticalToPhysicalManager = AnalyticalToPhysicalAssociationManager.GetAnalyticalToPhysicalAssociationManager(Doc);
+
+      // check for existing member
+      var docObj = GetExistingElementByApplicationId(speckleElement.applicationId);
+
+      // skip if element already exists in doc & receive mode is set to ignore
+      if (IsIgnore(docObj, appObj))
+        return appObj;
+
+      AnalyticalPanel revitMember = null;
+      DB.Element physicalMember = null;
+      var isUpdate = false;
+
+      if (docObj != null && docObj is AnalyticalPanel analyticalMember)
+      {
+        isUpdate = true;
+        revitMember = analyticalMember;
+
+        // TODO check if there are openings in the panel
+        var polycurve = PolycurveFromTopology(speckleElement.topology);
+        var curveArray = CurveToNative(polycurve, true);
+        var curveLoop = CurveArrayToCurveLoop(curveArray);
+        analyticalMember.SetOuterContour(curveLoop);
+
+        if (isExactMatch && analyticalToPhysicalManager.HasAssociation(revitMember.Id))
+        {
+          //update type
+          var physicalMemberId = analyticalToPhysicalManager.GetAssociatedElementId(revitMember.Id);
+          physicalMember = Doc.GetElement(physicalMemberId);
+
+          if (physicalMember.GetTypeId() != elementType.Id)
+          {
+            // collect info about current floor location and depth
+            var currentType = Doc.GetElement(physicalMember.GetTypeId());
+            var currentTypeDepth = GetParamValue<double>(currentType, BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM);
+            var currentHeightOffset = GetParamValue<double>(physicalMember, BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
+
+            // change type
+            physicalMember.ChangeTypeId(elementType.Id);
+
+            // make sure that the bottom of the floor remains in the same location
+            var newTypeDepth = GetParamValue<double>(elementType, BuiltInParameter.FLOOR_ATTR_DEFAULT_THICKNESS_PARAM);
+            TrySetParam(physicalMember, BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM, currentHeightOffset + (newTypeDepth - currentTypeDepth));
+          }
+        }
+      }
+
+      //create analytical panel (floor or wall)
+      if (revitMember == null)
+      {
+        var polycurve = PolycurveFromTopology(speckleElement.topology);       
+        var curveArray = CurveToNative(polycurve, true);
+        var curveLoop = CurveArrayToCurveLoop(curveArray);
+        revitMember = AnalyticalPanel.Create(Doc, curveLoop);
+      }
+
+      // if there isn't an associated physical element to the analytical element, create it
+      if (!analyticalToPhysicalManager.HasAssociation(revitMember.Id))
+      {
+        var physicalMemberAppObj = CreatePhysicalMember(speckleElement);
+        physicalMember = (DB.Element)physicalMemberAppObj.Converted.FirstOrDefault();
+        analyticalToPhysicalManager.AddAssociation(revitMember.Id, physicalMember.Id);
+
+        appObj.Update(createdId: physicalMember.UniqueId, convertedItem: physicalMember);
+      }
+
+      var state = isUpdate ? ApplicationObject.State.Updated : ApplicationObject.State.Created;
+      appObj.Update(status: state, createdId: revitMember.UniqueId, convertedItem: revitMember);
+
+#endif
+      return appObj;
+    }
+
+    private ApplicationObject CreatePhysicalMember(Element2D speckleElement)
+    {
+      var appObj = new ApplicationObject(speckleElement.id, speckleElement.speckle_type);
+      if (!(speckleElement.property is Property2D prop2D))
+      {
+        appObj.Update(status: ApplicationObject.State.Failed, logItem: "\"Property\" cannot be null");
+        return appObj;
+      }
+
+      switch (prop2D.type)
       {
         case Structural.PropertyType2D.Wall:
-          Geometry.Line baseline = GetBottomLine(speckleElement.topology);
-          double lowestElvevation = speckleElement.topology.Min(node => node.basePoint.z);
-          double topElevation = speckleElement.topology.Max(node => node.basePoint.z);
-          Node bottomNode = speckleElement.topology.Find(node => node.basePoint.z == lowestElvevation);
-          Node topNode = speckleElement.topology.Find(node => node.basePoint.z == topElevation);
+          var baseline = GetBottomLine(speckleElement.topology);
+          var lowestElvevation = speckleElement.topology.Min(node => node.basePoint.z);
+          var topElevation = speckleElement.topology.Max(node => node.basePoint.z);
+          var bottomNode = speckleElement.topology.Find(node => node.basePoint.z == lowestElvevation);
+          var topNode = speckleElement.topology.Find(node => node.basePoint.z == topElevation);
           var bottemLevel = LevelFromPoint(PointToNative(bottomNode.basePoint));
           var topLevel = LevelFromPoint(PointToNative(topNode.basePoint));
-          RevitWall revitWall = new RevitWall(speckleElement.property.name, speckleElement.property.name, baseline, bottemLevel, topLevel);
+          var revitWall = new RevitWall(speckleElement.property.name, speckleElement.property.name, baseline, bottemLevel, topLevel);
+#if REVIT2020 || REVIT2021 || REVIT2022
+          revitWall.applicationId = speckleElement.applicationId;
+#endif
           return WallToNative(revitWall);
+
         default:
           var polycurve = PolycurveFromTopology(speckleElement.topology);
           var level = LevelFromPoint(PointToNative(speckleElement.topology[0].basePoint));
-          RevitFloor revitFloor = new RevitFloor(speckleElement.property.name, speckleElement.property.name, polycurve, level, true);
+          var revitFloor = new RevitFloor(speckleElement.property.name, speckleElement.property.name, polycurve, level, true);
+#if REVIT2020 || REVIT2021 || REVIT2022
+          revitFloor.applicationId = speckleElement.applicationId;
+#endif
           return FloorToNative(revitFloor);
       }
     }
 
-#if !REVIT2023
+#if REVIT2020 || REVIT2021 || REVIT2022
     private Element2D AnalyticalSurfaceToSpeckle(AnalyticalModelSurface revitSurface)
     {
       if (!revitSurface.IsEnabled())
@@ -99,17 +208,17 @@ namespace Objects.Converter.Revit
 
           foreach (var p in points.Skip(1))
           {
-            var vertex = PointToSpeckle(p);
+            var vertex = PointToSpeckle(p, revitSurface.Document);
             var edgeNode = new Node(vertex, null, null, null);
             edgeNodes.Add(edgeNode);
           }
 
-          displayLine.segments.Add(CurveToSpeckle(curve));
+          displayLine.segments.Add(CurveToSpeckle(curve, revitSurface.Document));
         }
       }
 
       speckleElement2D.topology = edgeNodes;
-      speckleElement2D.displayValue = GetElementDisplayMesh(revitSurface, new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = false });
+      speckleElement2D.displayValue = GetElementDisplayValue(revitSurface, new Options() { DetailLevel = ViewDetailLevel.Fine });
 
       var voidNodes = new List<List<Node>> { };
       var voidLoops = revitSurface.GetLoops(AnalyticalLoopType.Void);
@@ -122,7 +231,7 @@ namespace Objects.Converter.Revit
 
           foreach (var p in points.Skip(1))
           {
-            var vertex = PointToSpeckle(p);
+            var vertex = PointToSpeckle(p, revitSurface.Document);
             var voidNode = new Node(vertex, null, null, null);
             loopNodes.Add(voidNode);
           }
@@ -198,12 +307,12 @@ namespace Objects.Converter.Revit
 
         foreach (var p in points.Skip(1))
         {
-          var vertex = PointToSpeckle(p);
+          var vertex = PointToSpeckle(p, revitSurface.Document);
           var edgeNode = new Node(vertex, null, null, null);
           edgeNodes.Add(edgeNode);
         }
 
-        displayLine.segments.Add(CurveToSpeckle(loop));
+        displayLine.segments.Add(CurveToSpeckle(loop, revitSurface.Document));
       }
 
       speckleElement2D.topology = edgeNodes;
@@ -212,16 +321,10 @@ namespace Objects.Converter.Revit
       {
         var physicalElementId = analyticalToPhysicalManager.GetAssociatedElementId(revitSurface.Id);
         var physicalElement = Doc.GetElement(physicalElementId);
-        speckleElement2D.displayValue = GetElementDisplayMesh(physicalElement, new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = false });
+        speckleElement2D.displayValue = GetElementDisplayValue(physicalElement, new Options() { DetailLevel = ViewDetailLevel.Fine });
       }
-      //speckleElement2D["displayValue"] = displayLine;
 
-      //speckleElement2D.voids = voidNodes;
-
-      //var mesh = new Geometry.Mesh();
-      //var solidGeom = GetElementSolids(structuralElement);
-      //(mesh.faces, mesh.vertices) = GetFaceVertexArrFromSolids(solidGeom);
-      //speckleElement2D.baseMesh = mesh;	  
+      speckleElement2D.openings = GetOpenings(revitSurface);
 
       var prop = new Property2D();
 
@@ -260,6 +363,19 @@ namespace Objects.Converter.Revit
       // new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = false });
 
       return speckleElement2D;
+    }
+
+    private List<Polycurve> GetOpenings(AnalyticalPanel revitSurface)
+    {
+      var openings = new List<Polycurve>();
+      foreach (var openingId in revitSurface.GetAnalyticalOpeningsIds())
+      {
+        if (revitSurface.Document.GetElement(openingId) is not AnalyticalOpening opening) continue;
+
+        var curveLoop = opening.GetOuterContour();
+        openings.Add(CurveLoopToSpeckle(curveLoop, revitSurface.Document));
+      }
+      return openings;
     }
 #endif
   }

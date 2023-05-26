@@ -1,10 +1,8 @@
-﻿using Objects.Geometry;
-using Speckle.Core.Kits;
-using Speckle.Core.Models;
-using Speckle.Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using Objects.Geometry;
+using Speckle.Core.Models;
+using Speckle.Newtonsoft.Json;
 
 namespace Objects.BuiltElements
 {
@@ -21,6 +19,8 @@ namespace Objects.BuiltElements
 
     public double endStation { get; set; }
 
+    public List<Profile> profiles { get; set; }
+
     /// <summary>
     /// Station equation list contains doubles indicating raw station back, station back, and station ahead for each station equation
     /// </summary>
@@ -31,13 +31,10 @@ namespace Objects.BuiltElements
     /// </summary>
     public List<bool> stationEquationDirections { get; set; }
 
-    [DetachProperty]
-    public Polyline displayValue { get; set; }
-
     public string units { get; set; }
 
-    public Alignment() { }
-
+    [DetachProperty]
+    public Polyline displayValue { get; set; }
   }
 }
 
@@ -57,7 +54,5 @@ namespace Objects.BuiltElements.Civil
     /// Name of parent alignment if this is an offset alignment
     /// </summary>
     public string parent { get; set; }
-
-    public CivilAlignment() { }
   }
 }

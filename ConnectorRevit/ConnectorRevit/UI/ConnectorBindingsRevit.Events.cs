@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -39,7 +39,12 @@ namespace Speckle.ConnectorRevit.UI
       }
       catch (Exception ex)
       {
-
+        SpeckleLog.Logger.Fatal(
+          ex,
+          "Swallowing exception in {methodName}: {exceptionMessage}",
+          nameof(WriteStreamsToFile),
+          ex.Message
+        );
       }
     }
 
@@ -62,12 +67,23 @@ namespace Speckle.ConnectorRevit.UI
       RevitApp.Application.DocumentSynchronizingWithCentral += Application_DocumentSynchronizingWithCentral;
       RevitApp.Application.DocumentSynchronizedWithCentral += Application_DocumentSynchronizedWithCentral;
       RevitApp.Application.FileExported += Application_FileExported;
+      RevitApp.ApplicationClosing += RevitApp_ApplicationClosing;
       //RevitApp.Application.FileExporting += Application_FileExporting;
       //RevitApp.Application.FileImporting += Application_FileImporting;
       //SelectionTimer = new Timer(1400) { AutoReset = true, Enabled = true };
       //SelectionTimer.Elapsed += SelectionTimer_Elapsed;
       // TODO: Find a way to handle when document is closed via middle mouse click
       // thus triggering the focus on a new project
+    }
+
+    private void RevitApp_ApplicationClosing(object sender, Autodesk.Revit.UI.Events.ApplicationClosingEventArgs e)
+    {
+      if (HomeViewModel.Instance == null)
+        return;
+
+
+      ///ensure WS connections etc are disposed, otherwise it might throw
+      HomeViewModel.Instance.SavedStreams.ForEach(s => s.Dispose());
     }
 
     //DISABLED
@@ -99,7 +115,12 @@ namespace Speckle.ConnectorRevit.UI
           }
           catch (Exception ex)
           {
-            Log.CaptureException(ex, Sentry.SentryLevel.Error);
+            SpeckleLog.Logger.Fatal(
+              ex,
+              "Swallowing exception in {methodName}: {exceptionMessage}",
+              nameof(ShowImportExportAlert),
+              ex.Message
+            );
           }
         };
         dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -160,7 +181,7 @@ namespace Speckle.ConnectorRevit.UI
         await Task.Run(() => SendStream(stream, progress));
         progress.IsProgressing = false;
         dialog.Close();
-        if (!progress.CancellationTokenSource.IsCancellationRequested)
+        if (!progress.CancellationToken.IsCancellationRequested)
         {
           Analytics.TrackEvent(stream.Client.Account, Analytics.Events.Send, new Dictionary<string, object>() { { "method", "Schedule" }, { "filter", stream.Filter.Name } });
         }
@@ -189,7 +210,7 @@ namespace Speckle.ConnectorRevit.UI
         var streams = GetStreamsInFile();
         UpdateSavedStreams(streams);
 
-        MainViewModel.GoHome();
+        MainViewModel.Instance.NavigateToDefaultScreen();
       }
       catch (Exception ex)
       {
@@ -215,7 +236,7 @@ namespace Speckle.ConnectorRevit.UI
         if (UpdateSavedStreams != null)
           UpdateSavedStreams(new List<StreamState>());
 
-        MainViewModel.GoHome();
+        MainViewModel.Instance.NavigateToDefaultScreen();
       }
       catch (Exception ex)
       {
@@ -254,7 +275,7 @@ namespace Speckle.ConnectorRevit.UI
         UpdateSavedStreams(streams);
 
       //exit "stream view" when changing documents
-      MainViewModel.GoHome();
+      MainViewModel.Instance.NavigateToDefaultScreen();
     }
 
 
@@ -341,7 +362,7 @@ namespace Speckle.ConnectorRevit.UI
       }
       catch (Exception ex)
       {
-        Log.CaptureException(ex, Sentry.SentryLevel.Error);
+        SpeckleLog.Logger.Error(ex, "Failed to open view");
         MainUserControl.NotificationManager.Show(new PopUpNotificationViewModel()
         {
           Title = "📷 Open View Error",

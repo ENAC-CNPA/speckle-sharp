@@ -1,11 +1,13 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Objects.Other;
+using Objects.Structural.Properties.Profiles;
 using Speckle.Core.Kits;
 using Speckle.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using Acad = Autodesk.AutoCAD;
 using AcadDB = Autodesk.AutoCAD.DatabaseServices;
 using Alignment = Objects.BuiltElements.Alignment;
@@ -46,6 +48,8 @@ namespace Objects.Converter.AutocadCivil
     public static string AutocadAppName = HostApplications.Civil.GetVersion(HostAppVersion.v2022);
 #elif CIVIL2023
     public static string AutocadAppName = HostApplications.Civil.GetVersion(HostAppVersion.v2023);
+#elif ADVANCESTEEL2023
+    public static string AutocadAppName = HostApplications.AdvanceSteel.GetVersion(HostAppVersion.v2023);
 #endif
 
     public ConverterAutocadCivil()
@@ -103,7 +107,10 @@ namespace Objects.Converter.AutocadCivil
             return ObjectToSpeckleBuiltElement(o);
           */
           var appId = obj.ObjectId.ToString(); // TODO: UPDATE THIS WITH STORED APP ID IF IT EXISTS
-          reportObj = new ApplicationObject(obj.Id.ToString(), obj.GetType().ToString()) { applicationId = appId };
+
+          //Use the Handle object to update progressReport object.
+          //In an AutoCAD session, you can get the Handle of a DBObject from its ObjectId using the ObjectId.Handle or Handle property.
+          reportObj = new ApplicationObject(obj.Handle.ToString(), obj.GetType().Name) { applicationId = appId };
           style = DisplayStyleToSpeckle(obj as Entity);
 
           switch (obj)
@@ -202,6 +209,22 @@ namespace Objects.Converter.AutocadCivil
             case CivilDB.TinSurface o:
               @base = SurfaceToSpeckle(o);
               break;
+
+#elif ADVANCESTEEL2023
+
+            default:
+              try
+              {
+                @base = ConvertASToSpeckle(obj, reportObj, notes);
+              }
+              catch (Exception ex)
+              {
+                //Update report because AS object type
+                Report.UpdateReportObject(reportObj);
+                throw ex;
+              }
+
+              break;
 #endif
           }
           break;
@@ -264,7 +287,7 @@ namespace Objects.Converter.AutocadCivil
       bool isFromAutoCAD = @object[AutocadPropName] != null ? true : false;
       bool isFromCivil = @object[CivilPropName] != null ? true : false;
       object acadObj = null;
-      var reportObj = Report.GetReportObject(@object.id, out int index) ? new ApplicationObject(@object.id, @object.speckle_type) : null;
+      var reportObj = Report.ReportObjects.ContainsKey(@object.id) ? new ApplicationObject(@object.id, @object.speckle_type) : null;
       List<string> notes = new List<string>();
       switch (@object)
       {
@@ -302,8 +325,10 @@ namespace Objects.Converter.AutocadCivil
 
         case Polycurve o:
           bool convertAsSpline = (o.segments.Where(s => !(s is Line) && !(s is Arc)).Count() > 0) ? true : false;
-          if (!convertAsSpline) convertAsSpline = IsPolycurvePlanar(o) ? false : true;
-          acadObj = convertAsSpline ? PolycurveSplineToNativeDB(o) : PolycurveToNativeDB(o);
+          if (convertAsSpline || !IsPolycurvePlanar(o))
+            acadObj = PolycurveSplineToNativeDB(o);
+          else
+            acadObj = PolycurveToNativeDB(o);
           break;
 
         case Curve o:
@@ -328,12 +353,12 @@ namespace Objects.Converter.AutocadCivil
           acadObj = isFromAutoCAD ? AcadDimensionToNative(o) : DimensionToNative(o);
           break;
 
-        case BlockInstance o:
-          acadObj = BlockInstanceToNativeDB(o);
+        case Instance o:
+          acadObj = InstanceToNativeDB(o);
           break;
 
         case BlockDefinition o:
-          acadObj = BlockDefinitionToNativeDB(o);
+          acadObj = DefinitionToNativeDB(o, out notes);
           break;
 
         case Text o:
@@ -362,8 +387,8 @@ namespace Objects.Converter.AutocadCivil
       switch (acadObj)
       {
         case ApplicationObject o: // some to native methods return an application object (if object is baked to doc during conv)
-          acadObj = o.Converted.Any() ? o.Converted.FirstOrDefault() : null;
-          if (reportObj != null) reportObj.Update(status: o.Status, createdIds: o.CreatedIds, container: o.Container, log: o.Log);
+          acadObj = o.Converted.Any() ? o.Converted : null;
+          if (reportObj != null) reportObj.Update(status: o.Status, createdIds: o.CreatedIds, converted: o.Converted, container: o.Container, log: o.Log);
           break;
         default:
           if (reportObj != null) reportObj.Update(log: notes);
@@ -424,7 +449,13 @@ namespace Objects.Converter.AutocadCivil
 #endif
 
             default:
-              return false;
+              {
+#if ADVANCESTEEL2023
+                return CanConvertASToSpeckle(o);
+#else
+                return false;
+#endif
+              }
           }
 
         case Acad.Geometry.Point3d _:
@@ -460,7 +491,7 @@ namespace Objects.Converter.AutocadCivil
 
         case Dimension _:
         case BlockDefinition _:
-        case BlockInstance _:
+        case Instance _:
         case Text _:
 
         case Alignment _:

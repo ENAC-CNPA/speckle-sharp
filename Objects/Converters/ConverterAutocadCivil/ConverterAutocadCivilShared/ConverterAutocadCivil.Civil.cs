@@ -1,4 +1,4 @@
-﻿#if CIVIL2021 || CIVIL2022 || CIVIL2023
+#if CIVIL2021 || CIVIL2022 || CIVIL2023
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,42 +50,6 @@ namespace Objects.Converter.AutocadCivil
     }
 
     // alignments
-    public SpiralType SpiralTypeToSpeckle(Civil.SpiralType type)
-    {
-      switch (type)
-      {
-        case Civil.SpiralType.Clothoid:
-          return SpiralType.Clothoid;
-        case Civil.SpiralType.Bloss:
-          return SpiralType.Bloss;
-        case Civil.SpiralType.BiQuadratic:
-          return SpiralType.Biquadratic;
-        case Civil.SpiralType.CubicParabola:
-          return SpiralType.CubicParabola;
-        case Civil.SpiralType.Sinusoidal:
-          return SpiralType.Sinusoid;
-        default:
-          return SpiralType.Unknown;
-      }
-    }
-    public Civil.SpiralType SpiralTypeToNative(SpiralType type)
-    {
-      switch (type)
-      {
-        case SpiralType.Clothoid:
-          return Civil.SpiralType.Clothoid;
-        case SpiralType.Bloss:
-          return Civil.SpiralType.Bloss;
-        case SpiralType.Biquadratic:
-          return Civil.SpiralType.BiQuadratic;
-        case SpiralType.CubicParabola:
-          return Civil.SpiralType.CubicParabola;
-        case SpiralType.Sinusoid:
-          return Civil.SpiralType.Sinusoidal;
-        default:
-          return Civil.SpiralType.Clothoid;
-      }
-    }
     public CivilAlignment AlignmentToSpeckle(CivilDB.Alignment alignment)
     {
       var _alignment = new CivilAlignment();
@@ -187,7 +151,6 @@ namespace Objects.Converter.AutocadCivil
 
       return _alignment;
     }
-
     public ApplicationObject AlignmentToNative(Alignment alignment)
     {
       var appObj = new ApplicationObject(alignment.id, alignment.speckle_type) { applicationId = alignment.applicationId };
@@ -314,6 +277,42 @@ namespace Objects.Converter.AutocadCivil
     }
 
 #region helper methods
+    private SpiralType SpiralTypeToSpeckle(Civil.SpiralType type)
+    {
+      switch (type)
+      {
+        case Civil.SpiralType.Clothoid:
+          return SpiralType.Clothoid;
+        case Civil.SpiralType.Bloss:
+          return SpiralType.Bloss;
+        case Civil.SpiralType.BiQuadratic:
+          return SpiralType.Biquadratic;
+        case Civil.SpiralType.CubicParabola:
+          return SpiralType.CubicParabola;
+        case Civil.SpiralType.Sinusoidal:
+          return SpiralType.Sinusoid;
+        default:
+          return SpiralType.Unknown;
+      }
+    }
+    private Civil.SpiralType SpiralTypeToNative(SpiralType type)
+    {
+      switch (type)
+      {
+        case SpiralType.Clothoid:
+          return Civil.SpiralType.Clothoid;
+        case SpiralType.Bloss:
+          return Civil.SpiralType.Bloss;
+        case SpiralType.Biquadratic:
+          return Civil.SpiralType.BiQuadratic;
+        case SpiralType.CubicParabola:
+          return Civil.SpiralType.CubicParabola;
+        case SpiralType.Sinusoid:
+          return Civil.SpiralType.Sinusoidal;
+        default:
+          return Civil.SpiralType.Clothoid;
+      }
+    }
     private void AddAlignmentEntity(ICurve curve, ref CivilDB.AlignmentEntityCollection entities)
     {
       switch (curve)
@@ -505,26 +504,25 @@ namespace Objects.Converter.AutocadCivil
       var end = new Point2d(endStation, endElevation);
       return LineToSpeckle(new LineSegment2d(start, end));
     }
-   
+
     // featurelines
     public Featureline FeatureLineToSpeckle(CivilDB.FeatureLine featureline)
     {
       // get all points
-      List<Point3d> points = new List<Point3d>();
+      var points = new List<Point>();
       var _points = featureline.GetPoints(Civil.FeatureLinePointType.AllPoints);
-      foreach (Point3d point in _points) points.Add(point);
+      foreach (Point3d point in _points) points.Add(PointToSpeckle(point));
 
       // get elevation points
-      List<Point3d> ePoints = new List<Point3d>();
+      var ePoints = new List<int>();
       var _ePoints = featureline.GetPoints(Civil.FeatureLinePointType.ElevationPoint);
-      foreach (Point3d ePoint in _ePoints) ePoints.Add(ePoint);
+      foreach (Point3d ePoint in _ePoints) ePoints.Add(_points.IndexOf(ePoint));
 
-      // get pi points and indices in all points list
-      List<Point3d> piPoints = new List<Point3d>();
+      // get pi points
+      var piPoints = new List<int>();
       var _piPoints = featureline.GetPoints(Civil.FeatureLinePointType.PIPoint);
-      foreach (Point3d piPoint in _piPoints) piPoints.Add(piPoint);
-      List<int> indices = piPoints.Select(o => points.IndexOf(o)).ToList();
-      
+      foreach (Point3d piPoint in _piPoints) piPoints.Add(_points.IndexOf(piPoint));
+
       /*
       // get bulges at pi point indices
       int count = (featureline.Closed) ? featureline.PointsCount : featureline.PointsCount - 1;
@@ -534,38 +532,50 @@ namespace Objects.Converter.AutocadCivil
       foreach (var index in indices) piBulges.Add(bulges[index]);
       */
 
-      // create 3d poly
-      var polyline = new Polyline3d(Poly3dType.SimplePoly, _piPoints, false);
+      // get displayvalue
+      var polyline = PolylineToSpeckle(new Polyline3d(Poly3dType.SimplePoly, _piPoints, false));
 
       // featureline
       var _featureline = new Featureline();
-
-      _featureline.displayValue = PolylineToSpeckle(polyline);
       _featureline.curve = CurveToSpeckle(featureline.BaseCurve, ModelUnits);
-      _featureline.name = (featureline.Name != null) ? featureline.Name : "";
-      _featureline["description"] = (featureline.Description != null) ? featureline.Description : "";
       _featureline.units = ModelUnits;
-      try { _featureline["site"] = featureline.SiteId.ToString(); } catch { }
+      _featureline.displayValue = new List<Polyline>() { polyline };
+      _featureline["@piPoints"] = piPoints;
+      _featureline["@elevationPoints"] = ePoints;
 
-      List<Point> piPointsConverted = piPoints.Select(o => PointToSpeckle(o)).ToList();
-      _featureline["@piPoints"] = piPointsConverted;
-      List<Point> ePointsConverted = ePoints.Select(o => PointToSpeckle(o)).ToList();
-      _featureline["@elevationPoints"] = ePointsConverted;
+      if (!string.IsNullOrEmpty(featureline.Name)) { _featureline["name"] = featureline.Name; }
+      if (!string.IsNullOrEmpty(featureline.Description)) { _featureline["description"] = featureline.Description; }
+      if (featureline.SiteId != null) { _featureline["site"] = featureline.SiteId.ToString(); }
 
       return _featureline;
     }
+
     private Featureline FeaturelineToSpeckle(CivilDB.CorridorFeatureLine featureline)
     {
-      // construct the 3d polyline
-      var collection = new Acad.Point3dCollection();
-      foreach (var point in featureline.FeatureLinePoints)
-        collection.Add(point.XYZ);
-      var polyline = new Polyline3d(Poly3dType.SimplePoly, collection, false);
+      // get all points and the display polyines
+      var points = new List<Point>();
+      var polylines = new List<Polyline>();
+
+      var polylinePoints = new Point3dCollection();
+      for (int i = 0; i < featureline.FeatureLinePoints.Count; i++)
+      {
+        var point = featureline.FeatureLinePoints[i];
+        if (!point.IsBreak) { polylinePoints.Add(point.XYZ); }
+        if (polylinePoints.Count > 0 && (i == featureline.FeatureLinePoints.Count - 1 || point.IsBreak ))
+        {
+          var polyline = PolylineToSpeckle(new Polyline3d(Poly3dType.SimplePoly, polylinePoints, false));
+          polylines.Add(polyline);
+          polylinePoints.Clear();
+
+        }
+        points.Add(PointToSpeckle(point.XYZ));
+      }
 
       // create featureline
       var _featureline = new Featureline();
-      _featureline.curve = PolylineToSpeckle(polyline);
-      _featureline.name = featureline.CodeName;
+      _featureline.points = points;
+      if (!string.IsNullOrEmpty(featureline.CodeName)) { _featureline.name = featureline.CodeName; }
+      _featureline.displayValue = polylines;
       _featureline.units = ModelUnits;
 
       return _featureline;
@@ -626,7 +636,7 @@ namespace Objects.Converter.AutocadCivil
       // add tin surface props
       var props = Speckle.Core.Models.Utilities.GetApplicationProps(surface, typeof(CivilDB.TinSurface), false);
       mesh[CivilPropName] = props;
-
+      
       return mesh;
     }
 
@@ -668,11 +678,8 @@ namespace Objects.Converter.AutocadCivil
       mesh.bbox = BoxToSpeckle(surface.GeometricExtents);
 
       // add grid surface props
-      try{
-      mesh["name"] = surface.DisplayName;
-      mesh["description"] = surface.Description;
-      }
-      catch{}
+      if (!string.IsNullOrEmpty(surface.DisplayName)){ mesh["name"] = surface.DisplayName; }
+      if (!string.IsNullOrEmpty(surface.Description)){ mesh["description"] = surface.Description; }
 
       return mesh;
     }
@@ -757,7 +764,6 @@ namespace Objects.Converter.AutocadCivil
       meshVertices.ForEach(o => vertices.Add(o));
       _surface.AddVertices(vertices);
       
-
       // loop through faces to create an edge dictionary by vertex, which includes all other vertices this vertex is connected to
       int i = 0;
       var edges = new Dictionary<Point3d, List<Point3d>>();
@@ -808,7 +814,6 @@ namespace Objects.Converter.AutocadCivil
         }
       }
       
-
       // loop through and delete any edges
       var edgesToDelete = new List<CivilDB.TinSurfaceEdge>();
       foreach(CivilDB.TinSurfaceVertex vertex in _surface.Vertices)
@@ -945,29 +950,6 @@ namespace Objects.Converter.AutocadCivil
       List<Featureline> featurelines = new List<Featureline>();
       foreach (var baseline in corridor.Baselines)
       {
-        /* this is just for construction
-        var type = baseline.BaselineType.ToString();
-        if (baseline.IsFeatureLineBased()) // featurelines will only be created if assembly has point codes
-        {
-          var featureline = Trans.GetObject(baseline.FeatureLineId, OpenMode.ForRead) as CivilDB.FeatureLine;
-          var convertedFeatureline = FeatureLineToSpeckle(featureline);
-          if (convertedFeatureline != null)
-          {
-            convertedFeatureline["baselineType"] = type;
-            featurelines.Add(convertedFeatureline);
-          }
-        }
-        else
-        {
-          var alignment = Trans.GetObject(baseline.AlignmentId, OpenMode.ForRead) as CivilDB.Alignment;
-          var convertedAlignment = AlignmentToSpeckle(alignment);
-          if (convertedAlignment != null)
-          {
-            convertedAlignment["baselineType"] = type;
-            alignments.Add(convertedAlignment);
-          }
-        }
-        */
 
         // get the collection of featurelines for this baseline
         foreach (var mainFeaturelineCollection in baseline.MainBaselineFeatureLines.FeatureLineCollectionMap) // main featurelines
@@ -1001,9 +983,14 @@ namespace Objects.Converter.AutocadCivil
       List<Mesh> surfaces = new List<Mesh>();
       foreach (var corridorSurface in corridor.CorridorSurfaces)
       {
-        var surface = Trans.GetObject(corridorSurface.SurfaceId, OpenMode.ForRead);
-        var mesh = ConvertToSpeckle(surface) as Mesh;
-        if (mesh != null) surfaces.Add(mesh);
+        try
+        {
+          var surface = Trans.GetObject(corridorSurface.SurfaceId, OpenMode.ForRead);
+          var mesh = ConvertToSpeckle(surface) as Mesh;
+          if (mesh != null) surfaces.Add(mesh);
+        }
+        catch (Exception e) 
+        { }
       }
 
       _corridor["@alignments"] = alignments;

@@ -1,10 +1,9 @@
-﻿using Autodesk.Revit.DB;
-using Objects.BuiltElements;
-using Speckle.Core.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Autodesk.Revit.DB;
+using Objects.BuiltElements;
+using Speckle.Core.Models;
 using DB = Autodesk.Revit.DB;
 
 namespace Objects.Converter.Revit
@@ -17,7 +16,7 @@ namespace Objects.Converter.Revit
       var appObj = new ApplicationObject(speckleGridline.id, speckleGridline.speckle_type) { applicationId = speckleGridline.applicationId };
 
       // skip if element already exists in doc & receive mode is set to ignore
-      if (IsIgnore(revitGrid, appObj, out appObj))
+      if (IsIgnore(revitGrid, appObj))
         return appObj;
 
       var curve = CurveToNative(speckleGridline.baseLine).get_Item(0);
@@ -100,7 +99,7 @@ namespace Objects.Converter.Revit
     public GridLine GridLineToSpeckle(DB.Grid revitGridLine)
     {
       var speckleGridline = new GridLine();
-      speckleGridline.baseLine = CurveToSpeckle(revitGridLine.Curve);
+      speckleGridline.baseLine = CurveToSpeckle(revitGridLine.Curve, revitGridLine.Document);
       speckleGridline.label = revitGridLine.Name;
 
       //speckleGridline.elementId = revitCurve.Id.ToString(); this would need a RevitGridLine element

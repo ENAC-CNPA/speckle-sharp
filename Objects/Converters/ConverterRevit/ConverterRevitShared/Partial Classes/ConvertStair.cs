@@ -1,9 +1,9 @@
-﻿
+
+using System.Collections.Generic;
+using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 using Objects.BuiltElements.Revit;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Objects.Converter.Revit
 {
@@ -34,7 +34,7 @@ namespace Objects.Converter.Revit
 
       GetAllRevitParamsAndIds(speckleStair, revitStair, new List<string> { "STAIRS_BASE_LEVEL_PARAM", "STAIRS_TOP_LEVEL_PARAM" });
 
-      speckleStair.displayValue = GetElementDisplayMesh(revitStair, new Options() { DetailLevel = ViewDetailLevel.Fine, ComputeReferences = false });
+      speckleStair.displayValue = GetElementDisplayValue(revitStair, new Options() { DetailLevel = ViewDetailLevel.Fine });
 
       return speckleStair;
     }
@@ -57,8 +57,8 @@ namespace Objects.Converter.Revit
       run.extensionBelowTreadBase = ScaleToSpeckle(revitStairRun.ExtensionBelowTreadBase);
       run.runStyle = revitStairRun.StairsRunStyle.ToString();
       run.units = ModelUnits;
-      run.path = CurveLoopToSpeckle(revitStairRun.GetStairsPath());
-      run.outline = CurveLoopToSpeckle(revitStairRun.GetFootprintBoundary());
+      run.path = CurveLoopToSpeckle(revitStairRun.GetStairsPath(), revitStairRun.Document);
+      run.outline = CurveLoopToSpeckle(revitStairRun.GetFootprintBoundary(), revitStairRun.Document);
 
       GetAllRevitParamsAndIds(run, revitStairRun);
       return run;
@@ -74,7 +74,7 @@ namespace Objects.Converter.Revit
       landing.thickness = revitStairLanding.Thickness;
       landing.baseElevation = ScaleToSpeckle(revitStairLanding.BaseElevation);
       landing.units = ModelUnits;
-      landing.outline = CurveLoopToSpeckle(revitStairLanding.GetFootprintBoundary());
+      landing.outline = CurveLoopToSpeckle(revitStairLanding.GetFootprintBoundary(), revitStairLanding.Document);
 
       GetAllRevitParamsAndIds(landing, revitStairLanding);
       return landing;

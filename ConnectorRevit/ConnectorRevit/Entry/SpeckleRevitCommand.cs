@@ -64,7 +64,7 @@ namespace Speckle.ConnectorRevit.Entry
         }
         catch (Exception ex)
         {
-          Log.CaptureException(ex, Sentry.SentryLevel.Error);
+          SpeckleLog.Logger.Error(ex, "Failed to show dockable panel");
         }
       }
       else
@@ -126,7 +126,7 @@ namespace Speckle.ConnectorRevit.Entry
       }
       catch (Exception ex)
       {
-        Log.CaptureException(ex, Sentry.SentryLevel.Error);
+        SpeckleLog.Logger.Fatal(ex, "Failed to load Speckle command for host app");
         var td = new TaskDialog("Error");
         td.MainContent = $"Oh no! Something went wrong while loading Speckle, please report it on the forum:\n{ex.Message}";
         td.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Report issue on our Community Forum");
@@ -183,7 +183,7 @@ namespace Speckle.ConnectorRevit.Entry
       }
       catch (Exception ex)
       {
-        Log.CaptureException(ex, Sentry.SentryLevel.Error);
+        SpeckleLog.Logger.Fatal(ex, "Failed to create main window");
         var td = new TaskDialog("Error");
         td.MainContent = $"Oh no! Something went wrong while loading Speckle, please report it on the forum:\n{ex.Message}";
         td.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Report issue on our Community Forum");

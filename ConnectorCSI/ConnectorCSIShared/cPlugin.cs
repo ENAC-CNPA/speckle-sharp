@@ -17,7 +17,6 @@ using Speckle.ConnectorCSI.UI;
 using System.Reflection;
 using System.IO;
 
-
 namespace SpeckleConnectorCSI
 {
   public class cPlugin
@@ -53,6 +52,11 @@ namespace SpeckleConnectorCSI
     private static void AppMain(Application app, string[] args)
     {
       var viewModel = new MainViewModel(Bindings);
+
+      var streams = Bindings.GetStreamsInFile();
+      streams = streams ?? new List<DesktopUI2.Models.StreamState>();
+      Bindings.UpdateSavedStreams?.Invoke(streams);
+
       MainWindow = new MainWindow { DataContext = viewModel };
       MainWindow.Closed += SpeckleWindowClosed;
       MainWindow.Closing += SpeckleWindowClosed;
@@ -66,7 +70,6 @@ namespace SpeckleConnectorCSI
       CreateOrFocusSpeckle();
     }
 
-
     private static void SpeckleWindowClosed(object sender, EventArgs e)
     {
       isSpeckleClosed = true;
@@ -79,9 +82,6 @@ namespace SpeckleConnectorCSI
       //Environment.Exit(0);
       pluginCallback.Finish(0);
     }
-
-
-
 
     public int Info(ref string Text)
     {
@@ -111,14 +111,10 @@ namespace SpeckleConnectorCSI
       model = SapModel;
       AppDomain domain = null;
 
-
       try
       {
         OpenOrFocusSpeckle(model);
-
-
       }
-
       catch (Exception e)
       {
         throw e;

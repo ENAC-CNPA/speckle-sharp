@@ -1,21 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Electrical;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
+using ConverterRevitShared.Revit;
+using Objects.BuiltElements.Revit;
 using Speckle.Core.Credentials;
 using Speckle.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Speckle.Newtonsoft.Json.Linq;
 using DB = Autodesk.Revit.DB;
 using Network = Objects.BuiltElements.Network;
 using NetworkElement = Objects.BuiltElements.NetworkElement;
 using NetworkLink = Objects.BuiltElements.NetworkLink;
 using RevitNetworkElement = Objects.BuiltElements.Revit.RevitNetworkElement;
 using RevitNetworkLink = Objects.BuiltElements.Revit.RevitNetworkLink;
-using Objects.BuiltElements.Revit;
-using ConverterRevitShared.Revit;
-using Speckle.Newtonsoft.Json.Linq;
 
 namespace Objects.Converter.Revit
 {
@@ -60,12 +60,13 @@ namespace Objects.Converter.Revit
       var convertedMEPCurves = convertedElements.Where(e => e.Value is MEPCurve).ToArray();
       foreach (var networkElement in connectorBasedCreationElements)
       {
-        if (!GetElementType(networkElement.elements, appObj, out FamilySymbol familySymbol))
+        var familySymbol = GetElementType<FamilySymbol>(networkElement.elements, appObj, out bool _);
+        if (familySymbol == null)
         {
           appObj.Update(status: ApplicationObject.State.Failed);
           continue;
         }
-        
+
         DB.FamilyInstance familyInstance = null;
 
         var tempCurves = new Dictionary<int, MEPCurve>();
@@ -179,7 +180,7 @@ namespace Objects.Converter.Revit
     /// <param name="mepElement"></param>
     private void GetNetworkElements(Network @network, Element initialElement, out List<string> notes)
     {
-      CachedContextObjects = ContextObjects.ToList();
+      CachedContextObjects = ContextObjects;
       notes = new List<string>();
       var networkConnections = new List<ConnectionPair>();
       GetNetworkConnections(initialElement, ref networkConnections);
@@ -188,14 +189,13 @@ namespace Objects.Converter.Revit
       foreach (var group in groups)
       {
         var element = Doc.GetElement(group.Key);
-        var elementIndex = ContextObjects.FindIndex(obj => obj.applicationId == element.UniqueId);
 
-        if (elementIndex != -1)
-          ContextObjects.RemoveAt(elementIndex);
+        if (ContextObjects.ContainsKey(element.UniqueId))
+          ContextObjects.Remove(element.UniqueId);
         else
           continue;
 
-        ApplicationObject reportObj = Report.GetReportObject(element.UniqueId, out int index) ? Report.ReportObjects[index] : new ApplicationObject(element.UniqueId, element.GetType().ToString());
+        ApplicationObject reportObj = Report.ReportObjects.ContainsKey(element.UniqueId) ? Report.ReportObjects[element.UniqueId] : new ApplicationObject(element.UniqueId, element.GetType().ToString());
 
         Base obj = null;
         bool connectorBasedCreation = false;
@@ -253,7 +253,7 @@ namespace Objects.Converter.Revit
           isConnectorBased = connectorBasedCreation,
           isCurveBased = element is MEPCurve
         });
-        ConvertedObjectsList.Add(obj.applicationId);
+        ConvertedObjects.Add(obj.applicationId);
 
         Report.Log(reportObj);
       }
@@ -278,9 +278,9 @@ namespace Objects.Converter.Revit
 
           var origin = connection.Connector.Origin;
 
-          link.origin = PointToSpeckle(origin);
+          link.origin = PointToSpeckle(origin, initialElement.Document);
           link.fittingIndex = connector.Id;
-          link.direction = VectorToSpeckle(connector.CoordinateSystem.BasisZ);
+          link.direction = VectorToSpeckle(connector.CoordinateSystem.BasisZ, initialElement.Document);
           link.isConnected = connection.IsConnected;
           link.needsPlaceholders = connection.ConnectedToCurve(out MEPCurve curve) && IsWithinContext(curve);
           link.diameter = connection.Diameter;
@@ -331,11 +331,11 @@ namespace Objects.Converter.Revit
       (c1.Domain == Domain.DomainCableTrayConduit)));
     }
 
-    private static List<ApplicationObject> CachedContextObjects = null;
+    private static Dictionary<string, ApplicationObject> CachedContextObjects = null;
 
     private bool IsWithinContext(Element element)
     {
-      return CachedContextObjects.Any(obj => obj.applicationId.Equals(element?.UniqueId));
+      return CachedContextObjects.ContainsKey(element?.UniqueId);
     }
 
     private void GetConnectionPairs(Element element, ref List<Tuple<Connector, Connector, Element>> connectionPairs, ref List<Element> elements)
@@ -349,14 +349,14 @@ namespace Objects.Converter.Revit
       }
       var refs = GetRefConnectionPairs(element);
       var refConnectionPairs = GetRefConnectionPairs(element).
-        Where(e => e.Item2 == null || ContextObjects.Any(obj => obj.applicationId.Equals(e.Item2.Owner.UniqueId))).ToList();
+        Where(e => e.Item2 == null || ContextObjects.ContainsKey(e.Item2.Owner.UniqueId)).ToList();
       elements.Add(element);
       foreach (var refConnectionPair in refs)
       {
         var connectedElement = refConnectionPair.Item2?.Owner;
         if (connectedElement != null
           && !elements.Any(e => e.UniqueId.Equals(connectedElement.UniqueId))
-          && ContextObjects.Any(obj => obj.applicationId.Equals(connectedElement.UniqueId)))
+          && ContextObjects.ContainsKey(connectedElement.UniqueId))
         {
           connectionPairs.Add(Tuple.Create(refConnectionPair.Item1, refConnectionPair.Item2, element));
           GetConnectionPairs(connectedElement, ref connectionPairs, ref elements);

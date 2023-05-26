@@ -1,4 +1,8 @@
-﻿using Autodesk.Revit.DB;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.DB.Structure.StructuralSections;
 using Objects.BuiltElements.Revit;
@@ -7,8 +11,6 @@ using Objects.Structural.Materials;
 using Objects.Structural.Properties;
 using Objects.Structural.Properties.Profiles;
 using Speckle.Core.Models;
-using System;
-using System.Linq;
 using DB = Autodesk.Revit.DB;
 
 namespace Objects.Converter.Revit
@@ -33,7 +35,7 @@ namespace Objects.Converter.Revit
       appObj = new ApplicationObject(speckleStick.id, speckleStick.speckle_type) { applicationId = speckleStick.applicationId };
 
       // skip if element already exists in doc & receive mode is set to ignore
-      if (IsIgnore(docObj, appObj, out appObj))
+      if (IsIgnore(docObj, appObj))
         return appObj;
 
       if (speckleStick.baseLine == null)
@@ -48,7 +50,8 @@ namespace Objects.Converter.Revit
       level ??= ConvertLevelToRevit(LevelFromCurve(baseLine), out ApplicationObject.State levelState);
       var isUpdate = false;
 
-      if (!GetElementType<FamilySymbol>(speckleStick, appObj, out DB.FamilySymbol familySymbol))
+      var familySymbol = GetElementType<FamilySymbol>(speckleStick, appObj, out bool isExactMatch);
+      if (familySymbol == null)
       {
         appObj.Update(status: ApplicationObject.State.Failed);
         return appObj;
@@ -58,21 +61,30 @@ namespace Objects.Converter.Revit
       DB.FamilyInstance physicalMember = null;
 
       if (docObj != null && docObj is AnalyticalMember analyticalMember)
-      {      
+      {
         // update location
-        analyticalMember.SetCurve(baseLine);
+        var currentCurve = analyticalMember.GetCurve();
+        var p0 = currentCurve.GetEndPoint(0);
 
-        //update type
-        analyticalMember.SectionTypeId = familySymbol.Id;
-        isUpdate = true;
-        revitMember = analyticalMember;
+        if (p0.DistanceTo(baseLine.GetEndPoint(0)) > p0.DistanceTo(baseLine.GetEndPoint(1)))
+          analyticalMember.SetCurve(baseLine.CreateReversed());
+        else
+          analyticalMember.SetCurve(baseLine);
 
-        if (analyticalToPhysicalManager.HasAssociation(revitMember.Id))
+        if (isExactMatch)
         {
-          var physicalMemberId = analyticalToPhysicalManager.GetAssociatedElementId(revitMember.Id);
-          physicalMember = (DB.FamilyInstance)Doc.GetElement(physicalMemberId);
-          if (physicalMember.Symbol != familySymbol)
-            physicalMember.Symbol = familySymbol;
+          //update type
+          analyticalMember.SectionTypeId = familySymbol.Id;
+          isUpdate = true;
+          revitMember = analyticalMember;
+
+          if (analyticalToPhysicalManager.HasAssociation(revitMember.Id))
+          {
+            var physicalMemberId = analyticalToPhysicalManager.GetAssociatedElementId(revitMember.Id);
+            physicalMember = (DB.FamilyInstance)Doc.GetElement(physicalMemberId);
+            if (physicalMember.Symbol != familySymbol)
+              physicalMember.Symbol = familySymbol;
+          }
         }
       }
 
@@ -92,6 +104,7 @@ namespace Objects.Converter.Revit
       {
         var physicalMemberAppObj = CreatePhysicalMember(speckleStick);
         physicalMember = (DB.FamilyInstance)physicalMemberAppObj.Converted.FirstOrDefault();
+        analyticalToPhysicalManager.AddAssociation(revitMember.Id, physicalMember.Id);
 
         appObj.Update(createdId: physicalMember.UniqueId, convertedItem: physicalMember);
       }
@@ -108,12 +121,17 @@ namespace Objects.Converter.Revit
       XYZ offset1 = VectorToNative(speckleStick.end1Offset ?? new Geometry.Vector(0, 0, 0));
       XYZ offset2 = VectorToNative(speckleStick.end2Offset ?? new Geometry.Vector(0, 0, 0));
 
+      var propertyName = speckleStick.property?.name;
+
+      //This only works for CSIC sections now for sure. Need to test on other sections
+      if (!string.IsNullOrEmpty(propertyName))
+        propertyName = propertyName.Replace('X', 'x');
+
       switch (speckleStick.type)
       {
         case ElementType1D.Beam:
           RevitBeam revitBeam = new RevitBeam();
-          //This only works for CSIC sections now for sure. Need to test on other sections
-          revitBeam.type = speckleStick.property.name.Replace('X', 'x');
+          revitBeam.type = propertyName;
           revitBeam.baseLine = speckleStick.baseLine;
 #if REVIT2020 || REVIT2021 || REVIT2022
           revitBeam.applicationId = speckleStick.applicationId;
@@ -124,7 +142,7 @@ namespace Objects.Converter.Revit
 
         case ElementType1D.Brace:
           RevitBrace revitBrace = new RevitBrace();
-          revitBrace.type = speckleStick.property.name.Replace('X', 'x');
+          revitBrace.type = propertyName;
           revitBrace.baseLine = speckleStick.baseLine;
 #if REVIT2020 || REVIT2021 || REVIT2022
           revitBrace.applicationId = speckleStick.applicationId;
@@ -135,7 +153,7 @@ namespace Objects.Converter.Revit
 
         case ElementType1D.Column:
           RevitColumn revitColumn = new RevitColumn();
-          revitColumn.type = speckleStick.property.name.Replace('X', 'x');
+          revitColumn.type = propertyName;
           revitColumn.baseLine = speckleStick.baseLine;
           revitColumn.units = speckleStick.units;
 #if REVIT2020 || REVIT2021 || REVIT2022
@@ -152,7 +170,7 @@ namespace Objects.Converter.Revit
     {
       Func<char, bool> releaseConvert = rel => rel == 'R';
 
-#if !REVIT2023
+#if REVIT2020 || REVIT2021 || REVIT2022
       var analyticalModel = (AnalyticalModelStick)element.GetAnalyticalModel();
       analyticalModel.SetReleases(true, releaseConvert(element1d.end1Releases.code[0]), releaseConvert(element1d.end1Releases.code[1]), releaseConvert(element1d.end1Releases.code[2]), releaseConvert(element1d.end1Releases.code[3]), releaseConvert(element1d.end1Releases.code[4]), releaseConvert(element1d.end1Releases.code[5]));
       analyticalModel.SetReleases(false, releaseConvert(element1d.end2Releases.code[0]), releaseConvert(element1d.end2Releases.code[1]), releaseConvert(element1d.end2Releases.code[2]), releaseConvert(element1d.end2Releases.code[3]), releaseConvert(element1d.end2Releases.code[4]), releaseConvert(element1d.end2Releases.code[5]));
@@ -167,7 +185,7 @@ namespace Objects.Converter.Revit
       //TODO Set offsets
 #endif
     }
-#if !REVIT2023
+#if REVIT2020 || REVIT2021 || REVIT2022
     private Element1D AnalyticalStickToSpeckle(AnalyticalModelStick revitStick)
     {
       if (!revitStick.IsEnabled())
@@ -197,16 +215,17 @@ namespace Objects.Converter.Revit
       if (curves.Count > 1)
         speckleElement1D.baseLine = null;
       else
-        speckleElement1D.baseLine = (Objects.Geometry.Line)CurveToSpeckle(curves[0]);
+        speckleElement1D.baseLine = CurveToSpeckle(curves[0], revitStick.Document) as Objects.Geometry.Line;
+
 
       var coordinateSystem = revitStick.GetLocalCoordinateSystem();
       if (coordinateSystem != null)
-        speckleElement1D.localAxis = new Geometry.Plane(PointToSpeckle(coordinateSystem.Origin), VectorToSpeckle(coordinateSystem.BasisZ), VectorToSpeckle(coordinateSystem.BasisX), VectorToSpeckle(coordinateSystem.BasisY));
+        speckleElement1D.localAxis = new Geometry.Plane(PointToSpeckle(coordinateSystem.Origin, revitStick.Document), VectorToSpeckle(coordinateSystem.BasisZ, revitStick.Document), VectorToSpeckle(coordinateSystem.BasisX, revitStick.Document), VectorToSpeckle(coordinateSystem.BasisY, revitStick.Document));
 
       var startOffset = revitStick.GetOffset(AnalyticalElementSelector.StartOrBase);
       var endOffset = revitStick.GetOffset(AnalyticalElementSelector.EndOrTop);
-      speckleElement1D.end1Offset = VectorToSpeckle(startOffset);
-      speckleElement1D.end2Offset = VectorToSpeckle(endOffset);
+      speckleElement1D.end1Offset = VectorToSpeckle(startOffset, revitStick.Document);
+      speckleElement1D.end2Offset = VectorToSpeckle(endOffset, revitStick.Document);
 
       SetEndReleases(revitStick, ref speckleElement1D);
 
@@ -224,6 +243,7 @@ namespace Objects.Converter.Revit
       prop.profile = speckleSection;
       prop.material = GetStructuralMaterial(structMat);
       prop.name = revitStick.Document.GetElement(revitStick.GetElementId()).Name;
+      prop.applicationId = stickFamily.Symbol.UniqueId;
 
       var structuralElement = revitStick.Document.GetElement(revitStick.GetElementId());
       var mark = GetParamValue<string>(structuralElement, BuiltInParameter.ALL_MODEL_MARK);
@@ -247,7 +267,7 @@ namespace Objects.Converter.Revit
       speckleElement1D.property = prop;
 
       GetAllRevitParamsAndIds(speckleElement1D, revitStick);
-      speckleElement1D.displayValue = GetElementDisplayMesh(revitStick.Document.GetElement(revitStick.GetElementId()));
+      speckleElement1D.displayValue = GetElementDisplayValue(revitStick.Document.GetElement(revitStick.GetElementId()));
       return speckleElement1D;
     }
 
@@ -257,7 +277,7 @@ namespace Objects.Converter.Revit
       var speckleElement1D = new Element1D();
       switch (revitStick.StructuralRole)
       {
-        case AnalyticalStructuralRole.StructuralRoleColumn :
+        case AnalyticalStructuralRole.StructuralRoleColumn:
           speckleElement1D.type = ElementType1D.Column;
           break;
         case AnalyticalStructuralRole.StructuralRoleBeam:
@@ -271,7 +291,7 @@ namespace Objects.Converter.Revit
           break;
       }
 
-      speckleElement1D.baseLine = (Objects.Geometry.Line)CurveToSpeckle(revitStick.GetCurve());
+      speckleElement1D.baseLine = CurveToSpeckle(revitStick.GetCurve(), revitStick.Document) as Objects.Geometry.Line;
 
       SetEndReleases(revitStick, ref speckleElement1D);
 
@@ -318,9 +338,9 @@ namespace Objects.Converter.Revit
       {
         var physicalElementId = analyticalToPhysicalManager.GetAssociatedElementId(revitStick.Id);
         var physicalElement = Doc.GetElement(physicalElementId);
-        speckleElement1D.displayValue = GetElementDisplayMesh(physicalElement);
+        speckleElement1D.displayValue = GetElementDisplayValue(physicalElement);
       }
-      
+
       return speckleElement1D;
     }
 #endif
@@ -362,135 +382,170 @@ namespace Objects.Converter.Revit
 
     private SectionProfile GetSectionProfile(FamilySymbol familySymbol)
     {
-      var section = familySymbol.GetStructuralSection();
-      if (section == null)
+      var revitSection = familySymbol.GetStructuralSection();
+      if (revitSection == null)
         return null;
 
-      var speckleSection = new SectionProfile();
-      speckleSection.name = section.StructuralSectionShapeName;
+      // check section profile cache
+      if (SectionProfiles.Keys.Contains(familySymbol.Name))
+        return SectionProfiles[familySymbol.Name];
 
-      switch (section.StructuralSectionGeneralShape)
+      var speckleSection = new SectionProfile();
+
+      // note to future self, the StructuralSectionGeneralShape prop is sometimes null so it isn't reliable to use
+      // therefore switch on the object itself instead
+      switch (revitSection)
       {
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralI: // Double T structural sections
-          var ISection = new ISection();
-          ISection.name = section.StructuralSectionShapeName;
-          ISection.shapeType = Structural.ShapeType.I;
-          ISection.depth = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("Height").GetValue(section);
-          ISection.width = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("Width").GetValue(section);
-          ISection.webThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("WebThickness").GetValue(section);
-          ISection.flangeThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("FlangeThickness").GetValue(section);
-          ISection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("SectionArea").GetValue(section);
-          ISection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("NominalWeight").GetValue(section);
-          ISection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          ISection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          ISection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralI).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = ISection;
+
+        case StructuralSectionIWelded _: // Built up wide flange
+        case StructuralSectionIWideFlange _: // I shaped wide flange
+        case StructuralSectionGeneralI _: // General Double T shape
+          speckleSection = new ISection();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralT: // Tees structural sections
-          var teeSection = new Tee();
-          teeSection.name = section.StructuralSectionShapeName;
-          teeSection.shapeType = Structural.ShapeType.I;
-          teeSection.depth = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("Height").GetValue(section);
-          teeSection.width = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("Width").GetValue(section);
-          teeSection.webThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("WebThickness").GetValue(section);
-          teeSection.flangeThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("FlangeThickness").GetValue(section);
-          teeSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("SectionArea").GetValue(section);
-          teeSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("NominalWeight").GetValue(section);
-          teeSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          teeSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          teeSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralT).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = teeSection;
+        case StructuralSectionGeneralT _: // General Tee shape
+          speckleSection = new Tee();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralH: // Rectangular Pipe structural sections
-          var rectSection = new Rectangular();
-          rectSection.name = section.StructuralSectionShapeName;
-          rectSection.shapeType = Structural.ShapeType.I;
-          rectSection.depth = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("Height").GetValue(section);
-          rectSection.width = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("Width").GetValue(section);
-          var wallThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("WallNominalThickness").GetValue(section);
-          rectSection.webThickness = wallThickness;
-          rectSection.flangeThickness = wallThickness;
-          rectSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("SectionArea").GetValue(section);
-          rectSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("NominalWeight").GetValue(section);
-          rectSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          rectSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          rectSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralH).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = rectSection;
+        case StructuralSectionGeneralH _: // Rectangular Pipe structural sections
+        case StructuralSectionGeneralF _: // Flat Bar structural sections
+          speckleSection = new Rectangular();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralR: // Pipe structural sections
-          var circSection = new Circular();
-          circSection.name = section.StructuralSectionShapeName;
-          circSection.shapeType = Structural.ShapeType.Circular;
-          circSection.radius = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("Diameter").GetValue(section) / 2;
-          circSection.wallThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("WallNominalThickness").GetValue(section);
-          circSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("SectionArea").GetValue(section);
-          circSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("NominalWeight").GetValue(section);
-          circSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          circSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          circSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralR).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = circSection;
+        case StructuralSectionGeneralR _: // Pipe structural sections
+        case StructuralSectionGeneralS _: // Round Bar structural sections
+          speckleSection = new Circular();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralF: // Flat Bar structural sections
-          var flatRectSection = new Rectangular();
-          flatRectSection.name = section.StructuralSectionShapeName;
-          flatRectSection.shapeType = Structural.ShapeType.I;
-          flatRectSection.depth = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("Height").GetValue(section);
-          flatRectSection.width = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("Width").GetValue(section);
-          flatRectSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("SectionArea").GetValue(section);
-          flatRectSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("NominalWeight").GetValue(section);
-          flatRectSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          flatRectSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          flatRectSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralF).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = flatRectSection;
+        case StructuralSectionGeneralW _: // Angle structural sections
+          speckleSection = new Angle();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralS: // Round Bar structural sections
-          var flatCircSection = new Circular();
-          flatCircSection.name = section.StructuralSectionShapeName;
-          flatCircSection.shapeType = Structural.ShapeType.Circular;
-          flatCircSection.radius = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralS).GetProperty("Diameter").GetValue(section) / 2;
-          flatCircSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralS).GetProperty("SectionArea").GetValue(section);
-          flatCircSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralS).GetProperty("NominalWeight").GetValue(section);
-          flatCircSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralS).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          flatCircSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralS).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          flatCircSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralS).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = flatCircSection;
+        case StructuralSectionGeneralU _: // Channel structural sections
+          speckleSection = new Channel();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralW: // Angle structural sections
-          var angleSection = new Angle();
-          angleSection.name = section.StructuralSectionShapeName;
-          angleSection.shapeType = Structural.ShapeType.Angle;
-          angleSection.depth = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("Height").GetValue(section);
-          angleSection.width = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("Width").GetValue(section);
-          angleSection.webThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("WebThickness").GetValue(section);
-          angleSection.flangeThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("FlangeThickness").GetValue(section);
-          angleSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("SectionArea").GetValue(section);
-          angleSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("NominalWeight").GetValue(section);
-          angleSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          angleSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          angleSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralW).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = angleSection;
+
+        //case StructuralSectionGeneralLA o:
+        //case StructuralSectionColdFormed o:
+        //case StructuralSectionUserDefined o:
+        //case StructuralSectionGeneralLZ o:
+
+        // keep these two last. They are last resorts
+        case StructuralSectionRectangular _:
+          speckleSection = new Rectangular();
           break;
-        case DB.Structure.StructuralSections.StructuralSectionGeneralShape.GeneralU: // Channel  structural sections
-          var channelSection = new Channel();
-          channelSection.name = section.StructuralSectionShapeName;
-          channelSection.shapeType = Structural.ShapeType.Channel;
-          channelSection.depth = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("Height").GetValue(section);
-          channelSection.width = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("Width").GetValue(section);
-          channelSection.webThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("WebThickness").GetValue(section);
-          channelSection.flangeThickness = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("FlangeThickness").GetValue(section);
-          channelSection.area = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("SectionArea").GetValue(section);
-          channelSection.weight = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("NominalWeight").GetValue(section);
-          channelSection.Iyy = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("MomentOfInertiaStrongAxis").GetValue(section);
-          channelSection.Izz = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("MomentOfInertiaWeakAxis").GetValue(section);
-          channelSection.J = (double)typeof(DB.Structure.StructuralSections.StructuralSectionGeneralU).GetProperty("TorsionalMomentOfInertia").GetValue(section);
-          speckleSection = channelSection;
-          break;
-        default:
-          speckleSection.name = section.StructuralSectionShapeName;
+        case StructuralSectionRound _:
+          speckleSection = new Circular();
           break;
       }
 
+      SetStructuralSectionProps(revitSection, speckleSection);
+
+      speckleSection.units = ModelUnits;
+      speckleSection.name = familySymbol.Name;
+
+      SectionProfiles.Add(familySymbol.Name, speckleSection);
+
       return speckleSection;
+    }
+
+    private void SetStructuralSectionProps(StructuralSection revitSection, SectionProfile speckleSection)
+    {
+      var scaleFactor = ScaleToSpeckle(1);
+      var scaleFactor2 = scaleFactor * scaleFactor;
+
+      //TODO we need to support setting other units than just length
+      if (revitSection is StructuralSection _)
+      {
+        // static props
+        //TODO change this prop, Iyy can mean different things
+        speckleSection.Iyy = revitSection.MomentOfInertiaStrongAxis * scaleFactor2; 
+        speckleSection.Izz = revitSection.MomentOfInertiaWeakAxis * scaleFactor2;
+        speckleSection.weight = revitSection.NominalWeight / scaleFactor;
+        speckleSection.area = revitSection.SectionArea * scaleFactor2;
+        speckleSection.J = revitSection.TorsionalMomentOfInertia * scaleFactor2 * scaleFactor2;
+      }
+      if (revitSection is StructuralSectionRectangular rect)
+      {
+        // these should be a static props, not dynamic ones, but we don't know the exact type of speckleSection here
+        // this may not be the best way to do this
+        speckleSection["depth"] = rect.Height * scaleFactor;
+        speckleSection["width"] = rect.Width * scaleFactor;
+
+        // dynamic props
+        speckleSection["centroidHorizontal"] = rect.CentroidHorizontal * scaleFactor;
+        speckleSection["centroidVertical"] = rect.CentroidVertical * scaleFactor;
+      }
+      if (revitSection is StructuralSectionRound round)
+      {
+        // static props
+        speckleSection["radius"] = round.Diameter / 2 * scaleFactor;
+
+        // dynamic props
+        speckleSection["centroidHorizontal"] = round.CentroidHorizontal * scaleFactor;
+        speckleSection["centroidVertical"] = round.CentroidVertical * scaleFactor;
+      }
+      if (revitSection is StructuralSectionHotRolled hr)
+      {
+        // static props
+        speckleSection["flangeThickness"] = hr.FlangeThickness * scaleFactor;
+        speckleSection["webThickness"] = hr.WebThickness * scaleFactor;
+
+        // dynamic props
+        speckleSection["flangeThicknessLocation"] = hr.FlangeThicknessLocation * scaleFactor;
+        speckleSection["webThicknessLocation"] = hr.WebThicknessLocation * scaleFactor;
+        speckleSection["webFillet"] = hr.WebFillet;
+      }
+      if (revitSection is StructuralSectionColdFormed cf)
+      {
+        //dynamic props
+        speckleSection["innerFillet"] = cf.InnerFillet * scaleFactor;
+        speckleSection["wallThickness"] = cf.WallNominalThickness * scaleFactor;
+        speckleSection["wallDesignThickness"] = cf.WallDesignThickness * scaleFactor;
+      }
+      if (revitSection is StructuralSectionGeneralI i)
+      {
+        // dynamic props
+        speckleSection["flangeFillet"] = i.FlangeFillet;
+        speckleSection["slopedFlangeAngle"] = i.SlopedFlangeAngle;
+        //speckleSection["flangeToeOfFillet"] = i.FlangeToeOfFillet * scaleFactor; // this is in inches (or mm?) so it needs a different scaleFactor
+        //speckleSection["webToeOfFillet"] = i.WebToeOfFillet * scaleFactor; // this is in inches (or mm?) so it needs a different scaleFactor
+      }
+      if (revitSection is StructuralSectionGeneralT t)
+      {
+        speckleSection["flangeFillet"] = t.FlangeFillet;
+        speckleSection["slopedFlangeAngle"] = t.SlopedFlangeAngle;
+        speckleSection["slopedWebAngle"] = t.SlopedWebAngle;
+        //speckleSection["flangeToeOfFillet"] = i.FlangeToeOfFillet * scaleFactor; // this is in inches (or mm?) so it needs a different scaleFactor
+        //speckleSection["webToeOfFillet"] = i.WebToeOfFillet * scaleFactor; // this is in inches (or mm?) so it needs a different scaleFactor
+      }
+      if (revitSection is StructuralSectionGeneralH h)
+      {
+        // static props
+        speckleSection["webThickness"] = h.WallNominalThickness * scaleFactor;
+        speckleSection["flangeThickness"] = h.WallNominalThickness * scaleFactor;
+
+        //dynamic props
+        speckleSection["innerFillet"] = h.InnerFillet;
+        speckleSection["outerFillet"] = h.OuterFillet;
+      }
+      if (revitSection is StructuralSectionGeneralR r)
+      {
+        // static props 
+        speckleSection["wallThickness"] = r.WallNominalThickness * scaleFactor;
+
+        //dynamic props
+        speckleSection["wallDesignThickness"] = r.WallDesignThickness * scaleFactor;
+      }
+      if (revitSection is StructuralSectionGeneralW w)
+      {
+        // dynamic props
+        speckleSection["flangeFillet"] = w.FlangeFillet;
+        speckleSection["topWebFillet"] = w.TopWebFillet;
+      }
+      if (revitSection is StructuralSectionGeneralU u)
+      {
+        // dynamic props
+        speckleSection["flangeFillet"] = u.FlangeFillet;
+        speckleSection["slopedFlangeAngle"] = u.SlopedFlangeAngle;
+        //speckleSection["flangeToeOfFillet"] = u.FlangeToeOfFillet * scaleFactor; // this is in inches (or mm?) so it needs a different scaleFactor
+        //speckleSection["webToeOfFillet"] = u.WebToeOfFillet * scaleFactor; // this is in inches (or mm?) so it needs a different scaleFactor
+      }
     }
 
     private StructuralMaterial GetStructuralMaterial(Material material)
@@ -508,7 +563,11 @@ namespace Objects.Converter.Revit
       }
       var materialName = material.MaterialClass;
       var materialType = GetMaterialType(materialName);
-      return GetStructuralMaterial(materialType, materialAsset, name);
+
+      var speckleMaterial = GetStructuralMaterial(materialType, materialAsset, name);
+      speckleMaterial.applicationId = material.UniqueId;
+
+      return speckleMaterial;
     }
 
     private StructuralMaterial GetStructuralMaterial(StructuralMaterialType materialType, StructuralAsset materialAsset, string name)
@@ -526,26 +585,12 @@ namespace Objects.Converter.Revit
           {
             name = name,
             materialType = Structural.MaterialType.Concrete,
-            grade = null,
-            designCode = null,
-            codeYear = null,
-            tensileStrength = 0,
-            flexuralStrength = 0,
-            maxCompressiveStrain = 0,
-            maxTensileStrain = 0,
-            maxAggregateSize = 0,
-            dampingRatio = 0
           };
 
           if (materialAsset != null)
           {
-            concreteMaterial.elasticModulus = materialAsset.YoungModulus.X;
-            concreteMaterial.compressiveStrength = materialAsset.ConcreteCompression;
+            concreteMaterial.compressiveStrength = materialAsset.ConcreteCompression; // Newtons per foot meter
             concreteMaterial.lightweight = materialAsset.Lightweight;
-            concreteMaterial.poissonsRatio = materialAsset.PoissonRatio.X;
-            concreteMaterial.shearModulus = materialAsset.ShearModulus.X;
-            concreteMaterial.density = materialAsset.Density;
-            concreteMaterial.thermalExpansivity = materialAsset.ThermalExpansionCoefficient.X;
           }
 
           speckleMaterial = concreteMaterial;
@@ -564,13 +609,8 @@ namespace Objects.Converter.Revit
           if (materialAsset != null)
           {
             steelMaterial.grade = materialAsset.Name;
-            steelMaterial.elasticModulus = materialAsset.YoungModulus.X; // Newtons per foot meter 
             steelMaterial.yieldStrength = materialAsset.MinimumYieldStress; // Newtons per foot meter
             steelMaterial.ultimateStrength = materialAsset.MinimumTensileStrength; // Newtons per foot meter
-            steelMaterial.poissonsRatio = materialAsset.PoissonRatio.X;
-            steelMaterial.shearModulus = materialAsset.ShearModulus.X; // Newtons per foot meter
-            steelMaterial.density = materialAsset.Density; // kilograms per cubed feet 
-            steelMaterial.thermalExpansivity = materialAsset.ThermalExpansionCoefficient.X; // inverse Kelvin
           }
 
           speckleMaterial = steelMaterial;
@@ -588,11 +628,6 @@ namespace Objects.Converter.Revit
           if (materialAsset != null)
           {
             timberMaterial.grade = materialAsset.WoodGrade;
-            timberMaterial.elasticModulus = materialAsset.YoungModulus.X; // Newtons per foot meter 
-            timberMaterial.poissonsRatio = materialAsset.PoissonRatio.X;
-            timberMaterial.shearModulus = materialAsset.ShearModulus.X; // Newtons per foot meter
-            timberMaterial.density = materialAsset.Density; // kilograms per cubed feet 
-            timberMaterial.thermalExpansivity = materialAsset.ThermalExpansionCoefficient.X; // inverse Kelvin
             timberMaterial.species = materialAsset.WoodSpecies;
             timberMaterial["bendingStrength"] = materialAsset.WoodBendingStrength;
             timberMaterial["parallelCompressionStrength"] = materialAsset.WoodParallelCompressionStrength;
@@ -610,6 +645,17 @@ namespace Objects.Converter.Revit
           };
           speckleMaterial = defaultMaterial;
           break;
+      }
+
+      // TODO: support non-isotropic materials
+      if (materialAsset != null)
+      {
+        // some of these are actually the dumbest units I've ever heard of
+        speckleMaterial.elasticModulus = materialAsset.YoungModulus.X; // Newtons per foot meter
+        speckleMaterial.poissonsRatio = materialAsset.PoissonRatio.X; // Unitless
+        speckleMaterial.shearModulus = materialAsset.ShearModulus.X; // Newtons per foot meter
+        speckleMaterial.density = materialAsset.Density; // kilograms per cubed feet 
+        speckleMaterial.thermalExpansivity = materialAsset.ThermalExpansionCoefficient.X; // inverse Kelvin
       }
 
       return speckleMaterial;

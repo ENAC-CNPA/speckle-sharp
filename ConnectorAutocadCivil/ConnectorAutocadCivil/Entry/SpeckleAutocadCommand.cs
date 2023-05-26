@@ -1,10 +1,16 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 using Autodesk.AutoCAD.ApplicationServices;
+
+#if ADVANCESTEEL2023
+using Autodesk.AdvanceSteel.Runtime;
+#else
 using Autodesk.AutoCAD.Runtime;
+#endif
+
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 using Avalonia;
@@ -15,6 +21,10 @@ using DesktopUI2;
 using DesktopUI2.ViewModels;
 using DesktopUI2.Views;
 using Speckle.ConnectorAutocadCivil.UI;
+
+#if ADVANCESTEEL2023
+[assembly: CommandClass(typeof(Speckle.ConnectorAutocadCivil.Entry.SpeckleAutocadCommand))]
+#endif
 
 namespace Speckle.ConnectorAutocadCivil.Entry
 {

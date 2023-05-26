@@ -7,6 +7,7 @@ using Archicad.Communication;
 using Archicad.Model;
 using Objects.Geometry;
 using Speckle.Core.Models;
+using Speckle.Core.Models.GraphTraversal;
 
 namespace Archicad.Converters
 {
@@ -14,30 +15,39 @@ namespace Archicad.Converters
   {
     public Type Type => typeof(Objects.BuiltElements.Beam);
 
-    public async Task<List<string>> ConvertToArchicad(IEnumerable<Base> elements, CancellationToken token)
+    public async Task<List<ApplicationObject>> ConvertToArchicad(IEnumerable<TraversalContext> elements, CancellationToken token)
     {
       var beams = new List<Objects.BuiltElements.Archicad.ArchicadBeam>();
-      foreach (var el in elements)
+      foreach (var tc in elements)
       {
-        switch (el)
+        switch (tc.current)
         {
           case Objects.BuiltElements.Archicad.ArchicadBeam archiBeam:
             beams.Add(archiBeam);
             break;
           case Objects.BuiltElements.Beam beam:
-            var baseLine = (Line)beam.baseLine;
-            var newBeam = new Objects.BuiltElements.Archicad.ArchicadBeam(
-              Utils.ScaleToNative(baseLine.start),
-              Utils.ScaleToNative(baseLine.end)
-              );
-            beams.Add(newBeam);
+
+            // upgrade (if not Archicad beam): Objects.BuiltElements.Beam --> Objects.BuiltElements.Archicad.ArchicadBeam
+            {
+              var baseLine = (Line)beam.baseLine;
+              Objects.BuiltElements.Archicad.ArchicadBeam newBeam = new Objects.BuiltElements.Archicad.ArchicadBeam
+              {
+                id = beam.id,
+                applicationId = beam.applicationId,
+                begC = Utils.ScaleToNative(baseLine.start),
+                endC = Utils.ScaleToNative(baseLine.end)
+              };
+
+              beams.Add(newBeam);
+            }
+                      
             break;
         }
       }
 
       var result = await AsyncCommandProcessor.Execute(new Communication.Commands.CreateBeam(beams), token);
 
-      return result is null ? new List<string>() : result.ToList();
+      return result is null ? new List<ApplicationObject>() : result.ToList();
     }
 
     public async Task<List<Base>> ConvertToSpeckle(IEnumerable<Model.ElementModelData> elements,
@@ -56,11 +66,14 @@ namespace Archicad.Converters
       List<Base> beams = new List<Base>();
       foreach (Objects.BuiltElements.Archicad.ArchicadBeam beam in data)
       {
-        beam.displayValue =
-          Operations.ModelConverter.MeshesToSpeckle(elementModels.First(e => e.applicationId == beam.applicationId)
-            .model);
-        beam.baseLine = new Line(beam.begC, beam.endC);
-        beams.Add(beam);
+        // downgrade (always): Objects.BuiltElements.Archicad.ArchicadBeam --> Objects.BuiltElements.Beam
+        {
+          beam.displayValue =
+            Operations.ModelConverter.MeshesToSpeckle(elementModels.First(e => e.applicationId == beam.applicationId)
+              .model);
+          beam.baseLine = new Line(beam.begC, beam.endC);
+          beams.Add(beam);
+        }
       }
 
       return beams;

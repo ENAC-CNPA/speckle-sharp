@@ -1,9 +1,9 @@
-﻿using Autodesk.Revit.DB;
-using Speckle.Core.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Autodesk.Revit.DB;
+using Speckle.Core.Models;
 using DB = Autodesk.Revit.DB;
 using View = Objects.BuiltElements.View;
 using View3D = Objects.BuiltElements.View3D;
@@ -16,7 +16,22 @@ namespace Objects.Converter.Revit
     {
       "VIEW_NAME", // param value is already stored in name prop of view and setting this param can cause errors 
     };
-    public View ViewToSpeckle(DB.View revitView)
+    public Base ViewToSpeckle(DB.View revitView)
+    {
+      switch (revitView)
+      {
+        case DB.View3D o:
+          return View3DToSpeckle(o);
+        case DB.ViewSchedule o:
+          return ScheduleToSpeckle(o);
+        default:
+          var speckleView = new View();
+          GetAllRevitParamsAndIds(speckleView, revitView, excludedParameters);
+          Report.Log($"Converted View {revitView.ViewType} {revitView.Id}");
+          return speckleView;
+      }
+    }
+    public View View3DToSpeckle(DB.View3D revitView)
     {
       switch (revitView.ViewType)
       {
@@ -47,16 +62,16 @@ namespace Objects.Converter.Revit
         var up = rv3d.GetSavedOrientation().UpDirection; // this is unit vector
 
         // get target
-        var target = PointToSpeckle(CalculateTarget(rv3d, forward));
+        var target = PointToSpeckle(CalculateTarget(rv3d, forward), revitView.Document);
 
         speckleView = new View3D
         {
-          origin = PointToSpeckle(rv3d.Origin),
-          forwardDirection = VectorToSpeckle(forward, Speckle.Core.Kits.Units.None),
-          upDirection = VectorToSpeckle(up, Speckle.Core.Kits.Units.None),
+          origin = PointToSpeckle(rv3d.Origin, revitView.Document),
+          forwardDirection = VectorToSpeckle(forward, revitView.Document, Speckle.Core.Kits.Units.None),
+          upDirection = VectorToSpeckle(up, revitView.Document, Speckle.Core.Kits.Units.None),
           target = target,
           isOrthogonal = !rv3d.IsPerspective,
-          boundingBox = BoxToSpeckle(rv3d.CropBox),
+          boundingBox = BoxToSpeckle(rv3d.CropBox, revitView.Document),
           name = revitView.Name
         };
 

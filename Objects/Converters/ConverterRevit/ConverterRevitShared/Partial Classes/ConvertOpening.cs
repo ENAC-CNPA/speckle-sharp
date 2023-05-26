@@ -1,11 +1,11 @@
-﻿using Autodesk.Revit.DB;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Autodesk.Revit.DB;
 using Objects.BuiltElements.Revit;
 using Objects.Geometry;
 using Speckle.Core.Logging;
 using Speckle.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DB = Autodesk.Revit.DB;
 using Point = Objects.Geometry.Point;
 
@@ -21,7 +21,7 @@ namespace Objects.Converter.Revit
       var appObj = new ApplicationObject(speckleOpening.id, speckleOpening.speckle_type) { applicationId = speckleOpening.applicationId };
 
       // skip if element already exists in doc & receive mode is set to ignore
-      if (IsIgnore(docObj, appObj, out appObj))
+      if (IsIgnore(docObj, appObj))
         return appObj;
 
       if (docObj != null)
@@ -65,7 +65,7 @@ namespace Objects.Converter.Revit
             }
 
             var poly = rwo.outline as Polyline;
-            if (poly == null || !(poly.GetPoints().Count == 4 && poly.closed))
+            if (poly == null || !((poly.GetPoints().Count == 5 && poly.closed) || (poly.GetPoints().Count == 4 && !poly.closed)))
             {
               appObj.Update(status: ApplicationObject.State.Failed, logItem: $"Curve outline for wall opening must be a rectangle-shaped polyline");
               return appObj;
@@ -126,9 +126,6 @@ namespace Objects.Converter.Revit
 
     public BuiltElements.Opening OpeningToSpeckle(DB.Opening revitOpening)
     {
-      if (!ShouldConvertHostedElement(revitOpening, revitOpening.Host))
-        return null;
-
       RevitOpening speckleOpening;
       if (revitOpening.IsRectBoundary)
       {
@@ -138,13 +135,16 @@ namespace Objects.Converter.Revit
         poly.value = new List<double>();
 
         //2 points: bottom left and top right
-        var btmLeft = PointToSpeckle(revitOpening.BoundaryRect[0]);
-        var topRight = PointToSpeckle(revitOpening.BoundaryRect[1]);
+        var btmLeft = PointToSpeckle(revitOpening.BoundaryRect[0], revitOpening.Document);
+        var topRight = PointToSpeckle(revitOpening.BoundaryRect[1], revitOpening.Document);
         poly.value.AddRange(btmLeft.ToList());
         poly.value.AddRange(new Point(btmLeft.x, btmLeft.y, topRight.z, ModelUnits).ToList());
         poly.value.AddRange(topRight.ToList());
         poly.value.AddRange(new Point(topRight.x, topRight.y, btmLeft.z, ModelUnits).ToList());
+
         poly.value.AddRange(btmLeft.ToList());
+        // setting closed to true because we added the first point again.
+        poly.closed = true;
         poly.units = ModelUnits;
         speckleOpening.outline = poly;
       }
@@ -157,15 +157,13 @@ namespace Objects.Converter.Revit
         }
         else
         {
-          speckleOpening = new RevitShaft();
+          var shaftOpening = new RevitShaft();
+          speckleOpening = shaftOpening;
           if (revitOpening.get_Parameter(BuiltInParameter.WALL_HEIGHT_TYPE) != null)
           {
-            ((RevitShaft)speckleOpening).topLevel =
-              ConvertAndCacheLevel(revitOpening, BuiltInParameter.WALL_HEIGHT_TYPE);
-            ((RevitShaft)speckleOpening).bottomLevel =
-              ConvertAndCacheLevel(revitOpening, BuiltInParameter.WALL_BASE_CONSTRAINT);
-            ((RevitShaft)speckleOpening).height =
-              GetParamValue<double>(revitOpening, BuiltInParameter.WALL_USER_HEIGHT_PARAM);
+            shaftOpening.topLevel = ConvertAndCacheLevel(revitOpening, BuiltInParameter.WALL_HEIGHT_TYPE);
+            shaftOpening.bottomLevel = ConvertAndCacheLevel(revitOpening, BuiltInParameter.WALL_BASE_CONSTRAINT);
+            shaftOpening.height = GetParamValue<double>(revitOpening, BuiltInParameter.WALL_USER_HEIGHT_PARAM);
           }
         }
 
@@ -173,7 +171,7 @@ namespace Objects.Converter.Revit
         poly.segments = new List<ICurve>();
         foreach (DB.Curve curve in revitOpening.BoundaryCurves)
           if (curve != null)
-            poly.segments.Add(CurveToSpeckle(curve));
+            poly.segments.Add(CurveToSpeckle(curve, revitOpening.Document));
 
         speckleOpening.outline = poly;
       }

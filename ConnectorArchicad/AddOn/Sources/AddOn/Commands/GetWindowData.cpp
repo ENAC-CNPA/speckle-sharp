@@ -7,70 +7,43 @@
 #include "RealNumber.h"
 #include "FieldNames.hpp"
 #include "TypeNameTables.hpp"
+using namespace FieldNames;
 
 
 namespace AddOnCommands {
-  static GS::ObjectState GetWindows(const API_Guid& guid) {
-    GSErrCode err = NoError;
 
-    GS::ObjectState currentWindow;
-    API_Element element;
 
-    BNZeroMemory(&element, sizeof(API_Element));
-    element.header.guid = guid;
-    err = ACAPI_Element_Get(&element);
+GS::String GetWindowData::GetFieldName () const
+{
+	return Windows;
+}
 
-    if (err == NoError) {
-		if (err == NoError) {
-		  currentWindow.Add(ApplicationIdFieldName, APIGuidToString(guid));
-		  currentWindow.Add(ParentElementIdFieldName, APIGuidToString(element.door.owner));
 
-		  AddOnCommands::GetOpeningBaseData<API_WindowType> (element.window, currentWindow);
-		}
-    }
+API_ElemTypeID GetWindowData::GetElemTypeID () const
+{
+	return API_WindowID;
+}
 
-    return currentWindow;
-  }
 
-  GS::String GetWindowData::GetName () const {
-    return GetWindowCommandName;
-  }
+GS::ErrCode	GetWindowData::SerializeElementType (const API_Element& element,
+	const API_ElementMemo& /*memo*/,
+	GS::ObjectState& os) const
+{
+	os.Add (ElementBase::ApplicationId, APIGuidToString (element.header.guid));
+	os.Add (ElementBase::ParentElementId, APIGuidToString (element.window.owner));
 
-  GS::ObjectState GetWindowData::Execute (const GS::ObjectState& parameters, GS::ProcessControl& /*processControl*/) const {
-    GS::ObjectState result;
+	AddOnCommands::GetDoorWindowData<API_WindowType> (element.window, os);
 
-    GS::Array<GS::UniString> ids;
-    parameters.Get(ApplicationIdsFieldName, ids);
-    GS::Array<API_Guid> elementGuids = ids.Transform<API_Guid>([](const GS::UniString& idStr)
-      { return APIGuidFromString(idStr.ToCStr()); });
-    
-    if (elementGuids.IsEmpty())
-      return result;
+	AddOnCommands::GetOpeningBaseData<API_WindowType> (element.window, os);
 
-    const auto& listAdderWindows = result.AddList<GS::ObjectState>(WindowsFieldName);
+	return NoError;
+}
 
-    for (const API_Guid& guid : elementGuids)
-    {
-      API_Element element{};
-      element.header.guid = guid;
 
-      GSErrCode err = ACAPI_Element_Get(&element);
+GS::String GetWindowData::GetName () const
+{
+	return GetWindowCommandName;
+}
 
-      if (err != NoError /*|| element.header.type.typeID != API_WallID*/) {
-        return result;
-      }
-
-#ifdef ServerMainVers_2600
-        if (element.header.type.typeID == API_WindowID) {
-#else
-		if (element.header.typeID == API_WindowID) {
-#endif
-          GS::ObjectState door = GetWindows(element.header.guid);
-          listAdderWindows(door);
-        }
-      }
-
-    return result;
-  }
 
 }

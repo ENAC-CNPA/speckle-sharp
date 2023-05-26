@@ -19,7 +19,7 @@ namespace ConnectorGrasshopper.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -73,9 +73,29 @@ namespace ConnectorGrasshopper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap AccountParam {
+            get {
+                object obj = ResourceManager.GetObject("AccountParam", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Accounts {
             get {
                 object obj = ResourceManager.GetObject("Accounts", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap AccountToken {
+            get {
+                object obj = ResourceManager.GetObject("AccountToken", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -176,6 +196,16 @@ namespace ConnectorGrasshopper.Properties {
         internal static System.Drawing.Bitmap ExtendSpeckleObjectByKeyValue {
             get {
                 object obj = ResourceManager.GetObject("ExtendSpeckleObjectByKeyValue", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap FlattenSpeckleCollection {
+            get {
+                object obj = ResourceManager.GetObject("FlattenSpeckleCollection", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -303,6 +333,16 @@ namespace ConnectorGrasshopper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap ServerAccount {
+            get {
+                object obj = ResourceManager.GetObject("ServerAccount", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ServerTransport {
             get {
                 object obj = ResourceManager.GetObject("ServerTransport", resourceCulture);
@@ -316,6 +356,26 @@ namespace ConnectorGrasshopper.Properties {
         internal static System.Drawing.Bitmap speckle_logo {
             get {
                 object obj = ResourceManager.GetObject("speckle_logo", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SpeckleCollection {
+            get {
+                object obj = ResourceManager.GetObject("SpeckleCollection", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SpeckleGroup {
+            get {
+                object obj = ResourceManager.GetObject("SpeckleGroup", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -416,6 +476,16 @@ namespace ConnectorGrasshopper.Properties {
         internal static System.Drawing.Bitmap StreamGet {
             get {
                 object obj = ResourceManager.GetObject("StreamGet", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap StreamGetWithToken {
+            get {
+                object obj = ResourceManager.GetObject("StreamGetWithToken", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

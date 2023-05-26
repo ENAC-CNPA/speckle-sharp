@@ -1,10 +1,10 @@
-﻿using Autodesk.Revit.DB;
+using System.Collections.Generic;
+using System.Linq;
+using Autodesk.Revit.DB;
 using Objects.BuiltElements.Revit;
 using Objects.Geometry;
 using Speckle.Core.Logging;
 using Speckle.Core.Models;
-using System.Collections.Generic;
-using System.Linq;
 using Curve = Objects.Geometry.Curve;
 using DB = Autodesk.Revit.DB;
 
@@ -20,13 +20,14 @@ namespace Objects.Converter.Revit
       var appObj = new ApplicationObject(speckleWire.id, speckleWire.speckle_type) { applicationId = speckleWire.applicationId };
 
       // skip if element already exists in doc & receive mode is set to ignore
-      if (IsIgnore(docObj, appObj, out appObj))
+      if (IsIgnore(docObj, appObj))
         return appObj;
 
       var wiringType = speckleRevitWire?.wiringType == "Chamfer"
         ? DB.Electrical.WiringType.Chamfer
         : DB.Electrical.WiringType.Arc;
-      if (!GetElementType<DB.Electrical.WireType>(speckleWire, appObj, out DB.Electrical.WireType wireType))
+      var wireType = GetElementType<DB.Electrical.WireType>(speckleWire, appObj, out bool _);
+      if (wireType == null)
       {
         appObj.Update(status: ApplicationObject.State.Failed);
         return appObj;
@@ -104,7 +105,7 @@ namespace Objects.Converter.Revit
       // construction geometry for creating the wire on receive (doesn't match geometry points 🙃)
       var points = new List<double>();
       for (var i = 0; i < revitWire.NumberOfVertices; i++)
-        points.AddRange(PointToSpeckle(revitWire.GetVertex(i)).ToList());
+        points.AddRange(PointToSpeckle(revitWire.GetVertex(i), revitWire.Document).ToList());
       speckleWire.constructionPoints = points;
 
       // geometry
@@ -118,15 +119,15 @@ namespace Objects.Converter.Revit
         {
           case DB.PolyLine polyLine:
             var revitLine = polyLine.GetTransformed(Transform.CreateTranslation(new XYZ(0, 0, start.Z)));
-            var line = PolylineToSpeckle(revitLine);
+            var line = PolylineToSpeckle(revitLine, revitWire.Document);
             speckleWire.segments.Add(line);
             break;
           case DB.NurbSpline nurbSpline:
             var revitCurve = nurbSpline.CreateTransformed(
               Transform.CreateTranslation(new XYZ(0, 0, start.Z)));
             // add display value
-            var curve = (Curve)CurveToSpeckle(revitCurve);
-            var polyCoords = revitCurve.Tessellate().SelectMany(pt => PointToSpeckle(pt).ToList()).ToList();
+            var curve = (Curve)CurveToSpeckle(revitCurve, revitWire.Document);
+            var polyCoords = revitCurve.Tessellate().SelectMany(pt => PointToSpeckle(pt, revitWire.Document).ToList()).ToList();
             curve.displayValue = new Polyline(polyCoords, ModelUnits);
             speckleWire.segments.Add(curve);
             break;

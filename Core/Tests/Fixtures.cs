@@ -1,40 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using Newtonsoft.Json;
-using Speckle.Core.Api;
+using NUnit.Framework;
 using Speckle.Core.Credentials;
+using Speckle.Core.Helpers;
+using Speckle.Core.Logging;
 using Speckle.Core.Transports;
 
-namespace TestsUnit
+namespace Tests;
+
+[SetUpFixture]
+public class SetUp
 {
-  public class Fixtures
+  [OneTimeSetUp]
+  public void BeforeAll()
   {
-    private static SQLiteTransport AccountStorage = new SQLiteTransport(scope: "Accounts");
-    private static string accountPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Speckle", "Accounts", "TestAccount.json");
+    SpeckleLog.Initialize("Core", "Testing", new SpeckleLogConfiguration(logToFile: false, logToSeq: false));
+    SpeckleLog.Logger.Information("Initialized logger for testing");
+  }
+}
 
-    public static void UpdateOrSaveAccount(Account account)
-    {
-      AccountStorage.DeleteObject(account.id);
-      AccountStorage.SaveObjectSync(account.id, JsonConvert.SerializeObject(account));
-    }
+public abstract class Fixtures
+{
+  private static SQLiteTransport AccountStorage = new(scope: "Accounts");
 
-    public static void SaveLocalAccount(Account account)
-    {
-      Directory.CreateDirectory(Path.GetDirectoryName(accountPath));
-      var json = JsonConvert.SerializeObject(account);
-      File.WriteAllText(accountPath, json);
-    }
+  private static string accountPath = Path.Combine(SpecklePathProvider.AccountsFolderPath, "TestAccount.json");
 
-    public static void DeleteLocalAccount(string id)
-    {
-      AccountStorage.DeleteObject(id);
-    }
+  public static void UpdateOrSaveAccount(Account account)
+  {
+    AccountStorage.DeleteObject(account.id);
+    string serializedObject = JsonConvert.SerializeObject(account);
+    AccountStorage.SaveObjectSync(account.id, serializedObject);
+  }
 
-    public static void DeleteLocalAccountFile()
-    {
-      File.Delete(accountPath);
-    }
+  public static void SaveLocalAccount(Account account)
+  {
+    var json = JsonConvert.SerializeObject(account);
+    File.WriteAllText(accountPath, json);
+  }
+
+  public static void DeleteLocalAccount(string id)
+  {
+    AccountStorage.DeleteObject(id);
+  }
+
+  public static void DeleteLocalAccountFile()
+  {
+    File.Delete(accountPath);
   }
 }

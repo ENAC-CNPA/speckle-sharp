@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Linq;
 using System.Drawing;
 
 using Autodesk.AutoCAD.Geometry;
 using AcadGeo = Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.DatabaseServices;
-using Objects.Utils;
 using AcadBRep = Autodesk.AutoCAD.BoundaryRepresentation;
 using AcadDB = Autodesk.AutoCAD.DatabaseServices;
 
+using Speckle.Core.Models;
+
+using Objects.Utils;
 using Arc = Objects.Geometry.Arc;
 using Box = Objects.Geometry.Box;
 using Brep = Objects.Geometry.Brep;
@@ -33,6 +36,8 @@ using Spiral = Objects.Geometry.Spiral;
 using Surface = Objects.Geometry.Surface;
 using Vector = Objects.Geometry.Vector;
 using Speckle.Core.Kits;
+using Objects.Geometry;
+using Objects.Other;
 
 namespace Objects.Converter.AutocadCivil
 {
@@ -64,6 +69,7 @@ namespace Objects.Converter.AutocadCivil
       var intPt = ToInternalCoordinates(_point);
       return intPt;
     }
+    
     public List<List<ControlPoint>> ControlPointsToSpeckle(AcadGeo.NurbSurface surface, string units = null)
     {
       var u = units ?? ModelUnits;
@@ -155,7 +161,44 @@ namespace Objects.Converter.AutocadCivil
     {
       return new AcadGeo.Plane(PointToNative(plane.origin), VectorToNative(plane.normal));
     }
+    
+    //Matrix
 
+    public Matrix3d TransformToNativeMatrix(Transform transform)
+    {
+      // transform
+      var scaledTransform = transform.ConvertToUnits(ModelUnits);
+      Matrix3d convertedTransform = new Matrix3d(scaledTransform);
+
+      //Autocad is very picky about transform basis being perfectly perpendicular, if they are not, we can correct for this by re-calculating basis vectors
+      if (!convertedTransform.IsScaledOrtho())
+      {
+        return new Matrix3d(MakePerpendicular(convertedTransform));
+      }
+
+      return convertedTransform;
+    }
+    
+    // https://forums.autodesk.com/t5/net/set-blocktransform-values/m-p/6452121#M49479
+    private static double[] MakePerpendicular(Matrix3d matrix)
+    {
+      // Get the basis vectors of the matrix
+      Vector3d right = new Vector3d(matrix[0,0], matrix[1,0], matrix[2,0]);
+      Vector3d up = new Vector3d(matrix[0,1], matrix[1,1], matrix[2,1]);
+
+      
+      Vector3d newForward = right.CrossProduct(up).GetNormal();;
+      
+      Vector3d newUp = newForward.CrossProduct(right).GetNormal();
+
+      return new []{
+        right.X,  newUp.X,  newForward.X,  matrix[0,3],
+        right.Y,  newUp.Y,  newForward.Y,  matrix[1,3],
+        right.Z,  newUp.Z,  newForward.Z,  matrix[2,3],
+        0.0,      0.0,      0.0,           matrix[3,3],
+      };
+
+    }
     // Line
     public Line LineToSpeckle(LineSegment2d line)
     {
@@ -427,6 +470,10 @@ namespace Objects.Converter.AutocadCivil
         }
         segments.Add(CurveToSpeckle(segment));
       }
+
+      if (segments.Count() == 0)
+        throw new Exception("Failed to convert Autocad Polyline2d to Speckle Polycurve");
+
       polycurve.segments = segments;
 
       polycurve.length = polyline.Length;
@@ -451,11 +498,23 @@ namespace Objects.Converter.AutocadCivil
           // get the connection point to the next segment
           var connectionPoint = new Point3d();
           var nextSegment = GetSegmentByType(polyline, i + 1);
-          if (nextSegment == null) continue;
-          if (nextSegment.StartPoint.IsEqualTo(segment.StartPoint) || nextSegment.StartPoint.IsEqualTo(segment.EndPoint))
-            connectionPoint = nextSegment.StartPoint;
+          if (nextSegment == null)
+          {
+            if (polyline.GetSegmentType(i + 1) == SegmentType.Point)
+            {
+              connectionPoint = polyline.GetPoint3dAt(i + 1);
+            }
+            else
+              continue;
+          }
           else
-            connectionPoint = nextSegment.EndPoint;
+          {
+            if (nextSegment.StartPoint.IsEqualTo(segment.StartPoint) || nextSegment.StartPoint.IsEqualTo(segment.EndPoint))
+              connectionPoint = nextSegment.StartPoint;
+            else
+              connectionPoint = nextSegment.EndPoint;
+          }
+
           previousPoint = connectionPoint;
           segment = GetCorrectSegmentDirection(segment, connectionPoint, true, out Point3d otherPoint);
         }
@@ -465,6 +524,10 @@ namespace Objects.Converter.AutocadCivil
         }
         segments.Add(CurveToSpeckle(segment));
       }
+
+      if (segments.Count() == 0)
+        throw new Exception("Failed to convert Autocad Polyline to Speckle Polycurve");
+
       polycurve.segments = segments;
 
       polycurve.length = polyline.Length;
@@ -565,7 +628,7 @@ namespace Objects.Converter.AutocadCivil
 
       // add all vertices
       int count = 0;
-      foreach(var segment in polycurve.segments)
+      foreach (var segment in polycurve.segments)
       {
         switch (segment)
         {
@@ -586,7 +649,7 @@ namespace Objects.Converter.AutocadCivil
             break;
           case Spiral o:
             var vertices = o.displayValue.GetPoints().Select(p => PointToNative(p)).ToList();
-            foreach(var vertex in vertices)
+            foreach (var vertex in vertices)
             {
               polyline.AddVertexAt(count, vertex.Convert2d(plane), 0, 0, 0);
               count++;
@@ -697,34 +760,54 @@ namespace Objects.Converter.AutocadCivil
       return curve;
     }
     // handles polycurves with spline segments: bakes segments individually and then joins
-    public AcadDB.Curve PolycurveSplineToNativeDB(Polycurve polycurve)
+    public ApplicationObject PolycurveSplineToNativeDB(Polycurve polycurve)
     {
-      BlockTableRecord modelSpaceRecord = Doc.Database.GetModelSpace();
+      var appObj = new ApplicationObject(polycurve.id, polycurve.speckle_type) { applicationId = polycurve.applicationId };
 
       Entity first = null;
       List<Entity> others = new List<Entity>();
+      BlockTableRecord modelSpaceRecord = Doc.Database.GetModelSpace();
       for (int i = 0; i < polycurve.segments.Count; i++)
       {
-        var converted = CurveToNativeDB(polycurve.segments[i]);
-        if (converted == null)
+        var segment = polycurve.segments[i];
+        var converted = CurveToNativeDB(segment);
+        if (converted == null || converted.Count == 0)
+        {
+          appObj.Log.Add($"Could not create {(segment as Curve).speckle_type} segment {(segment as Curve).id}");
           continue;
+        }
 
-        var newEntity = Trans.GetObject(modelSpaceRecord.Append(converted), OpenMode.ForWrite) as Entity;
-        if (first == null)
-          first = newEntity;
-        else
-          others.Add(newEntity);
+        foreach (var convertedItem in converted)
+        {
+          var newEntity = Trans.GetObject(modelSpaceRecord.Append(convertedItem), OpenMode.ForWrite) as Entity;
+          appObj.Update(createdId: newEntity.Handle.ToString(), convertedItem: newEntity);
+
+          if (first == null)
+            first = newEntity;
+          else
+            others.Add(newEntity);
+        }
       }
 
-      try
+      if (first == null)
       {
-        first.JoinEntities(others.ToArray());
-        return first as Spline;
+        appObj.Update(status: ApplicationObject.State.Failed, logItem: "No segments were successfully converted");
+        return appObj;
       }
-      catch (Exception e)
+
+      if (others.Count > 0)
       {
-        return null;
+        try
+        {
+          first.JoinEntities(others.ToArray());
+          // TODO: this always fails. Fix and edit the createdids and converted to only reflect the new joined entities
+        }
+        catch (Exception e)
+        {
+          appObj.Update(logItem: $"Could not create spline from segments: {e.Message}");
+        }
       }
+      return appObj;
     }
 
     // Curve
@@ -909,110 +992,50 @@ namespace Objects.Converter.AutocadCivil
       var _curve = AcadDB.Curve.CreateFromGeCurve(NurbcurveToNative(curve));
       return _curve;
     }
-    public AcadDB.Curve CurveToNativeDB(ICurve icurve)
+    public List<AcadDB.Curve> CurveToNativeDB(ICurve icurve)
     {
+      var convertedList = new List<AcadDB.Curve>();
+      AcadDB.Curve converted = null;
       switch (icurve)
       {
         case Line line:
-          return LineToNativeDB(line);
-
+          converted = LineToNativeDB(line);
+          break;
         case Polyline polyline:
-          return PolylineToNativeDB(polyline);
-
+          converted = PolylineToNativeDB(polyline);
+          break;
         case Arc arc:
-          return ArcToNativeDB(arc);
-
+          converted = ArcToNativeDB(arc);
+          break;
         case Circle circle:
-          return CircleToNativeDB(circle);
-
+          converted = CircleToNativeDB(circle);
+          break;
         case Ellipse ellipse:
-          return EllipseToNativeDB(ellipse);
-
+          converted = EllipseToNativeDB(ellipse);
+          break;
         case Polycurve polycurve:
           if (polycurve.segments.Where(o => o is Curve).Count() > 0)
-            return PolycurveSplineToNativeDB(polycurve);
-          return PolycurveToNativeDB(polycurve);
-
+          {
+            var convertedPolycurve = PolycurveSplineToNativeDB(polycurve);
+            convertedList = convertedPolycurve.Converted.Cast<AcadDB.Curve>().ToList();
+          }
+          else
+          {
+            converted = PolycurveToNativeDB(polycurve);
+          }
+          break;
         case Curve curve:
-          return NurbsToNativeDB(curve);
-
+          converted = NurbsToNativeDB(curve);
+          break;
         default:
-          return null;
+          break;
       }
+      if (converted != null)
+        convertedList.Add(converted);
+      return convertedList;
     }
 
     // Surface
-    // TODO: NOT TESTED 
-    public Surface SurfaceToSpeckle(AcadGeo.NurbSurface surface, string units = null)
-    {
-      var u = units ?? ModelUnits;
-
-      List<double> Uknots = new List<double>();
-      List<double> Vknots = new List<double>();
-      foreach (var knot in surface.UKnots)
-        Uknots.Add((double)knot);
-      foreach (var knot in surface.VKnots)
-        Vknots.Add((double)knot);
-
-      var _surface = new Surface()
-      {
-        degreeU = surface.DegreeInU,
-        degreeV = surface.DegreeInV,
-        rational = surface.IsRationalInU && surface.IsRationalInV,
-        closedU = surface.IsClosedInU(),
-        closedV = surface.IsClosedInV(),
-        knotsU = Uknots,
-        knotsV = Vknots,
-        countU = surface.NumControlPointsInU,
-        countV = surface.NumControlPointsInV,
-        domainU = IntervalToSpeckle(surface.GetEnvelope()[0]),
-        domainV = IntervalToSpeckle(surface.GetEnvelope()[1])
-      };
-      _surface.SetControlPoints(ControlPointsToSpeckle(surface));
-      _surface.units = u;
-
-      return _surface;
-    }
-    // TODO: NOT TESTED 
-    public AcadGeo.NurbSurface SurfaceToNative(Surface surface)
-    {
-      // Get control points
-      var points = surface.GetControlPoints().Select(l => l.Select(p =>
-        new ControlPoint(
-          ScaleToNative(p.x, p.units),
-          ScaleToNative(p.y, p.units),
-          ScaleToNative(p.z, p.units),
-          p.weight,
-          p.units)).ToList()).ToList();
-
-      var _surface = AcadGeo.NurbSurface.Create(new IntPtr(), true); // check what new unmanaged pointer does!!
-
-      // Set control points
-      Point3dCollection controlPoints = new Point3dCollection();
-      DoubleCollection weights = new DoubleCollection();
-      for (var i = 0; i < points.Count; i++)
-      {
-        for (var j = 0; j < points[i].Count; j++)
-        {
-          var pt = points[i][j];
-          controlPoints.Add(PointToNative(pt));
-          weights.Add(pt.weight);
-        }
-      }
-
-      // Get knot vectors
-      KnotCollection UKnots = new KnotCollection();
-      KnotCollection VKnots = new KnotCollection();
-      for (int i = 0; i < surface.knotsU.Count; i++)
-        UKnots.Add(surface.knotsU[i]);
-      for (int i = 0; i < surface.knotsV.Count; i++)
-        VKnots.Add(surface.knotsV[i]);
-
-      // Set surface info
-      _surface.Set(surface.degreeU, surface.degreeV, 0, 0, surface.countU, surface.countV, controlPoints, weights, UKnots, VKnots);
-
-      return _surface;
-    }
     public Mesh SurfaceToSpeckle(AcadDB.Surface surface, out List<string> notes, string units = null)
     {
       var u = units ?? ModelUnits;
@@ -1025,72 +1048,6 @@ namespace Objects.Converter.AutocadCivil
           var displayMesh = GetMeshFromSolidOrSurface(out notes, surface: surface);
           return displayMesh;
       }
-    }
-    public Surface SurfaceToSpeckle(AcadDB.NurbSurface surface, string units = null)
-    {
-      var u = units ?? ModelUnits;
-
-      List<double> Uknots = new List<double>();
-      List<double> Vknots = new List<double>();
-      foreach (var knot in surface.UKnots)
-        Uknots.Add((double)knot);
-      foreach (var knot in surface.VKnots)
-        Vknots.Add((double)knot);
-
-      var _surface = new Surface
-      {
-        degreeU = surface.DegreeInU,
-        degreeV = surface.DegreeInV,
-        rational = surface.IsRational,
-        closedU = surface.IsClosedInU,
-        closedV = surface.IsClosedInV,
-        knotsU = Uknots,
-        knotsV = Vknots,
-        countU = surface.NumberOfControlPointsInU,
-        countV = surface.NumberOfControlPointsInV
-      };
-      _surface.SetControlPoints(ControlPointsToSpeckle(surface));
-      _surface.bbox = BoxToSpeckle(surface.GeometricExtents);
-      _surface.units = ModelUnits;
-
-      return _surface;
-    }
-    public AcadDB.Surface SurfaceToNativeDB(Surface surface)
-    {
-      // get control points
-      Point3dCollection controlPoints = new Point3dCollection();
-      DoubleCollection weights = new DoubleCollection();
-      var points = surface.GetControlPoints();
-      for (var i = 0; i < points.Count; i++)
-      {
-        for (var j = 0; j < points[i].Count; j++)
-        {
-          var pt = points[i][j];
-          controlPoints.Add(PointToNative(pt));
-          weights.Add(pt.weight);
-        }
-      }
-
-      // get knots
-      var knotsU = new KnotCollection();
-      var knotsV = new KnotCollection();
-      foreach (var knotU in surface.knotsU)
-        knotsU.Add(knotU);
-      foreach (var knotV in surface.knotsV)
-        knotsV.Add(knotV);
-
-      var _surface = new AcadDB.NurbSurface(
-        surface.degreeU,
-        surface.degreeV,
-        surface.rational,
-        surface.countU,
-        surface.countV,
-        controlPoints,
-        weights,
-        knotsU,
-        knotsV);
-
-      return _surface;
     }
 
     // Region
@@ -1177,7 +1134,7 @@ namespace Objects.Converter.AutocadCivil
         // get the base plane of the bounding box from extents and current UCS
         var ucs = Doc.Editor.CurrentUserCoordinateSystem.CoordinateSystem3d;
         var plane = new AcadGeo.Plane(extents.MinPoint, ucs.Xaxis, ucs.Yaxis);
-       
+
         var box = new Box()
         {
           xSize = xSize,
@@ -1200,130 +1157,6 @@ namespace Objects.Converter.AutocadCivil
     public Mesh SolidToSpeckle(Solid3d solid, out List<string> notes, string units = null)
     {
       return GetMeshFromSolidOrSurface(out notes, solid: solid);
-
-      /* Not in use currently: needs development on trims
-      // make brep
-      var brep = new AcadBRep.Brep(solid);
-      var t = brep.Faces.First().GetSurfaceAsTrimmedNurbs()[0].GetContours();
-
-      // output lists
-      var speckleBrep = new Brep(displayValue: displayMesh, provenance: Applications.Autocad2021, units: u);
-      var speckleFaces = new List<BrepFace>();
-      var speckleLoops = new List<BrepLoop>();
-      var speckleSurfaces = new List<Surface>();
-      var speckleTrims = new List<BrepTrim>();
-      var speckleEdges = new List<BrepEdge>();
-      var SpeckleCurve2ds = new List<ICurve>();
-
-      // process vertices
-      var vertexList = brep.Vertices.ToList();
-      var speckleVertices = vertexList.Select(o => PointToSpeckle(o.Point, u)).ToList();
-
-      // process faces, surfaces, loops, curve3ds
-      var faceList = new List<AcadBRep.Face>();
-      var loopList = new List<AcadBRep.BoundaryLoop>();
-      var curve3dList = new List<Curve3d>();
-      for (int i = 0; i < brep.Faces.Count(); i++)
-      {
-        var face = brep.Faces.ElementAt(i);
-        faceList.Add(face);
-
-        // surfaces
-        speckleSurfaces.Add(SurfaceToSpeckle(face.GetSurfaceAsNurb(), u));
-
-        // curve3ds
-        var boundaries = face.GetSurfaceAsTrimmedNurbs().First().GetContours();
-        foreach (var boundary in boundaries)
-          foreach (var contour in boundary.Contour.GetCurve3ds().Select(o => (Curve3d)o))
-            if (curve3dList.Where(o => o.IsEqualTo(contour)).Count() == 0)
-              curve3dList.Add(contour);
-
-        // loops
-        var loops = new List<int>();
-        int count = loopList.Count;
-        int outerLoop = count;
-        foreach (var loop in face.Loops)
-        {
-          loopList.Add(loop); loops.Add(count);
-          if (loop.LoopType == AcadBRep.LoopType.LoopExterior)
-            outerLoop = count;
-          var speckleLoop = new BrepLoop(speckleBrep, i, null, GetLoopType(loop.LoopType));
-          speckleLoops.Add(speckleLoop);
-          count++;
-        }
-        var speckleFace = new BrepFace(speckleBrep, i, loops, outerLoop, !face.IsOrientToSurface);
-        speckleFaces.Add(speckleFace);
-      }
-      var speckleCurve3ds = curve3dList.Select(o => CurveToSpeckle(o)).ToList();
-
-      // process edges
-      var edgeDictionary = new Dictionary<AcadBRep.Edge, int>();
-      for (int i = 0; i < brep.Edges.Count(); i++)
-      {
-        var edge = brep.Edges.ElementAt(i);
-        edgeDictionary.Add(edge, i);
-
-        var startIndex = GetIndexOfVertex(vertexList, edge.Vertex1);
-        var endIndex = GetIndexOfVertex(vertexList, edge.Vertex2);
-        var crvIndex = GetIndexOfCurve(curve3dList,edge.Curve);
-
-        var speckleEdge = new BrepEdge(speckleBrep, crvIndex, null, startIndex, endIndex, !edge.IsOrientToCurve, IntervalToSpeckle(edge.Curve.GetInterval()));
-        speckleEdges.Add(speckleEdge);
-      }
-
-      // set props
-      speckleBrep.Curve3D = speckleCurve3ds;
-      speckleBrep.Edges = speckleEdges;
-      speckleBrep.Faces = speckleFaces;
-      speckleBrep.Surfaces = speckleSurfaces;
-      speckleBrep.Vertices = speckleVertices;
-      speckleBrep.Loops = speckleLoops;
-
-      speckleBrep.IsClosed = true;
-      speckleBrep.Orientation = Geometry.BrepOrientation.Unknown;
-      speckleBrep.volume = brep.GetVolume();
-      speckleBrep.bbox = BoxToSpeckle(brep.BoundBlock);
-      speckleBrep.area = brep.GetSurfaceArea();
-      return speckleBrep;
-      */
-    }
-    private int GetIndexOfCurve(List<Curve3d> list, Curve3d curve) // necessary since contains comparer doesn't work
-    {
-      int index = -1;
-      for (int i = 0; i < list.Count; i++)
-      {
-        if (list[i].IsEqualTo(curve))
-        {
-          index = i;
-          break;
-        }
-      }
-      return index;
-    }
-    private int GetIndexOfVertex(List<AcadBRep.Vertex> list, AcadBRep.Vertex vertex)
-    {
-      int index = -1;
-      for (int i = 0; i < list.Count; i++)
-      {
-        if (list[i].Point.IsEqualTo(vertex.Point))
-        {
-          index = i;
-          break;
-        }
-      }
-      return index;
-    }
-    private BrepLoopType GetLoopType(AcadBRep.LoopType loopType)
-    {
-      switch (loopType)
-      {
-        case AcadBRep.LoopType.LoopExterior:
-          return BrepLoopType.Outer;
-        case AcadBRep.LoopType.LoopInterior:
-          return BrepLoopType.Inner;
-        default:
-          return BrepLoopType.Unknown;
-      }
     }
 
     // Mesh
@@ -1373,7 +1206,7 @@ namespace Objects.Converter.AutocadCivil
               var indices = new List<int>();
               for (short i = 0; i < 4; i++)
               {
-                short index = o.GetVertexAt(i); 
+                short index = o.GetVertexAt(i);
                 if (index == 0) continue;
                 var adjustedIndex = index > 0 ? index - 1 : Math.Abs(index) - 1; // vertices are 1 indexed, and can be negative (hidden)
                 indices.Add(adjustedIndex);
@@ -1433,7 +1266,7 @@ namespace Objects.Converter.AutocadCivil
     public PolyFaceMesh MeshToNativeDB(Mesh mesh)
     {
       mesh.TriangulateMesh(true);
-      
+
       // get vertex points
       var vertices = new Point3dCollection();
       var points = mesh.GetPoints().Select(o => PointToNative(o)).ToList();
@@ -1487,7 +1320,7 @@ namespace Objects.Converter.AutocadCivil
             face = new FaceRecord((short)(mesh.faces[j + 1] + 1), (short)(mesh.faces[j + 2] + 1), (short)(mesh.faces[j + 3] + 1), (short)(mesh.faces[j + 4] + 1));
             j += 5;
           }
-          
+
           if (face.IsNewObject)
           {
             _mesh.AppendFaceRecord(face);
@@ -1500,6 +1333,7 @@ namespace Objects.Converter.AutocadCivil
 
       return _mesh;
     }
+
     // Based on Kean Walmsley's blog post on mesh conversion using Brep API
     private Mesh GetMeshFromSolidOrSurface(out List<string> notes, Solid3d solid = null, AcadDB.Surface surface = null, Region region = null)
     {
@@ -1520,7 +1354,7 @@ namespace Objects.Converter.AutocadCivil
         }
         catch (Exception e)
         { };
-        
+
         bbox = BoxToSpeckle(solid.GeometricExtents);
       }
       else if (surface != null)
@@ -1586,7 +1420,7 @@ namespace Objects.Converter.AutocadCivil
             mesh.volume = volume;
           }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
           notes.Add(e.Message);
         }

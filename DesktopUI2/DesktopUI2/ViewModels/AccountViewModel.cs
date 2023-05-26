@@ -1,185 +1,173 @@
-﻿using ReactiveUI;
-using Speckle.Core.Api;
-using Speckle.Core.Credentials;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using ReactiveUI;
+using Speckle.Core.Api;
+using Speckle.Core.Credentials;
+using Speckle.Core.Helpers;
+using Speckle.Core.Logging;
+using Stream = System.IO.Stream;
 
-namespace DesktopUI2.ViewModels
+namespace DesktopUI2.ViewModels;
+
+public class AccountViewModel : ReactiveObject
 {
-  public class AccountViewModel : ReactiveObject
+  private Bitmap _avatarImage;
+
+  public string _avatarUrl = "";
+
+  private bool _firstDownload = true;
+
+  private string _role = "contributor";
+
+  public AccountViewModel() { }
+
+  public AccountViewModel(Account account)
   {
-    public string Name { get; set; }
+    Name = account.userInfo.name;
+    Id = account.userInfo.id;
+    AvatarUrl = account.userInfo.avatar;
+    Account = account;
+  }
 
-    private string _role = "contributor";
-    public string Role
+  public AccountViewModel(UserBase user)
+  {
+    Name = user.name;
+    Id = user.id;
+    AvatarUrl = user.avatar;
+  }
+
+  public AccountViewModel(Collaborator user)
+  {
+    Name = user.name;
+    Id = user.id;
+    AvatarUrl = user.avatar;
+    Role = user.role;
+  }
+
+  public AccountViewModel(PendingStreamCollaborator user)
+  {
+    Name = user.title;
+    Id = user.id;
+    AvatarUrl = user?.user?.avatar;
+    Role = user.role;
+    Pending = true;
+  }
+
+  public string Name { get; set; }
+
+  public string Role
+  {
+    get => _role;
+    set => this.RaiseAndSetIfChanged(ref _role, value);
+  }
+
+  public string Id { get; }
+  public bool Pending { get; }
+
+  public Account Account { get; private set; }
+
+  private Client _client { get; set; }
+
+  public Client Client => _client ??= new Client(Account);
+
+  public string SimpleName
+  {
+    get
     {
-      get => _role;
-      set => this.RaiseAndSetIfChanged(ref _role, value);
+      if (HomeViewModel.Instance.Accounts.Any(x => x.Account.userInfo.id == Id))
+        return "You";
+      return Name;
     }
-    public string Id { get; }
-    public bool Pending { get; }
+  }
 
-    public Account Account { get; private set; }
+  public string FullAccountName => $"{Name} ({Account.userInfo.email})";
 
-    private Client _client { get; set; }
-    public Client Client
+  public string FullServerName => $"{Account.serverInfo.name} ({Account.serverInfo.url})";
+
+  public string AvatarUrl
+  {
+    get => _avatarUrl;
+    set
     {
-      get
-      {
-        if (_client == null)
-          _client = new Client(Account);
-        return _client;
-
-      }
-    }
-
-    public string SimpleName
-    {
-      get
-      {
-        if (HomeViewModel.Instance.Accounts.Any(x => x.Account.userInfo.id == Id))
-          return "You";
-        return Name;
-      }
-    }
-
-    public string FullAccountName
-    {
-      get { return $"{Name} ({Account.userInfo.email})"; }
-    }
-
-    public string FullServerName
-    {
-      get { return $"{Account.serverInfo.name} ({Account.serverInfo.url})"; }
-    }
-
-
-    public AccountViewModel()
-    {
-
-    }
-
-    public AccountViewModel(Account account)
-    {
-      Name = account.userInfo.name;
-      Id = account.userInfo.id;
-      AvatarUrl = account.userInfo.avatar;
-      Account = account;
-
-    }
-
-    public AccountViewModel(UserBase user)
-    {
-      Name = user.name;
-      Id = user.id;
-      AvatarUrl = user.avatar;
-
-    }
-
-    public AccountViewModel(Collaborator user)
-    {
-      Name = user.name;
-      Id = user.id;
-      AvatarUrl = user.avatar;
-      Role = user.role;
-    }
-
-    public AccountViewModel(PendingStreamCollaborator user)
-    {
-      Name = user.title;
-      Id = user.id;
-      AvatarUrl = user?.user?.avatar;
-      Role = user.role;
-      Pending = true;
-    }
-
-
-
-    public void DownloadImage(string url)
-    {
-      try
-      {
-        if (string.IsNullOrEmpty(url))
+      //if the user manually uploaded their avatar it'll be a base64 string of the image
+      //otherwise if linked the account eg via google, it'll be a link
+      if (value != null && value.StartsWith("data:"))
+        try
+        {
+          SetImage(Convert.FromBase64String(value.Split(',')[1]));
           return;
-
-        using (WebClient client = new WebClient())
-        {
-          //client.Headers.Set("Authorization", "Bearer " + Client.ApiToken);
-          client.DownloadDataAsync(new Uri(url));
-          client.DownloadDataCompleted += DownloadComplete;
         }
-      }
-      catch (Exception ex)
-      {
-
-      }
-    }
-
-
-
-    public string _avatarUrl = "";
-    public string AvatarUrl
-    {
-      get => _avatarUrl;
-      set
-      {
-        //if the user manually uploaded their avatar it'll be a base64 string of the image
-        //otherwise if linked the account eg via google, it'll be a link
-        if (value != null && value.StartsWith("data:"))
+        catch
         {
-          try
-          {
-            SetImage(Convert.FromBase64String(value.Split(',')[1]));
-            return;
-          }
-          catch
-          {
-            value = null;
-          }
+          value = null;
         }
 
-        if (value == null && Id != null)
-        {
-          this.RaiseAndSetIfChanged(ref _avatarUrl, $"https://robohash.org/{Id}.png?size=28x28");
-        }
-        else
-        {
-          this.RaiseAndSetIfChanged(ref _avatarUrl, value);
-        }
-        DownloadImage(AvatarUrl);
-      }
+      // only use robohas if it's the first attempt
+      // otherwise it'll end up in a loop
+      if (value == null && Id != null && _firstDownload)
+        this.RaiseAndSetIfChanged(ref _avatarUrl, $"https://robohash.org/{Id}.png?size=28x28");
+      else
+        this.RaiseAndSetIfChanged(ref _avatarUrl, value);
 
+      TrySetAvatarFromUrl(AvatarUrl);
     }
+  }
 
-    private Avalonia.Media.Imaging.Bitmap _avatarImage = null;
-    public Avalonia.Media.Imaging.Bitmap AvatarImage
+  public Bitmap AvatarImage
+  {
+    get => _avatarImage;
+    set => this.RaiseAndSetIfChanged(ref _avatarImage, value);
+  }
+
+  private async void TrySetAvatarFromUrl(string url)
+  {
+    if (string.IsNullOrEmpty(url))
+      return;
+
+    _firstDownload = false;
+
+    try
     {
-      get => _avatarImage;
-      set => this.RaiseAndSetIfChanged(ref _avatarImage, value);
+      var bytes = await DownloadImage(url).ConfigureAwait(true);
+      SetImage(bytes);
     }
-
-    private void DownloadComplete(object sender, DownloadDataCompletedEventArgs e)
+    catch (Exception ex)
     {
-      try
-      {
-        byte[] bytes = e.Result;
-        SetImage(bytes);
-      }
-      catch (Exception ex)
-      {
-        System.Diagnostics.Debug.WriteLine(ex);
-        AvatarUrl = null; // Could not download...
-      }
+      SpeckleLog.Logger
+        .ForContext("imageUrl", url)
+        .Warning(
+          ex,
+          "Swallowing exception in {methodName}: {exceptionMessage}",
+          nameof(TrySetAvatarFromUrl),
+          ex.Message
+        );
+      AvatarUrl = null;
     }
+  }
 
-    private void SetImage(byte[] bytes)
-    {
-      System.IO.Stream stream = new MemoryStream(bytes);
-      AvatarImage = new Avalonia.Media.Imaging.Bitmap(stream);
-      this.RaisePropertyChanged(nameof(AvatarImage));
+  private void SetImage(byte[] bytes)
+  {
+    var resizedBytes = Utils.ResizeImage(bytes, 28, 28);
+    Stream stream = new MemoryStream(resizedBytes);
+    AvatarImage = new Bitmap(stream);
+    this.RaisePropertyChanged(nameof(AvatarImage));
+  }
 
-    }
+  private static async Task<byte[]> DownloadImage(string url)
+  {
+    using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(url));
+
+    using HttpClient client = Http.GetHttpProxyClient();
+    var result = await client.SendAsync(request).ConfigureAwait(false);
+
+    result.EnsureSuccessStatusCode();
+
+    var bytes = await result.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+    return bytes;
   }
 }

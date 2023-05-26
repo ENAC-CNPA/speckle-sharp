@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
 using Speckle.Core.Kits;
 using Speckle.Core.Logging;
-
 
 namespace Speckle.ConnectorRevit
 {
@@ -23,48 +23,82 @@ namespace Speckle.ConnectorRevit
     public static string RevitAppName = HostApplications.Revit.GetVersion(HostAppVersion.v2019);
 #endif
 
-    private static List<string> _cachedParameters = null;
     private static List<string> _cachedViews = null;
+    private static List<string> _cachedScheduleViews = null;
     public static List<SpeckleException> ConversionErrors { get; set; }
 
     private static Dictionary<string, Category> _categories { get; set; }
 
     public static Dictionary<string, Category> GetCategories(Document doc)
     {
-      if (_categories == null)
-      {
-        _categories = new Dictionary<string, Category>();
-        foreach (var bic in SupportedBuiltInCategories)
-        {
-          var category = Category.GetCategory(doc, bic);
-          if (category == null)
-            continue;
-          //some categories, in other languages (eg DEU) have duplicated names #542
-          if (_categories.ContainsKey(category.Name))
-          {
-            var spec = category.Id.ToString();
-            if (category.Parent != null)
-              spec = category.Parent.Name;
-            _categories.Add(category.Name + " (" + spec + ")", category);
-          }
+      if (_categories != null)
+        return _categories;
 
-          else
-            _categories.Add(category.Name, category);
+      _categories = new Dictionary<string, Category>();
+      foreach (var bic in SupportedBuiltInCategories)
+      {
+        var category = Category.GetCategory(doc, bic);
+        if (category == null)
+          continue;
+        //some categories, in other languages (eg DEU) have duplicated names #542
+        if (_categories.ContainsKey(category.Name))
+        {
+          var spec = category.Id.ToString();
+          if (category.Parent != null)
+            spec = category.Parent.Name;
+          _categories.Add($"{category.Name} ({spec})", category);
         }
+        else
+          _categories.Add(category.Name, category);
       }
+
       return _categories;
     }
 
+    public static List<ParameterFilterElement> GetFilters(Autodesk.Revit.DB.Document doc)
+    {
+      return new FilteredElementCollector(doc)
+        .OfClass(typeof(ParameterFilterElement))
+        .OfType<ParameterFilterElement>()
+        .OrderBy(x => x.Name)
+        .ToList();
+    }
+    
+    /// <summary>
+    /// We want to display a user-friendly category names when grouping objects
+    /// For this we are simplifying the BuiltIn one as otherwise, by using the display value, we'd be getting localized category names
+    /// which would make querying etc more difficult
+    /// TODO: deprecate this in favour of model collections
+    /// </summary>
+    /// <param name="category"></param>
+    /// <returns></returns>
+    public static string GetEnglishCategoryName(Category category)
+    {
+      var builtInCategory = (BuiltInCategory)category.Id.IntegerValue;
+      var builtInCategoryName = builtInCategory
+        .ToString()
+        .Replace("OST_IOS", "") //for OST_IOSModelGroups
+        .Replace("OST_MEP", "") //for OST_MEPSpaces
+        .Replace("OST_", "") //for any other OST_blablabla
+        .Replace("_", " ");
+      builtInCategoryName = Regex.Replace(builtInCategoryName, "([a-z])([A-Z])", "$1 $2", RegexOptions.Compiled).Trim();
+      return builtInCategoryName;
+    }
+
     #region extension methods
+
     public static List<Element> SupportedElements(this Document doc)
     {
       //get element types of supported categories
-      var categoryFilter = new LogicalOrFilter(GetCategories(doc).Select(x => new ElementCategoryFilter(x.Value.Id)).Cast<ElementFilter>().ToList());
+      var categoryFilter = new LogicalOrFilter(
+        GetCategories(doc).Select(x => new ElementCategoryFilter(x.Value.Id)).Cast<ElementFilter>().ToList()
+      );
 
       List<Element> elements = new FilteredElementCollector(doc)
         .WhereElementIsNotElementType()
         .WhereElementIsViewIndependent()
-        .WherePasses(categoryFilter).ToList();
+        .WherePasses(categoryFilter)
+        .ToList();
 
       return elements;
     }
@@ -72,11 +106,14 @@ namespace Speckle.ConnectorRevit
     public static List<Element> SupportedTypes(this Document doc)
     {
       //get element types of supported categories
-      var categoryFilter = new LogicalOrFilter(GetCategories(doc).Select(x => new ElementCategoryFilter(x.Value.Id)).Cast<ElementFilter>().ToList());
+      var categoryFilter = new LogicalOrFilter(
+        GetCategories(doc).Select(x => new ElementCategoryFilter(x.Value.Id)).Cast<ElementFilter>().ToList()
+      );
 
       List<Element> elements = new FilteredElementCollector(doc)
         .WhereElementIsElementType()
-        .WherePasses(categoryFilter).ToList();
+        .WherePasses(categoryFilter)
+        .ToList();
 
       return elements;
     }
@@ -87,10 +124,13 @@ namespace Speckle.ConnectorRevit
         .WhereElementIsNotElementType()
         .OfCategory(BuiltInCategory.OST_Views)
         .Cast<View>()
-        .Where(x => x.ViewType == ViewType.CeilingPlan ||
-        x.ViewType == ViewType.FloorPlan ||
-        x.ViewType == ViewType.Elevation ||
-        x.ViewType == ViewType.Section)
+        .Where(
+          x =>
+            x.ViewType == ViewType.CeilingPlan
+            || x.ViewType == ViewType.FloorPlan
+            || x.ViewType == ViewType.Elevation
+            || x.ViewType == ViewType.Section
+        )
         .ToList();
 
       return views;
@@ -112,10 +152,12 @@ namespace Speckle.ConnectorRevit
     {
       List<Element> levels = new FilteredElementCollector(doc)
         .WhereElementIsNotElementType()
-        .OfCategory(BuiltInCategory.OST_Levels).ToList();
+        .OfCategory(BuiltInCategory.OST_Levels)
+        .ToList();
 
       return levels;
     }
+
     #endregion
 
     public static List<string> GetCategoryNames(Document doc)
@@ -123,57 +165,49 @@ namespace Speckle.ConnectorRevit
       return GetCategories(doc).Keys.OrderBy(x => x).ToList();
     }
 
+    public static List<string> GetViewFilterNames(Document doc)
+    {
+      return GetFilters(doc).Select(x => x.Name).ToList();
+    }
+
     public static List<string> GetWorksets(Document doc)
     {
-      return new FilteredWorksetCollector(doc).Where(x => x.Kind == WorksetKind.UserWorkset).Select(x => x.Name).ToList();
-    }
-
-    private static async Task<List<string>> GetParameterNamesAsync(Document doc)
-    {
-      var els = new FilteredElementCollector(doc)
-        .WhereElementIsNotElementType()
-        .WhereElementIsViewIndependent()
-        .Where(x => x.IsPhysicalElement());
-
-      List<string> parameters = new List<string>();
-
-      foreach (var e in els)
-      {
-        foreach (Parameter p in e.Parameters)
-        {
-          if (!parameters.Contains(p.Definition.Name))
-            parameters.Add(p.Definition.Name);
-        }
-      }
-      _cachedParameters = parameters.OrderBy(x => x).ToList();
-      return _cachedParameters;
-    }
-
-    /// <summary>
-    /// Each time it's called the cached parameters are returned, and a new copy is cached
-    /// </summary>
-    /// <param name="doc"></param>
-    /// <returns></returns>
-    public static List<string> GetParameterNames(Document doc)
-    {
-      if (_cachedParameters != null)
-      {
-        //don't wait for it to finish
-        GetParameterNamesAsync(doc);
-        return _cachedParameters;
-      }
-      return GetParameterNamesAsync(doc).Result;
+      return new FilteredWorksetCollector(doc)
+        .Where(x => x.Kind == WorksetKind.UserWorkset)
+        .Select(x => x.Name)
+        .ToList();
     }
 
     private static async Task<List<string>> GetViewNamesAsync(Document doc)
     {
+      using var scheduleExclusionFilter = new ElementClassFilter(typeof(ViewSchedule), true);
       var els = new FilteredElementCollector(doc)
         .WhereElementIsNotElementType()
         .OfClass(typeof(View))
-        .ToElements();
-
+        .WherePasses(scheduleExclusionFilter)
+        .Cast<View>()
+        .Where(x => !x.IsTemplate)
+        .ToList();
       _cachedViews = els.Select(x => x.Name).OrderBy(x => x).ToList();
       return _cachedViews;
+    }
+    private static bool IsViewRevisionSchedule(string input)
+    {
+      string pattern =  @"<.+>(\s*\d+)?";
+      Regex rgx = new Regex(pattern);
+      return rgx.IsMatch(input);
+    }
+    
+    private static async Task<List<string>> GetScheduleNamesAsync(Document doc)
+    {
+      var els = new FilteredElementCollector(doc)
+        .WhereElementIsNotElementType()
+        .OfClass(typeof(ViewSchedule))
+        .Where(view => !IsViewRevisionSchedule(view.Name))
+        .ToList();
+
+      _cachedScheduleViews = els.Select(x => x.Name).OrderBy(x => x).ToList();
+      return _cachedScheduleViews;
     }
 
     /// <summary>
@@ -189,22 +223,39 @@ namespace Speckle.ConnectorRevit
         GetViewNamesAsync(doc);
         return _cachedViews;
       }
+
       return GetViewNamesAsync(doc).Result;
+    }
+    public static List<string> GetScheduleNames(Document doc)
+    {
+      if (_cachedScheduleViews != null)
+      {
+        //don't wait for it to finish
+        GetScheduleNamesAsync(doc);
+        return _cachedScheduleViews;
+      }
+
+      return GetScheduleNamesAsync(doc).Result;
     }
 
     public static bool IsPhysicalElement(this Element e)
     {
-      if (e.Category == null) return false;
-      if (e.ViewSpecific) return false;
+      if (e.Category == null)
+        return false;
+      if (e.ViewSpecific)
+        return false;
       // exclude specific unwanted categories
-      if (((BuiltInCategory)e.Category.Id.IntegerValue) == BuiltInCategory.OST_HVAC_Zones) return false;
+      if (((BuiltInCategory)e.Category.Id.IntegerValue) == BuiltInCategory.OST_HVAC_Zones)
+        return false;
       return e.Category.CategoryType == CategoryType.Model && e.Category.CanAddSubcategory;
     }
 
     public static bool IsElementSupported(this Element e)
     {
-      if (e.Category == null) return false;
-      if (e.ViewSpecific) return false;
+      if (e.Category == null)
+        return false;
+      if (e.ViewSpecific)
+        return false;
 
       if (SupportedBuiltInCategories.Contains((BuiltInCategory)e.Category.Id.IntegerValue))
         return true;
@@ -223,15 +274,18 @@ namespace Speckle.ConnectorRevit
 
     public static string ObjectDescriptor(Element obj)
     {
-      var simpleType = obj.GetType().ToString().Split(new string[] { "DB." }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+      var simpleType = obj.GetType()
+        .ToString()
+        .Split(new string[] { "DB." }, StringSplitOptions.RemoveEmptyEntries)
+        .LastOrDefault();
       return string.IsNullOrEmpty(obj.Name) ? $"{simpleType}" : $"{simpleType} {obj.Name}";
     }
 
     //list of currently supported Categories (for sending only)
     //exact copy of the one in the ConverterRevitShared.Categories
     //until issue https://github.com/specklesystems/speckle-sharp/issues/392 is resolved
-    private static List<BuiltInCategory> SupportedBuiltInCategories = new List<BuiltInCategory>{
-
+    private static List<BuiltInCategory> SupportedBuiltInCategories = new List<BuiltInCategory>
+    {
       BuiltInCategory.OST_Areas,
       BuiltInCategory.OST_CableTray,
       BuiltInCategory.OST_Ceilings,
@@ -313,7 +367,9 @@ namespace Speckle.ConnectorRevit
       BuiltInCategory.OST_Ramps,
       BuiltInCategory.OST_SpecialityEquipment,
       BuiltInCategory.OST_Rebar,
-#if !REVIT2020 && !REVIT2021
+#if (REVIT2020 || REVIT2021)
+
+#else
       BuiltInCategory.OST_AudioVisualDevices,
       BuiltInCategory.OST_FireProtection,
       BuiltInCategory.OST_FoodServiceEquipment,
@@ -323,9 +379,10 @@ namespace Speckle.ConnectorRevit
       BuiltInCategory.OST_TemporaryStructure,
       BuiltInCategory.OST_VerticalCirculation,
 #endif
-#if !REVIT2020 && !REVIT2021 && !REVIT2022
-       BuiltInCategory.OST_MechanicalControlDevices,
+#if REVIT2020 || REVIT2021 || REVIT2022
+#else
+      BuiltInCategory.OST_MechanicalControlDevices,
 #endif
-  };
+    };
   }
 }
