@@ -1,4 +1,4 @@
-﻿using Objects.Geometry;
+using Objects.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1062,7 +1062,6 @@ namespace Objects.Converter.TopSolid
                 alias.Faces.Add(new GeometryAlias
                 {
                     Index = faceindex,
-                    Id = face.Id,
                     Moniker = face.Moniker.ToString()
                 });
                 
@@ -1324,10 +1323,10 @@ namespace Objects.Converter.TopSolid
             {
 
 
-                //Brep rs = null;
+                // Brep rs = null;
                 double tol = 0;
                 tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
-                ShapeList shape = BrepToShapeList(brep, tol);
+                ShapeList shapeList = BrepToShapeList(brep, tol);
 
                 FolderOperation folderOperation = new FolderOperation(doc, 0);
                 //folderOperation.Name = $"Speckle creation : {brep.GetId()}";
@@ -1339,14 +1338,14 @@ namespace Objects.Converter.TopSolid
                 //sewOperation.Name = $"brep : {brep.GetId()}";
                 int shapeIndex = 0;
 
-                foreach (var ts in shape)
+                foreach (var ts in shapeList)
                 {
                     int defId = 0;
-                    if (alias.Faces.Count == shape.Count)
-                    {
-                        defId = alias.Faces[shapeIndex].Id; // TODO : Fix when ID is used
-                        if (doc.Elements[defId] != null) defId = 0;
-                    }
+                    //if (alias.Faces.Count == shapeList.Count)
+                    //{
+                    //    //defId = alias.Faces[shapeIndex].Id; // TODO : Fix when ID is used
+                    //    if (doc.Elements[defId] != null) defId = 0;
+                    //}
 
                     ShapeEntity se = new ShapeEntity(doc, defId);
                     //se.Name = $"brep : {brep.GetId()}";
@@ -1359,11 +1358,11 @@ namespace Objects.Converter.TopSolid
                     shapeIndex++;
                 }
 
-                if (shape.Count == 1)
+                if (shapeList.Count == 1)
                 {
                     shapesCreation.Create(folderOperation);
 
-                    return shape[0];
+                    return shapeList[0];
                 }
 
 
@@ -1472,6 +1471,9 @@ namespace Objects.Converter.TopSolid
             sheetMaker.LinearTolerance = inLinearPrecision;
             sheetMaker.UsesBRepMethod = false;
 
+            // TODO : Remplacer Moniker de Speckle : 
+            // 1) String to Moniker
+            // 2) Set
             TX.Items.ItemMonikerKey key = new TX.Items.ItemMonikerKey(TX.Items.ItemOperationKey.BasicKey);
 
             // Get surface and set to maker.
@@ -1568,6 +1570,13 @@ namespace Objects.Converter.TopSolid
                         Console.WriteLine(e);
                     }
                 }
+            }
+
+
+            foreach (var face in shape.Faces)
+            {
+                // TODO : Update good one Moniker
+                face.SetMoniker( new ItemMoniker(new SX.CString("F137.7(F1(F1(1)))")));
             }
 
             return shape;

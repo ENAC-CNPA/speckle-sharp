@@ -127,6 +127,7 @@ namespace Objects.Converter.TopSolid
             {
               Name = streamName
             };
+            //sDoc.EnsureIsDirty();
             scor.Create();
             sfo = scor;
           }
@@ -388,7 +389,6 @@ namespace Objects.Converter.TopSolid
     public class GeometryAlias
     {
         public double Index { get; set; }
-        public int Id { get; set; }
         public string Moniker { get; set; }        
 
     }
