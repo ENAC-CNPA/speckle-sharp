@@ -1,4 +1,4 @@
-﻿
+
 using Objects.BuiltElements;
 using Objects.BuiltElements.Revit;
 using Objects.Geometry;
@@ -32,6 +32,7 @@ using TopSolid.Kernel.DB.Entities;
 using TopSolid.Kernel.G;
 using TopSolid.Kernel.SX.Drawing;
 using Speckle.Core.Api;
+using DesktopUI2.Models;
 
 namespace Objects.Converter.TopSolid
 {
@@ -390,11 +391,11 @@ namespace Objects.Converter.TopSolid
         }
 
 
-        public Alias GetAlias(Base specleElement)
+        public Alias GetAlias(Base speckleElement)
         {
             Alias alias = null;
 
-            foreach (var p in specleElement.GetMembers(DynamicBaseMemberType.Dynamic))
+            foreach (var p in speckleElement.GetMembers(DynamicBaseMemberType.Dynamic))
             {
                 if (p.Key == "alias")
                 {
@@ -461,6 +462,37 @@ namespace Objects.Converter.TopSolid
 
         }
 
+
+        public void GetInstanceParameters(Base speckleElement)
+        {
+            if (Doc == null)
+              return;
+            
+          ParametersFolderEntity paramfolderEntity = new ParametersFolderEntity(Doc, 0);
+      paramfolderEntity.Name = "Speckle Parameters";
+
+          foreach (var p in speckleElement.GetMembers(DynamicBaseMemberType.Dynamic))
+          {
+
+            Element element = Doc.Elements[p.Key];
+            if (element != null && element is TextParameterEntity parameter)
+            {
+              parameter.Value = p.Value.ToString();
+            }
+            else
+            {
+              TextParameterEntity newParam = new TextParameterEntity(Doc, 0);
+              newParam.Name = p.Key;
+              newParam.Value = p.Value.ToString();
+              newParam.Create();
+              paramfolderEntity.AddEntity(newParam);
+            }
+
+          }
+
+          paramfolderEntity.Create(Doc.ParametersFolderEntity);
+
+        }
 
         #endregion
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
@@ -9,8 +9,10 @@ using Application = TopSolid.Kernel.UI.Application;
 using DB = TopSolid.Kernel.DB;
 
 using Speckle.Core.Models;
+using Objects.Geometry;
 using Objects.BuiltElements;
-
+using TopSolid.Kernel.DB.D3.Shapes;
+using TopSolid.Kernel.DB.Operations;
 
 namespace Objects.Converter.TopSolid
 {
@@ -175,6 +177,50 @@ namespace Objects.Converter.TopSolid
             Report.Log($"{(isUpdate ? "Updated" : "Created")} Entity {topSolidElement.Id}");
 
             return placeholders;
+        }      
+    
+    
+    
+          public ShapeEntity EntityBrepToNative(Brep brep)
+        {
+            ShapeEntity topSolidElement = Doc.Elements[Convert.ToInt32(brep["elementId"])] as ShapeEntity;
+            int id = 0;
+            if (brep["elementId"] != null) id = Convert.ToInt32(brep["elementId"]);
+
+            if (topSolidElement != null && ReceiveMode == Speckle.Core.Kits.ReceiveMode.Ignore)
+            {
+                      return null; // { new ApplicationPlaceholderObject { applicationId = speckleElement.applicationId, ApplicationGeneratedId = topSolidElement.Id.ToString(), NativeObject = topSolidElement } }; ;
+            }
+
+            bool isUpdate = true; // TODO : for optimize check if modified
+
+            EntitiesCreation entitiesCreation = new EntitiesCreation(Doc, 0);
+            ShapeEntity shapeEntity = new ShapeEntity(Doc, id);
+
+            if (topSolidElement == null) // TODO : Create element
+            {
+                shapeEntity.Geometry = BrepToNative(brep, null);
+            }
+            else // Check if created
+            {
+                 shapeEntity = topSolidElement;
+                 shapeEntity.Geometry = BrepToNative(brep, null);
+              // throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${brep.applicationId}.");
+            }
+
+            var display = DiplayToNative(brep);
+            shapeEntity.ExplicitColor = display.Item1;
+            shapeEntity.ExplicitTransparency = display.Item2;
+            shapeEntity.Name = "Brep " + id + "";
+
+            entitiesCreation.AddChildEntity(shapeEntity);
+            entitiesCreation.Create(sfo);
+            Doc.ShapesFolderEntity.AddEntity(shapeEntity);
+            GetInstanceParameters(brep);
+
+            Doc.Update(true, true); // TODO : Move end of global process
+            return shapeEntity;
+
         }
 
         #endregion

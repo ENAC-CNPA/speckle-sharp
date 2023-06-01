@@ -1325,12 +1325,6 @@ namespace Objects.Converter.TopSolid
       tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
       ShapeList shapeList = BrepToShapeList(brep, tol);
 
-      FolderOperation folderOperation = new FolderOperation(doc, 0);
-      //folderOperation.Name = $"Speckle creation : {brep.GetId()}";
-      folderOperation.Create(sfo);
-
-      ShapeEntity se = new ShapeEntity(doc, System.Convert.ToInt32(brep.id));
-      EntitiesCreation shapesCreation = new EntitiesCreation(doc, 0);
 
       if (shapeList != null && shapeList.Count > 1)
       {
@@ -1342,7 +1336,12 @@ namespace Objects.Converter.TopSolid
         sheetsSewer.Merges = true;
         Shape currentShape;
         currentShape = shapeList[0];
-        currentShape.Faces.First().SetMoniker(new ItemMoniker(new SX.CString(alias.Faces[0].Moniker)));
+
+        if (shapeList[0].Faces != null && shapeList[0].Faces.Count() > 0)
+        {
+          currentShape.Faces.First().SetMoniker(new ItemMoniker(new SX.CString(alias.Faces[0].Moniker)));
+        }
+
         for (int i = 1; i < shapeList.Count; i++)
         {
           currentShape = shapeList[i];
@@ -1361,6 +1360,9 @@ namespace Objects.Converter.TopSolid
         {
           ex.ToString();
         }
+
+         return sheetsSewer.Shape;
+          
       }
 
       return shapeList[0];

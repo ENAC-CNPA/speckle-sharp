@@ -221,7 +221,8 @@ namespace Objects.Converter.TopSolid
                     return SurfaceToNative(o);
 
                 case Brep o:
-                    return BrepToNative(o); // TODO
+                    return EntityBrepToNative(o); // TODO
+                    //return BrepToNative(o); // TODO
 
                 default:
                     throw new NotSupportedException();
