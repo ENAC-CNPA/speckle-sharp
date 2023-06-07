@@ -70,6 +70,9 @@ using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using Speckle.Core.Models;
 using TopSolid.Kernel.G.D3.Shapes.Sew;
 using TK = TopSolid.Kernel;
+using TopSolid.Kernel.DB.Elements;
+using HarfBuzzSharp;
+using DynamicData;
 
 namespace Objects.Converter.TopSolid
 {
@@ -1030,6 +1033,7 @@ namespace Objects.Converter.TopSolid
       Alias alias = new Alias();
       alias.Faces = new List<GeometryAlias>();
       alias.Edges = new List<GeometryAlias>();
+      alias.Vertices = new List<GeometryAlias>();
 
       //Variables and global counters (not to be reinitialized for each face)
       double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
@@ -1047,8 +1051,9 @@ namespace Objects.Converter.TopSolid
       List<TSX.List<EdgeList>> globalEdgeList = new List<TSX.List<EdgeList>>(facecount);
       List<SX.Collections.BoolList> globalBoolList = new List<SX.Collections.BoolList>(facecount);
 
+  
       //uv curves, 3d curves and surfaces, per face
-      foreach (Face face in _shape.Faces)
+      foreach (G.D3.Shapes.Face face in _shape.Faces)
       {
         global2dList.Add(new TSX.List<G.D2.Curves.IGeometricProfile>());
         global3dList.Add(new TSX.List<IGeometricProfile>());
@@ -1059,12 +1064,13 @@ namespace Objects.Converter.TopSolid
         var loop3d = global3dList[faceindex];
         var tsEgdes = globalEdgeList[faceindex];
         var boolList = globalBoolList[faceindex];
-
+  
         alias.Faces.Add(new GeometryAlias
         {
           Index = faceindex,
           Moniker = face.Moniker.ToString()
         });
+
 
         //GetTopological info of face
         OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, false, false, false, boolList, loop2d, loop3d, tsEgdes);
@@ -1075,6 +1081,9 @@ namespace Objects.Converter.TopSolid
         faceindex++;
       }
 
+
+
+
       //Flatten lists
       var crv2d = global2dList.SelectMany(x => x.SelectMany(y => y.Segments));
       var crv3d = global3dList.SelectMany(x => x.SelectMany(y => y.Segments));
@@ -1084,8 +1093,23 @@ namespace Objects.Converter.TopSolid
 
       //Vertices
       List<Vertex> tsVerticesList = _shape.Vertices.ToList();
+
+      // TODO : Moniker in tags.vertices
+
+      var iV = 0;
+      foreach (var vertex in tsVerticesList)
+      {
+        alias.Vertices.Add(new GeometryAlias
+        {
+          Index = iV,
+          Moniker = vertex.Moniker.ToString()
+        });
+        iV++;
+      }
+
       spcklBrep.Vertices = tsVerticesList
         .Select(vertex => PointToSpeckle(vertex.GetGeometry(), u)).ToList();
+      
 
       int counter = 0;
 
@@ -1164,7 +1188,7 @@ namespace Objects.Converter.TopSolid
       int outerindex = 0;
 
       //Add Faces with correct loops
-      foreach (Face face in _shape.Faces)
+      foreach (G.D3.Shapes.Face face in _shape.Faces)
       {
         List<int> faceLoopIndices = new List<int>(face.LoopCount);
         var list = face.Loops;
@@ -1216,6 +1240,16 @@ namespace Objects.Converter.TopSolid
 
         brepEdge.ProxyCurveIsReversed = tuple.Edge.IsReversed();
         brepEdge.Domain = new Interval(0, 1);
+
+        // TODO : Add tags.edges
+        alias.Edges.Add(new GeometryAlias
+        {
+          Index = listDistinct.IndexOf(localEdge),
+          Moniker = localEdge.Moniker.ToString()
+        });
+
+        
+
         //brepEdge.Domain = new Interval(localEdge.GetRange().Min, localEdge.GetRange().Max);//This caused problems because the bspline is always [0,1]
         spcklBrep.Edges.Add(brepEdge);
         counter++;
@@ -1297,7 +1331,7 @@ namespace Objects.Converter.TopSolid
         }
         loopIndex++;
       }
-
+      
       spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
       //Find display values in geometries
       List<Mesh> displayValue = new List<Mesh>();
@@ -1323,7 +1357,7 @@ namespace Objects.Converter.TopSolid
       // Brep rs = null;
       double tol = 0;
       tol = (global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance);
-      ShapeList shapeList = BrepToShapeList(brep, tol);
+      ShapeList shapeList = BrepToShapeList(brep, alias, tol);
 
 
       if (shapeList != null && shapeList.Count > 1)
@@ -1342,26 +1376,61 @@ namespace Objects.Converter.TopSolid
           currentShape.Faces.First().SetMoniker(new ItemMoniker(new SX.CString(alias.Faces[0].Moniker)));
         }
 
+        // Face Moniker   : F142(1)
+        //shapeList.First().Edges.Select(e => {e. })
         for (int i = 1; i < shapeList.Count; i++)
         {
           currentShape = shapeList[i];
+
           foreach (var face in currentShape.Faces)
           {
             face.SetMoniker(new ItemMoniker(new SX.CString(alias.Faces[i].Moniker)));
+            Console.WriteLine( face.Edges.Select(e => e.Moniker).ToString());
           }
           sheetsSewer.AddTool(currentShape, i);
+
         }
 
         try
         {
-          sheetsSewer.Sew(ItemOperationKey.BasicKey);
+          sheetsSewer.Sew(null);
         }
         catch (Exception ex)
         {
           ex.ToString();
         }
 
-         return sheetsSewer.Shape;
+        var iF = 0;
+        foreach (var face in sheetsSewer.Shape.Faces)
+        {
+          Console.WriteLine(face.Moniker.ToString() + face.Edges.Select(e => e.Moniker.ToString()));
+
+          iF++;
+        }
+
+        // TODO : Define all Moniker (saved in Speckle)
+        // Edge Moniker   : E1(s1(2))
+        //var iE = 0;
+        //foreach (var edge in sheetsSewer.Shape.Edges)
+        //{
+        //  //edge.SetMoniker(new ItemMoniker(new SX.CString(alias.Edges[iE].Moniker)));
+
+        //  iE++;
+        //}
+
+     var ttt=   sheetsSewer.Shape.Edges.Select(e => e.Moniker.ToString()).ToList(); 
+        // Vertex Moniker : V1(1)
+        //var iV = 0;
+        //foreach (var vertex in sheetsSewer.Shape.Vertices)
+        //{
+        //  vertex.SetMoniker(new ItemMoniker(new SX.CString(alias.Vertices[iV].Moniker)));
+        //  iV++;
+        //}
+
+        // TODO : Controle is modified compared hash of brep
+
+
+        return sheetsSewer.Shape;
           
       }
 
@@ -1370,7 +1439,7 @@ namespace Objects.Converter.TopSolid
 
     }
 
-    public ShapeList BrepToShapeList(Brep brep, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, string units = null)
+    public ShapeList BrepToShapeList(Brep brep, Alias alias, double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance, string units = null)
     {
       //var u = units ?? ModelUnits;
       double tol_TS = tol;
@@ -1380,7 +1449,7 @@ namespace Objects.Converter.TopSolid
       foreach (BrepFace bface in brep.Faces)
       {
         shape = null;
-        shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++);
+        shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++, alias);
 
         if (shape == null || shape.IsEmpty)
         {
@@ -1392,7 +1461,7 @@ namespace Objects.Converter.TopSolid
 
       return ioShapes;
     }
-    private Shape MakeSheetFrom3d(Brep inBRep, BrepFace inFace, double inLinearPrecision, int faceindex, string units = null)
+    private Shape MakeSheetFrom3d(Brep inBRep, BrepFace inFace, double inLinearPrecision, int faceindex, Alias alias, string units = null)
     {
       Shape shape = new Shape(null);
 
@@ -1456,16 +1525,30 @@ namespace Objects.Converter.TopSolid
 
       int loopindex = 0;
       int counter = 0;
+      int edgeIndex;
       foreach (BrepLoop loop in inBRep.Faces.ElementAt(faceindex).Loops)
       {
         foreach (BrepTrim trim in loop.Trims)
         {
+          edgeIndex = trim.EdgeIndex;
           G.D3.Curves.Curve nativeCurve = CurveToNative(inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex)); //TODO check a more general way to cast ICurve to Curve even for lines
 
           if (nativeCurve != null)
           {
             var convertedCrv = nativeCurve;
-            listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+            // TODO : Force moniker
+            //listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+            string curMoniker = null;
+            foreach (var e in alias.Edges)
+            {
+              if (e.Index == edgeIndex)
+              {
+                curMoniker = e.Moniker;
+                break;
+              }
+
+            }
+            listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(curMoniker)));
             loops3d.ElementAt(loopindex).Add(convertedCrv);
           }
 
@@ -1476,7 +1559,10 @@ namespace Objects.Converter.TopSolid
             {
               foreach (var seg in profile.Segments)
               {
-                listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                // TODO : Force moniker
+                //TODO in case same moniker
+                //listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
+                listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(alias.Edges[edgeIndex].Moniker)));
                 loops3d.ElementAt(loopindex).Add(seg.GetOrientedCurve().Curve);
               }
             }
@@ -1492,20 +1578,14 @@ namespace Objects.Converter.TopSolid
           sheetMaker.SetCurves(loops3d, listItemMok);
           try
           {
-            shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
+            //shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
+            shape = sheetMaker.Make(null, null);
           }
           catch (Exception e)
           {
             Console.WriteLine(e);
           }
         }
-      }
-
-
-      foreach (var face in shape.Faces)
-      {
-        // TODO : Update good one Moniker
-        face.SetMoniker(new ItemMoniker(new SX.CString("F137.7(F1(F1(1)))")));
       }
 
       return shape;
@@ -1556,6 +1636,7 @@ namespace Objects.Converter.TopSolid
       speckleMesh.faces = faces;
       speckleMesh.vertices = verts;
       speckleMesh.units = u;
+      speckleMesh["renderMaterial"] = RenderMaterialToSpeckle(shape.Owner as Element);
 
       return speckleMesh;
     }

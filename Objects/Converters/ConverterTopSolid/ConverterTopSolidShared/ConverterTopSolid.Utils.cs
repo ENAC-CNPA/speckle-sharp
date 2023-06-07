@@ -21,6 +21,7 @@ using TopSolid.Kernel.GR.Transforms;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Cad.Design.DB;
+using TopSolid.Kernel.G.D3.Shapes;
 
 using TsApp = TopSolid.Kernel.UI.Application;
 using TX = TopSolid.Kernel.TX;
@@ -334,9 +335,7 @@ namespace Objects.Converter.TopSolid
             var owner = (topSolidElement.Owner as Entity);
             if (owner != null)
             {
-                System.Drawing.Color color = owner.Color;
-                double opacity = ((double)owner.Transparency.Opacity);
-                speckleElement["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
+              speckleElement["renderMaterial"] = RenderMaterialToSpeckle(owner);
             }
 
         }
@@ -383,9 +382,10 @@ namespace Objects.Converter.TopSolid
 
             if (owner != null)
             {
-                System.Drawing.Color color = owner.Color;
-                double opacity = ((double)owner.Transparency.Opacity);
-                speckleElement["renderMaterial"] = new Other.RenderMaterial() { opacity = opacity, diffuse = color.ToArgb() };
+                speckleElement["renderMaterial"] = RenderMaterialToSpeckle(owner);
+            } else
+            {
+              Console.WriteLine("No color and no owner");
             }
 
         }
@@ -408,6 +408,25 @@ namespace Objects.Converter.TopSolid
             return alias;
 
         }
+
+        public static RenderMaterial RenderMaterialToSpeckle(Element element)
+        {
+          if (element == null)
+            return null;
+
+          System.Drawing.Color color = element.Color;
+          RenderMaterial material = new RenderMaterial()
+            {
+            name = element.Color.GetKnownName(),
+            opacity = (double)element.Transparency.Opacity,
+            //metalness = revitMaterial.Shininess / 128d, //Looks like these are not valid conversions
+            //roughness = 1 - (revitMaterial.Smoothness / 100d),
+            diffuse = color.ToArgb()
+          };
+
+          return material;
+        }
+
 
         public static (IEnumerable<KeyValuePair<string, object>>, bool) getParameters(Element element)
         {
@@ -469,7 +488,7 @@ namespace Objects.Converter.TopSolid
               return;
             
           ParametersFolderEntity paramfolderEntity = new ParametersFolderEntity(Doc, 0);
-      paramfolderEntity.Name = "Speckle Parameters";
+          paramfolderEntity.Name = "Speckle Parameters";
 
           foreach (var p in speckleElement.GetMembers(DynamicBaseMemberType.Dynamic))
           {
@@ -491,6 +510,8 @@ namespace Objects.Converter.TopSolid
           }
 
           paramfolderEntity.Create(Doc.ParametersFolderEntity);
+
+
 
         }
 

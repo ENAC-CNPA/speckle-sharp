@@ -86,7 +86,7 @@ namespace Speckle.ConnectorTopSolid.UI
         public override void WriteStreamsToFile(List<StreamState> streams)
         {
             // Start undo Sequence // inSequence
-            UndoSequence.Start("SpeckleCreation", false); // no Ghost
+            // UndoSequence.Start("SpeckleCreation", false); // no Ghost
 
             Storage.SpeckleStreamManager.WriteStreamStateList(Doc, streams);
         }
@@ -529,95 +529,114 @@ namespace Speckle.ConnectorTopSolid.UI
                 state.SelectedObjectIds = GetObjectsFromFilter(state.Filter, converter);
 
 
-            SetSettings(converter, state.CachedStream); // Send to Converter settings (streamName, etc)
-
-            // remove deleted object ids
-            var deletedElements = new List<string>();
-
-            foreach (var id in state.SelectedObjectIds)
+            try
             {
+
+              // Start undo Sequence // inSequence
+              UndoSequence.Start("SpeckleCreation", false); // no Ghost
+
+              SetSettings(converter, state.CachedStream); // Send to Converter settings (streamName, etc)
+
+              // remove deleted object ids
+              var deletedElements = new List<string>();
+
+              foreach (var id in state.SelectedObjectIds)
+              {
                 if (!Doc.Elements.Contains(Convert.ToInt32(id)))
                 {
-                    deletedElements.Add(id);
+                  deletedElements.Add(id);
                 }
 
                 Element e = Doc.Elements[Convert.ToInt32(id)];
                 //List<KeyValuePair<string, string>> speckleParametersElements = Utils.getParameters(e);
 
-            }
-            state.SelectedObjectIds = state.SelectedObjectIds.Where(o => !deletedElements.Contains(o)).ToList();
+              }
+              state.SelectedObjectIds = state.SelectedObjectIds.Where(o => !deletedElements.Contains(o)).ToList();
 
-            if (state.SelectedObjectIds.Count == 0)
-            {
+              if (state.SelectedObjectIds.Count == 0)
+              {
 
                 progress.Report.LogOperationError(new Exception("Zero objects selected; send stopped. Please select some objects, or check that your filter can actually select something."));
                 return null;
-            }
+              }
 
-            var commitObject = new Base();
-            commitObject["units"] = Utils.GetUnits(Doc); // TODO: check whether commits base needs units attached
+              var commitObject = new Base();
+              commitObject["units"] = Utils.GetUnits(Doc); // TODO: check whether commits base needs units attached
 
-            int convertedCount = 0;
+              int convertedCount = 0;
 
-            // invoke conversions on the main thread via control
-            if (Control.InvokeRequired)
+              // invoke conversions on the main thread via control
+              if (Control.InvokeRequired)
                 Control.Invoke(new Action(() => ConvertSendCommit(commitObject, converter, state, progress, ref convertedCount)), new object[] { });
-            else
+              else
                 ConvertSendCommit(commitObject, converter, state, progress, ref convertedCount);
 
-            //progress.Report.Merge(converter.Report); // TODO Fixe Merge Empty
+              //progress.Report.Merge(converter.Report); // TODO Fixe Merge Empty
 
-            if (convertedCount == 0)
-            {
+              if (convertedCount == 0)
+              {
                 // TODO Fix crash TopSolid
                 //progress.Report.LogOperationError(new SpeckleException("Zero objects converted successfully. Send stopped.", false));
                 return null;
-            }
+              }
 
-            if (progress.CancellationTokenSource.Token.IsCancellationRequested)
+              if (progress.CancellationTokenSource.Token.IsCancellationRequested)
                 return null;
 
-            var transports = new List<ITransport>() { new ServerTransport(client.Account, streamId) };
+              var transports = new List<ITransport>() { new ServerTransport(client.Account, streamId) };
 
-            var commitObjId = await Operations.Send(
-                commitObject,
-                progress.CancellationTokenSource.Token,
-                transports,
-                onProgressAction: dict => progress.Update(dict),
-                onErrorAction: (err, exception) =>
-                {
+              var commitObjId = await Operations.Send(
+                  commitObject,
+                  progress.CancellationTokenSource.Token,
+                  transports,
+                  onProgressAction: dict => progress.Update(dict),
+                  onErrorAction: (err, exception) =>
+                  {
                     progress.Report.LogOperationError(exception);
                     progress.CancellationTokenSource.Cancel();
-                },
-                disposeTransports: true
-                );
+                  },
+                  disposeTransports: true
+                  );
 
-            if (progress.Report.OperationErrorsCount != 0)
+              if (progress.Report.OperationErrorsCount != 0)
                 return null;
 
 
-            var actualCommit = new CommitCreateInput
-            {
+              var actualCommit = new CommitCreateInput
+              {
                 streamId = streamId,
                 objectId = commitObjId,
                 branchName = state.BranchName,
                 message = state.CommitMessage != null ? state.CommitMessage : $"Pushed {convertedCount} elements from {Utils.AppName}.",
                 sourceApplication = Utils.VersionedAppName
-            };
+              };
 
-            if (state.PreviousCommitId != null) { actualCommit.parents = new List<string>() { state.PreviousCommitId }; }
+              if (state.PreviousCommitId != null) { actualCommit.parents = new List<string>() { state.PreviousCommitId }; }
 
-            try
-            {
+              try
+              {
                 var commitId = await client.CommitCreate(actualCommit);
                 state.PreviousCommitId = commitId;
+                UndoSequence.End();
                 return commitId;
-            }
-            catch (Exception e)
-            {
+              }
+              catch (Exception e)
+              {
                 progress.Report.LogOperationError(e);
+                UndoSequence.UndoCurrent(); // Cancel
+                return null;
+              }
+
+
             }
-            return null;
+            catch (Exception ex)
+            {
+              // TODO : Message box
+              progress.Report.LogOperationError(ex);
+              UndoSequence.UndoCurrent(); // Cancel
+              return null;
+            }
+
         }
 
         /// <summary>

@@ -127,7 +127,7 @@ namespace Objects.Converter.TopSolid
             {
               Name = streamName
             };
-            //sDoc.EnsureIsDirty();
+            sDoc.EnsureIsDirty();
             scor.Create();
             sfo = scor;
           }
@@ -385,6 +385,7 @@ namespace Objects.Converter.TopSolid
     {
         public List<GeometryAlias> Faces { get; set; } 
         public List<GeometryAlias> Edges { get; set; } 
+        public List<GeometryAlias> Vertices { get; set; } 
 
     }
     public class GeometryAlias
