@@ -385,13 +385,19 @@ namespace Objects.Converter.TopSolid
     {
         public List<GeometryAlias> Faces { get; set; } 
         public List<GeometryAlias> Edges { get; set; } 
-        public List<GeometryAlias> Vertices { get; set; } 
-
+        public List<GeometryAliasLinked> Vertices { get; set; } 
     }
     public class GeometryAlias
     {
         public double Index { get; set; }
-        public string Moniker { get; set; }        
-
+        public string Moniker { get; set; }
+    }
+    public class GeometryAliasLinked
+    {
+        public double Index { get; set; }
+        public string Moniker { get; set; }
+        public string Hash { get; set; }
+        //public List<int> EdgeIndex { get; set; }
+        //public string FacesIndex { get; set; }
     }
 }

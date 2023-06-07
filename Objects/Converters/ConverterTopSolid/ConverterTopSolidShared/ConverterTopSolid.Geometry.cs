@@ -73,6 +73,11 @@ using TK = TopSolid.Kernel;
 using TopSolid.Kernel.DB.Elements;
 using HarfBuzzSharp;
 using DynamicData;
+using System.Reflection;
+using Speckle.Core.Api;
+using Objects.Other;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Objects.Converter.TopSolid
 {
@@ -1033,7 +1038,7 @@ namespace Objects.Converter.TopSolid
       Alias alias = new Alias();
       alias.Faces = new List<GeometryAlias>();
       alias.Edges = new List<GeometryAlias>();
-      alias.Vertices = new List<GeometryAlias>();
+      alias.Vertices = new List<GeometryAliasLinked>();
 
       //Variables and global counters (not to be reinitialized for each face)
       double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
@@ -1094,18 +1099,6 @@ namespace Objects.Converter.TopSolid
       //Vertices
       List<Vertex> tsVerticesList = _shape.Vertices.ToList();
 
-      // TODO : Moniker in tags.vertices
-
-      var iV = 0;
-      foreach (var vertex in tsVerticesList)
-      {
-        alias.Vertices.Add(new GeometryAlias
-        {
-          Index = iV,
-          Moniker = vertex.Moniker.ToString()
-        });
-        iV++;
-      }
 
       spcklBrep.Vertices = tsVerticesList
         .Select(vertex => PointToSpeckle(vertex.GetGeometry(), u)).ToList();
@@ -1222,6 +1215,23 @@ namespace Objects.Converter.TopSolid
         spcklBrep.Curve2D.Add(Curve2dToSpeckle(bsCrv2d, Units.None));
       }
 
+      // Add Tags.vertices
+      var iV = 0;
+      foreach (var vertex in _shape.Vertices)
+      {
+
+        string fHach = string.Join("-", vertex.Faces.ToList().Select(f => f.Moniker).OrderBy(s => s));
+
+        alias.Vertices.Add(new GeometryAliasLinked
+          {
+            Index = iV,
+            Moniker = vertex.Moniker.ToString(),
+            Hash = fHach
+          });
+          iV++;
+      }
+
+
       //Add Edges with correct trims
       counter = 0;
       foreach (var tuple in tupforTrims)
@@ -1241,14 +1251,29 @@ namespace Objects.Converter.TopSolid
         brepEdge.ProxyCurveIsReversed = tuple.Edge.IsReversed();
         brepEdge.Domain = new Interval(0, 1);
 
-        // TODO : Add tags.edges
         alias.Edges.Add(new GeometryAlias
         {
           Index = listDistinct.IndexOf(localEdge),
           Moniker = localEdge.Moniker.ToString()
         });
 
+
+
+        // Update Edge in all vertices
+        foreach (var item in localEdge.Vertices) 
+          
+          //  TODO : FIX MULTIPLE LOOP !!!!!
         
+        
+        {
+          var findex = _shape.Vertices.ToList().FindIndex(x => x.Moniker == item.Moniker);
+
+          // TODO : Check if no surface and edges => can't force moniker
+          string eHach = string.Join("-", item.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
+          string vHash = GetHash(alias.Vertices[findex].Hash + "+" + eHach);
+         
+          alias.Vertices[findex].Hash = (vHash);
+        }
 
         //brepEdge.Domain = new Interval(localEdge.GetRange().Min, localEdge.GetRange().Max);//This caused problems because the bspline is always [0,1]
         spcklBrep.Edges.Add(brepEdge);
@@ -1400,13 +1425,13 @@ namespace Objects.Converter.TopSolid
           ex.ToString();
         }
 
-        var iF = 0;
-        foreach (var face in sheetsSewer.Shape.Faces)
-        {
-          Console.WriteLine(face.Moniker.ToString() + face.Edges.Select(e => e.Moniker.ToString()));
+        //var iF = 0;
+        //foreach (var face in sheetsSewer.Shape.Faces)
+        //{
+        //  Console.WriteLine(face.Moniker.ToString() + face.Edges.Select(e => e.Moniker.ToString()));
 
-          iF++;
-        }
+        //  iF++;
+        //}
 
         // TODO : Define all Moniker (saved in Speckle)
         // Edge Moniker   : E1(s1(2))
@@ -1418,14 +1443,28 @@ namespace Objects.Converter.TopSolid
         //  iE++;
         //}
 
-     //var ttt=   sheetsSewer.Shape.Edges.Select(e => e.Moniker.ToString()).ToList(); 
+        //var ttt=   sheetsSewer.Shape.Edges.Select(e => e.Moniker.ToString()).ToList(); 
         // Vertex Moniker : V1(1)
-        //var iV = 0;
-        //foreach (var vertex in sheetsSewer.Shape.Vertices)
-        //{
-        //  vertex.SetMoniker(new ItemMoniker(new SX.CString(alias.Vertices[iV].Moniker)));
-        //  iV++;
-        //}
+        foreach (var vertex in sheetsSewer.Shape.Vertices)
+        {
+
+          // TODO : Check if no surface and edges => can't force moniker
+          string fHach = string.Join("-",vertex.Faces.ToList().Select(f => f.Moniker).OrderBy(s => s));
+          string eHach = string.Join("-",vertex.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
+          string vHash = GetHash(fHach + "+" + eHach);
+
+          string newMoniker = null;
+          foreach (var va in alias.Vertices)
+          {
+            if (va.Hash == vHash)
+            {
+              newMoniker = va.Moniker;
+            }
+          }
+          //alias.Vertices.Find(v => v.Hash == vHash)?.Moniker;
+
+          if (newMoniker != null) vertex.SetMoniker(new ItemMoniker(new SX.CString(newMoniker)));
+        }
 
         // TODO : Controle is modified compared hash of brep
 
@@ -1532,22 +1571,23 @@ namespace Objects.Converter.TopSolid
         {
           edgeIndex = trim.EdgeIndex;
           G.D3.Curves.Curve nativeCurve = CurveToNative(inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex)); //TODO check a more general way to cast ICurve to Curve even for lines
+          
+          string curMoniker = null;
+          foreach (var e in alias.Edges)
+          {
+            if (e.Index == edgeIndex)
+            {
+              curMoniker = e.Moniker;
+              break;
+            }
+          }
 
           if (nativeCurve != null)
           {
             var convertedCrv = nativeCurve;
             // TODO : Force moniker
             //listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-            string curMoniker = null;
-            foreach (var e in alias.Edges)
-            {
-              if (e.Index == edgeIndex)
-              {
-                curMoniker = e.Moniker;
-                break;
-              }
-
-            }
+           
             listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(curMoniker)));
             loops3d.ElementAt(loopindex).Add(convertedCrv);
           }
@@ -1562,7 +1602,7 @@ namespace Objects.Converter.TopSolid
                 // TODO : Force moniker
                 //TODO in case same moniker
                 //listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-                listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(alias.Edges[edgeIndex].Moniker)));
+                listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(curMoniker)));
                 loops3d.ElementAt(loopindex).Add(seg.GetOrientedCurve().Curve);
               }
             }

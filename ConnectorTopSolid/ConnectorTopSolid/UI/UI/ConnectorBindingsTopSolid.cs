@@ -229,13 +229,14 @@ namespace Speckle.ConnectorTopSolid.UI
 
       var stream = await state.Client.StreamGet(state.StreamId);
 
-      SetSettings(converter, stream); // Send to Converter settings (streamName, etc)
 
       try
       {
 
         // Start undo Sequence // inSequence
-        UndoSequence.Start("SpeckleCreation", false); // no Ghost
+        UndoSequence.Start("SpeckleCreationReceive", false); // no Ghost
+
+        SetSettings(converter, stream); // Send to Converter settings (streamName, etc)
 
         if (progress.CancellationTokenSource.Token.IsCancellationRequested)
           return null;
@@ -296,15 +297,15 @@ namespace Speckle.ConnectorTopSolid.UI
         else
           ConvertReceiveCommit(commitObject, converter, state, progress, stream, commit.id);
 
-
         UndoSequence.End();
+        Doc.Update(true, true); // TODO : Move end of global process
 
       }
-      catch (Exception)
+      catch (Exception ex)
       {
+        Console.WriteLine(ex.Message);
         // TODO : Message box
-        UndoSequence.UndoCurrent(); // Cancel
-        throw;
+       // UndoSequence.UndoCurrent(); // Cancel
       }
 
       return state;
@@ -430,12 +431,12 @@ namespace Speckle.ConnectorTopSolid.UI
                 // remove commit info from doc userdata
                 Storage.SpeckleStreamManager.WriteCommit(Doc, null);
 
-                UndoSequence.End();
+                //UndoSequence.End();
             }
             catch (Exception)
             {
                 // TODO : Message box
-                UndoSequence.UndoCurrent(); // Cancel
+                //UndoSequence.UndoCurrent(); // Cancel
                 throw;
             }
 
@@ -533,7 +534,7 @@ namespace Speckle.ConnectorTopSolid.UI
             {
 
               // Start undo Sequence // inSequence
-              UndoSequence.Start("SpeckleCreation", false); // no Ghost
+              //UndoSequence.Start("SpeckleCreation", false); // no Ghost
 
               SetSettings(converter, state.CachedStream); // Send to Converter settings (streamName, etc)
 
@@ -617,13 +618,13 @@ namespace Speckle.ConnectorTopSolid.UI
               {
                 var commitId = await client.CommitCreate(actualCommit);
                 state.PreviousCommitId = commitId;
-                UndoSequence.End();
+                //UndoSequence.End();
                 return commitId;
               }
               catch (Exception e)
               {
                 progress.Report.LogOperationError(e);
-                UndoSequence.UndoCurrent(); // Cancel
+                //UndoSequence.UndoCurrent(); // Cancel
                 return null;
               }
 
@@ -633,7 +634,7 @@ namespace Speckle.ConnectorTopSolid.UI
             {
               // TODO : Message box
               progress.Report.LogOperationError(ex);
-              UndoSequence.UndoCurrent(); // Cancel
+              //UndoSequence.UndoCurrent(); // Cancel
               return null;
             }
 
@@ -647,13 +648,17 @@ namespace Speckle.ConnectorTopSolid.UI
         /// <returns></returns>
         public override void PreviewSend(StreamState state, ProgressViewModel progress)
         {
-            // TODO!
+          // TODO!
+          Console.WriteLine("Send");
         }
 
         delegate void SendingDelegate(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, ref int convertedCount);
         private void ConvertSendCommit(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, ref int convertedCount)
         {
 
+          try
+          {
+             UndoSequence.Start("SpeckleCreationSend", false); // no Ghost
 
             // set the context doc for conversion - this is set inside the transaction loop because the converter retrieves this transaction for all db editing when the context doc is set!
             converter.SetContextDocument(Doc);
@@ -663,83 +668,97 @@ namespace Speckle.ConnectorTopSolid.UI
 
             foreach (string elementId in state.SelectedObjectIds)
             {
-                if (progress.CancellationTokenSource.Token.IsCancellationRequested)
+              if (progress.CancellationTokenSource.Token.IsCancellationRequested)
+              {
+                return;
+              }
+
+              conversionProgressDict["Conversion"]++;
+              progress.Update(conversionProgressDict);
+
+              int id = Convert.ToInt32(elementId);
+              Element obj = Doc.Elements[id];
+              string type = null;
+
+              if (obj == null)
+              {
+                progress.Report.Log($"Skipped not found object: ${elementId}.");
+                continue;
+              }
+              else
+              {
+                type = obj.GetType().ToString();
+              }
+
+              if (!converter.CanConvertToSpeckle(obj))
+              {
+                progress.Report.Log($"Skipped not supported type: ${type}. Object ${obj.Id} not sent.");
+                continue;
+              }
+
+              try
+              {
+                // convert obj
+                Base converted = null;
+                string containerName = string.Empty;
+                converted = converter.ConvertToSpeckle(obj);
+                if (converted == null)
                 {
-                    return;
+                  progress.Report.LogConversionError(new Exception($"Failed to convert object {elementId} of type {type}."));
+                  continue;
                 }
+
+
+                // Search layer
+                string layerName = null;
+                if (Doc.LayersFolderEntity != null && Doc.LayersFolderEntity.Entities != null)
+                {
+                  foreach (LayerEntity layerEntity in Doc.LayersFolderEntity.Entities)
+                  {
+                    if (layerEntity.Layer.Id == obj.Layer.Id)
+                    {
+                      layerName = layerEntity.Name;
+                      break;
+                    }
+                    else if (layerEntity.Layer.Id == Doc.DefaultLayer.Id)
+                    {
+                      if (layerName == null) layerName = layerEntity.Name;
+                    }
+                  }
+                }
+
+                if (layerName == null) layerName = "DefaultLayerName";
+                containerName = layerName;
+
+                if (commitObject[$"@{containerName}"] == null)
+                  commitObject[$"@{containerName}"] = new List<Base>();
+                ((List<Base>)commitObject[$"@{containerName}"]).Add(converted);
 
                 conversionProgressDict["Conversion"]++;
                 progress.Update(conversionProgressDict);
 
-                int id = Convert.ToInt32(elementId);
-                Element obj = Doc.Elements[id];
-                string type = null;
-
-                if (obj == null)
-                {
-                    progress.Report.Log($"Skipped not found object: ${elementId}.");
-                    continue;
-                }
-                else
-                {
-                    type = obj.GetType().ToString();
-                }
-
-                if (!converter.CanConvertToSpeckle(obj))
-                {
-                    progress.Report.Log($"Skipped not supported type: ${type}. Object ${obj.Id} not sent.");
-                    continue;
-                }
-
-                try
-                {
-                    // convert obj
-                    Base converted = null;
-                    string containerName = string.Empty;
-                    converted = converter.ConvertToSpeckle(obj);
-                    if (converted == null)
-                    {
-                        progress.Report.LogConversionError(new Exception($"Failed to convert object {elementId} of type {type}."));
-                        continue;
-                    }
-
-
-                    // Search layer
-                    string layerName = null;
-                    if (Doc.LayersFolderEntity != null && Doc.LayersFolderEntity.Entities != null)
-                    {
-                        foreach (LayerEntity layerEntity in Doc.LayersFolderEntity.Entities)
-                        {
-                            if (layerEntity.Layer.Id == obj.Layer.Id)
-                            {
-                                layerName = layerEntity.Name;
-                                break;
-                            }
-                            else if (layerEntity.Layer.Id == Doc.DefaultLayer.Id)
-                            {
-                                if (layerName == null) layerName = layerEntity.Name;
-                            }
-                        }
-                    }
-
-                    if (layerName == null) layerName = "DefaultLayerName";
-                    containerName = layerName;
-
-                    if (commitObject[$"@{containerName}"] == null)
-                        commitObject[$"@{containerName}"] = new List<Base>();
-                    ((List<Base>)commitObject[$"@{containerName}"]).Add(converted);
-
-                    conversionProgressDict["Conversion"]++;
-                    progress.Update(conversionProgressDict);
-
-                    converted.applicationId = elementId;
-                }
-                catch (Exception e)
-                {
-                    progress.Report.LogConversionError(new Exception($"Failed to convert object {elementId} of type {type}: {e.Message}"));
-                }
-                convertedCount++;
+                converted.applicationId = elementId;
+              }
+              catch (Exception e)
+              {
+                progress.Report.LogConversionError(new Exception($"Failed to convert object {elementId} of type {type}: {e.Message}"));
+              }
+              convertedCount++;
             }
+
+
+
+            UndoSequence.End();
+            Doc.Update(true, true);
+
+        }
+        catch (Exception ex)
+            {
+
+          Console.WriteLine(ex.Message);
+          // TODO : Message box
+          // UndoSequence.UndoCurrent(); // Cancel
+        }
 
         }
 

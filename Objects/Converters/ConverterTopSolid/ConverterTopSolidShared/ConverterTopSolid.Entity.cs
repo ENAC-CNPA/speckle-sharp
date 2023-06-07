@@ -221,12 +221,15 @@ namespace Objects.Converter.TopSolid
                  shapeEntity.Parent.IsEdited = true;
                  shapeEntity.Geometry = BrepToNative(brep, null);
                  shapeEntity.Parent.IsEdited = false;
+                 shapeEntity.MakeDisplay();
+                 //shapeEntity.Parent.NeedsExecuting = true; // TODO Test if use MakeDisplay or NeedsExecuting
+
               // throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${brep.applicationId}.");
             }
 
            
 
-            Doc.Update(true, true); // TODO : Move end of global process
+
             return shapeEntity;
 
         }

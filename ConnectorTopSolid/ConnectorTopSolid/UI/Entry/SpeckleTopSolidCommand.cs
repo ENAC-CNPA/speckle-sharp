@@ -91,6 +91,7 @@ namespace Speckle.ConnectorTopSolid.UI.Entry
                 {
                     MainWindow.Show();
                     MainWindow.Activate();
+                    MainWindow.WindowState = WindowState.Normal;
 
                     //required to gracefully quit avalonia and the skia processes
                     //https://github.com/AvaloniaUI/Avalonia/wiki/Application-lifetimes

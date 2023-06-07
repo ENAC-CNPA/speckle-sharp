@@ -34,6 +34,8 @@ using TopSolid.Kernel.G;
 using TopSolid.Kernel.SX.Drawing;
 using Speckle.Core.Api;
 using DesktopUI2.Models;
+using System.Text;
+using System.Security.Cryptography;
 
 namespace Objects.Converter.TopSolid
 {
@@ -535,6 +537,16 @@ namespace Objects.Converter.TopSolid
             return (new Color(color.R, color.G, color.B), Transparency.FromByte((byte)(byte.MaxValue - color.A)));
         }
 
+
+     public string GetHash(string s)
+    {
+        using (MD5 md5 = MD5.Create())
+        {
+        return s;
+          return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(s)))
+                      .Replace("-", "");
+        }
+    }
 
         //TODO Lineweight
         //private static LineWeight GetLineWeight(double weight)
