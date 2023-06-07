@@ -192,6 +192,8 @@ namespace Objects.Converter.TopSolid
                       return null; // { new ApplicationPlaceholderObject { applicationId = speckleElement.applicationId, ApplicationGeneratedId = topSolidElement.Id.ToString(), NativeObject = topSolidElement } }; ;
             }
 
+            
+
             bool isUpdate = true; // TODO : for optimize check if modified
 
             EntitiesCreation entitiesCreation = new EntitiesCreation(Doc, 0);
@@ -200,23 +202,29 @@ namespace Objects.Converter.TopSolid
             if (topSolidElement == null) // TODO : Create element
             {
                 shapeEntity.Geometry = BrepToNative(brep, null);
+
+
+                var display = DiplayToNative(brep);
+                shapeEntity.ExplicitColor = display.Item1;
+                shapeEntity.ExplicitTransparency = display.Item2;
+                shapeEntity.Name = "Brep " + id + "";
+
+                entitiesCreation.AddChildEntity(shapeEntity);
+                entitiesCreation.Create(sfo);
+                Doc.ShapesFolderEntity.AddEntity(shapeEntity);
+                GetInstanceParameters(brep);
+
             }
             else // Check if created
             {
                  shapeEntity = topSolidElement;
+                 shapeEntity.Parent.IsEdited = true;
                  shapeEntity.Geometry = BrepToNative(brep, null);
+                 shapeEntity.Parent.IsEdited = false;
               // throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${brep.applicationId}.");
             }
 
-            var display = DiplayToNative(brep);
-            shapeEntity.ExplicitColor = display.Item1;
-            shapeEntity.ExplicitTransparency = display.Item2;
-            shapeEntity.Name = "Brep " + id + "";
-
-            entitiesCreation.AddChildEntity(shapeEntity);
-            entitiesCreation.Create(sfo);
-            Doc.ShapesFolderEntity.AddEntity(shapeEntity);
-            GetInstanceParameters(brep);
+           
 
             Doc.Update(true, true); // TODO : Move end of global process
             return shapeEntity;

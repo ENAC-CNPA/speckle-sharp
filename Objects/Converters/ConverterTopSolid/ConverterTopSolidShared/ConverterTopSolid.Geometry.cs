@@ -1418,7 +1418,7 @@ namespace Objects.Converter.TopSolid
         //  iE++;
         //}
 
-     var ttt=   sheetsSewer.Shape.Edges.Select(e => e.Moniker.ToString()).ToList(); 
+     //var ttt=   sheetsSewer.Shape.Edges.Select(e => e.Moniker.ToString()).ToList(); 
         // Vertex Moniker : V1(1)
         //var iV = 0;
         //foreach (var vertex in sheetsSewer.Shape.Vertices)
