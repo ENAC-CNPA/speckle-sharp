@@ -389,12 +389,12 @@ namespace Objects.Converter.TopSolid
     }
     public class GeometryAlias
     {
-        public double Index { get; set; }
+        public int Index { get; set; }
         public string Moniker { get; set; }
     }
     public class GeometryAliasLinked
     {
-        public double Index { get; set; }
+        public int Index { get; set; }
         public string Moniker { get; set; }
         public string Hash { get; set; }
         //public List<int> EdgeIndex { get; set; }

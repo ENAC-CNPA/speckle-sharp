@@ -1219,16 +1219,8 @@ namespace Objects.Converter.TopSolid
       var iV = 0;
       foreach (var vertex in _shape.Vertices)
       {
-
-        string fHach = string.Join("-", vertex.Faces.ToList().Select(f => f.Moniker).OrderBy(s => s));
-
-        alias.Vertices.Add(new GeometryAliasLinked
-          {
-            Index = iV,
-            Moniker = vertex.Moniker.ToString(),
-            Hash = fHach
-          });
-          iV++;
+        alias.Vertices.Add(GetHashVertex(vertex, iV));
+        iV++;
       }
 
 
@@ -1258,22 +1250,20 @@ namespace Objects.Converter.TopSolid
         });
 
 
+        // MOVE UPPER
 
-        // Update Edge in all vertices
-        foreach (var item in localEdge.Vertices) 
-          
-          //  TODO : FIX MULTIPLE LOOP !!!!!
+        //// Update Edge in all vertices
+        //foreach (var item in localEdge.Vertices) 
         
-        
-        {
-          var findex = _shape.Vertices.ToList().FindIndex(x => x.Moniker == item.Moniker);
+        //{
+        //  var findex = _shape.Vertices.ToList().FindIndex(x => x.Moniker == item.Moniker);
 
-          // TODO : Check if no surface and edges => can't force moniker
-          string eHach = string.Join("-", item.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
-          string vHash = GetHash(alias.Vertices[findex].Hash + "+" + eHach);
+        //  // TODO : Check if no surface and edges => can't force moniker
+        //  string eHach = string.Join("-", item.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
+        //  string vHash = GetHash(alias.Vertices[findex].Hash + "+" + eHach);
          
-          alias.Vertices[findex].Hash = (vHash);
-        }
+        //  alias.Vertices[findex].Hash = (vHash);
+        //}
 
         //brepEdge.Domain = new Interval(localEdge.GetRange().Min, localEdge.GetRange().Max);//This caused problems because the bspline is always [0,1]
         spcklBrep.Edges.Add(brepEdge);
@@ -1448,10 +1438,7 @@ namespace Objects.Converter.TopSolid
         foreach (var vertex in sheetsSewer.Shape.Vertices)
         {
 
-          // TODO : Check if no surface and edges => can't force moniker
-          string fHach = string.Join("-",vertex.Faces.ToList().Select(f => f.Moniker).OrderBy(s => s));
-          string eHach = string.Join("-",vertex.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
-          string vHash = GetHash(fHach + "+" + eHach);
+          string vHash = GetHashVertex(vertex, -1).Hash;
 
           string newMoniker = null;
           foreach (var va in alias.Vertices)

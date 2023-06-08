@@ -538,34 +538,52 @@ namespace Objects.Converter.TopSolid
         }
 
 
-     public string GetHash(string s)
+
+    public GeometryAliasLinked GetHashVertex(Vertex vertex,int index)
     {
-        using (MD5 md5 = MD5.Create())
-        {
-        return s;
-          return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(s)))
-                      .Replace("-", "");
-        }
-    }
 
-        //TODO Lineweight
-        //private static LineWeight GetLineWeight(double weight)
-        //{
-        //    double hundredthMM = weight * 100;
-        //    var weights = Enum.GetValues(typeof(LineWeight)).Cast<int>().ToList();
-        //    int closest = weights.Aggregate((x, y) => Math.Abs(x - hundredthMM) < Math.Abs(y - hundredthMM) ? x : y);
-        //    return (LineWeight)closest;
-        //}
+      // TODO : Check if no surface and edges => can't force moniker
+      string fHach = string.Join("-", vertex.Faces.ToList().Select(f => f.Moniker).OrderBy(s => s));
+      string eHach = string.Join("-", vertex.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
+      string vHash = GetHash(fHach + "+" + eHach);
 
-        #endregion
-
-
-
-
-
-
-
-
+      return new GeometryAliasLinked
+      {
+        Index = index,
+        Moniker = vertex.Moniker.ToString(),
+        Hash = vHash
+      };
 
     }
+
+    public string GetHash(string s)
+    {
+      using (MD5 md5 = MD5.Create())
+      {
+        return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(s)))
+                    .Replace("-", "");
+      }
+    }
+
+
+    //TODO Lineweight
+    //private static LineWeight GetLineWeight(double weight)
+    //{
+    //    double hundredthMM = weight * 100;
+    //    var weights = Enum.GetValues(typeof(LineWeight)).Cast<int>().ToList();
+    //    int closest = weights.Aggregate((x, y) => Math.Abs(x - hundredthMM) < Math.Abs(y - hundredthMM) ? x : y);
+    //    return (LineWeight)closest;
+    //}
+
+    #endregion
+
+
+
+
+
+
+
+
+
+  }
 }
