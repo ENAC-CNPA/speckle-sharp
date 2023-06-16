@@ -37,6 +37,9 @@ namespace Speckle.ConnectorTopSolid.UI
 
         public static string streamName = null;
 
+        public List<ApplicationObject> Preview { get; set; } = new List<ApplicationObject>();
+        public Dictionary<string, Base> StoredObjects = new Dictionary<string, Base>();
+
 
         // TopSolid API should only be called on the main thread.
         // Not doing so results in botched conversions for any that require adding objects to Document model space before modifying (eg adding vertices and faces for meshes)
@@ -351,7 +354,12 @@ namespace Speckle.ConnectorTopSolid.UI
 
                 // flatten the commit object to retrieve children objs
                 int count = 0;
-                var commitObjs = FlattenCommitObject(commitObject, converter, commitPrefix, state, ref count);
+
+                Preview.Clear();
+                StoredObjects.Clear();
+
+                // TODO : Migration to FlattenCommitObject
+                var commitObjs = FlattenCommitObjectOLD(commitObject, converter, commitPrefix, state, ref count);
 
 
                 // TODO TopSolid Add LineType 
@@ -444,7 +452,7 @@ namespace Speckle.ConnectorTopSolid.UI
 
 
         // Recurses through the commit object and flattens it. Returns list of Base objects with their bake layers
-        private List<Tuple<Base, string>> FlattenCommitObject(object obj, ISpeckleConverter converter, string layer, StreamState state, ref int count, bool foundConvertibleMember = false)
+        private List<Tuple<Base, string>> FlattenCommitObjectOLD(object obj, ISpeckleConverter converter, string layer, StreamState state, ref int count, bool foundConvertibleMember = false)
         {
             var objects = new List<Tuple<Base, string>>();
 
@@ -474,7 +482,7 @@ namespace Speckle.ConnectorTopSolid.UI
                         string objLayerName = prop.StartsWith("@") ? prop.Remove(0, 1) : prop;
                         string acLayerName = $"{layer}${objLayerName}";
 
-                        var nestedObjects = FlattenCommitObject(@base[prop], converter, acLayerName, state, ref count, foundConvertibleMember);
+                        var nestedObjects = FlattenCommitObjectOLD(@base[prop], converter, acLayerName, state, ref count, foundConvertibleMember);
                         if (nestedObjects.Count > 0)
                         {
                             objects.AddRange(nestedObjects);
@@ -491,7 +499,7 @@ namespace Speckle.ConnectorTopSolid.UI
             {
                 count = 0;
                 foreach (var listObj in list)
-                    objects.AddRange(FlattenCommitObject(listObj, converter, layer, state, ref count));
+                    objects.AddRange(FlattenCommitObjectOLD(listObj, converter, layer, state, ref count));
                 return objects;
             }
 
@@ -499,19 +507,53 @@ namespace Speckle.ConnectorTopSolid.UI
             {
                 count = 0;
                 foreach (DictionaryEntry kvp in dict)
-                    objects.AddRange(FlattenCommitObject(kvp.Value, converter, layer, state, ref count));
+                    objects.AddRange(FlattenCommitObjectOLD(kvp.Value, converter, layer, state, ref count));
                 return objects;
             }
 
             return objects;
         }
 
+        /// <summary>
+        /// Traverses the object graph, returning objects to be converted.
+        /// </summary>
+        /// <param name="obj">The root <see cref="Base"/> object to traverse</param>
+        /// <param name="converter">The converter instance, used to define what objects are convertable</param>
+        /// <returns>A flattened list of objects to be converted ToNative</returns>
+        private List<ApplicationObject> FlattenCommitObject(Base obj, ISpeckleConverter converter,string layer, StreamState state, ref int count, bool foundConvertibleMember = false)
+        {
 
+          ApplicationObject CreateApplicationObject(Base current)
+          {
+            if (!converter.CanConvertToNative(current)) return null;
 
-        #endregion
+            var appObj = new ApplicationObject(current.id, Utils.SimplifySpeckleType(current.speckle_type))
+            {
+              applicationId = current.applicationId,
+              Convertible = true
+            };
+            if (StoredObjects.ContainsKey(current.id))
+              return null;
 
-        #region sending
-        public override async Task<string> SendStream(StreamState state, ProgressViewModel progress)
+            StoredObjects.Add(current.id, current);
+            return appObj;
+          }
+
+          var traverseFunction = Core.Models.GraphTraversal.DefaultTraversal.CreateRevitTraversalFunc(converter);
+
+          var objectsToConvert = traverseFunction.Traverse(obj)
+            .Select(tc => CreateApplicationObject(tc.current))
+            .Where(appObject => appObject != null)
+            .Reverse()
+            .ToList();
+
+          return objectsToConvert;
+        }
+
+    #endregion
+
+    #region sending
+    public override async Task<string> SendStream(StreamState state, ProgressViewModel progress)
         {
             var kit = KitManager.GetDefaultKit();
             var converter = kit.LoadConverter(Utils.VersionedAppName);

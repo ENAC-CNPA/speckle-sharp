@@ -56,6 +56,8 @@ using Speckle.ConnectorTopSolid.DB.Operations;
 using Speckle.Core.Api;
 using TopSolid.Kernel.DB.Scheduling;
 using DesktopUI2.Models;
+using Objects.Geometry;
+using Objects.Other;
 
 namespace Objects.Converter.TopSolid
 {
@@ -366,13 +368,31 @@ namespace Objects.Converter.TopSolid
             {
                 case Box _:
                 case Plane _:
-                case Point _:
                 case Vector _:
-                case Line _:
-                case Polyline _:
                 case Surface _:
+
+                case Point _:
+                case Line _:
+                //case Arc _:
+                //case Circle _:
+                //case Ellipse _:
+                //case Spiral _:
+                //case Hatch _:
+                case Polyline _:
+                //case Polycurve _:
+                //case Curve _:
                 case Brep _:
-                    return true;
+                //case Mesh _:
+
+                //case Dimension _:
+                //case BlockDefinition _:
+                //case Instance _:
+                //case Text _:
+
+                //case Alignment _:
+                //case ModelCurve _:
+
+          return true;
 
                 default:
                     return false;

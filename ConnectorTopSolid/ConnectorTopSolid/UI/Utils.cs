@@ -1,4 +1,4 @@
-﻿using Speckle.Core.Kits;
+using Speckle.Core.Kits;
 using Speckle.Core.Models;
 
 using System.Collections.Generic;
@@ -75,6 +75,16 @@ namespace Speckle.ConnectorTopSolid.UI
                 default:
                     throw new System.Exception("The current Unit System is unsupported.");
             }
+        }
+
+        /// <summary>
+        /// Removes all inherited classes from speckle type string
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string SimplifySpeckleType(string type)
+        {
+          return type.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         }
 
 
