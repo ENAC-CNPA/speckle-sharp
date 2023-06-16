@@ -219,9 +219,10 @@ namespace Objects.Converter.TopSolid
             {
                  shapeEntity = topSolidElement;
                  shapeEntity.Parent.IsEdited = true;
-                 shapeEntity.Geometry = BrepToNative(brep, null);
+                 var shape = BrepToNative(brep, null); // Move Synchronize insertion
+                 shapeEntity.Geometry = shape;
                  shapeEntity.Parent.IsEdited = false;
-                 shapeEntity.MakeDisplay();
+                 //shapeEntity.MakeDisplay();
                  shapeEntity.Parent.NeedsExecuting = true; // TODO Test if use MakeDisplay or NeedsExecuting
 
               // throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${brep.applicationId}.");
