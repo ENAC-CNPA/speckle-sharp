@@ -12,6 +12,7 @@ using Speckle.Core.Models;
 using Objects.Geometry;
 using Objects.BuiltElements;
 using TopSolid.Kernel.DB.D3.Shapes;
+using TopSolid.Kernel.G.D3.Shapes;
 using TopSolid.Kernel.DB.Operations;
 
 namespace Objects.Converter.TopSolid
@@ -217,15 +218,36 @@ namespace Objects.Converter.TopSolid
             }
             else // Check if created
             {
-                 shapeEntity = topSolidElement;
-                 shapeEntity.Parent.IsEdited = true;
-                 var shape = BrepToNative(brep, null); // Move Synchronize insertion
-                 shapeEntity.Geometry = shape;
-                 shapeEntity.Parent.IsEdited = false;
-                 //shapeEntity.MakeDisplay();
-                 shapeEntity.Parent.NeedsExecuting = true; // TODO Test if use MakeDisplay or NeedsExecuting
+                  // Get current insertion operation.
+                  Operation currentInsertionOperation = Doc.SynchronizedInsertionOperation;
 
-              // throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${brep.applicationId}.");
+                  // Move insertion after EntitiesCreation.
+                  Doc.MoveSynchronizedInsertionOperation(sfo.NextLocalOperation);
+
+                  shapeEntity = topSolidElement;
+                  shapeEntity.Parent.IsEdited = true;
+
+                  // move the cursor just after Speckle Operation Folder
+
+                  try
+                  {
+                    var shape = BrepToNative(brep, null); // Move Synchronize insertion
+                    shapeEntity.Geometry = shape;
+                  }
+                  finally
+                  {
+                    //HealingTools.SetOperationEditable(entitiesCreation, false);
+                    shapeEntity.Parent.IsEdited = false;
+                    shapeEntity.Parent.NeedsExecuting = true;
+                    //shapeEntity.MakeDisplay(); // Not necessary
+                  }
+
+
+                  // Restore position of synchronized insertion operation.
+                  if (currentInsertionOperation != null)
+                            Doc.MoveSynchronizedInsertionOperation(currentInsertionOperation);
+
+                 // throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${brep.applicationId}.");
             }
 
            
