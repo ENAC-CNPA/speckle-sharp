@@ -272,6 +272,11 @@ namespace Speckle.ConnectorTopSolid.UI
             //    if (lineTypeDictionary.ContainsKey(lineType))
             //        element.LinetypeId = lineTypeDictionary[lineType];
         }
+
+
+
+
+
     }
 
 }
