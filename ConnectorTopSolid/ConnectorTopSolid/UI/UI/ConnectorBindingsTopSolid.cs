@@ -493,9 +493,9 @@ namespace Speckle.ConnectorTopSolid.UI
                           : existingObjs.Count > 0
                             ? ApplicationObject.State.Updated
                             : ApplicationObject.State.Created;
-                    }
+                              }
                     //Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
-
+                  
                     // log to progress report and update progress
                     progress.Report.Log(commitObj);
                     conversionProgressDict["Conversion"]++;
@@ -569,8 +569,8 @@ namespace Speckle.ConnectorTopSolid.UI
 
                   // remove commit info from doc userdata
                   Storage.SpeckleStreamManager.WriteCommit(Doc, null);
-
-                //UndoSequence.End();
+                  Doc.Update(true, true);
+                  //UndoSequence.End();
             }
             catch (Exception ex)
             {
@@ -578,6 +578,7 @@ namespace Speckle.ConnectorTopSolid.UI
                 //UndoSequence.UndoCurrent(); // Cancel
                 //throw;
             }
+
 
         }
 
