@@ -58,7 +58,7 @@ Source: "{#SrcFolder}\fr\Speckle.ConnectorTopSolid.UI.resources.dll"; DestDir: "
 
 ; Speckle AppData files : %appdata%\Roaming\Speckle
 Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.Converter.TopSolid716.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
-Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion;
+Source: "{#SpeckleSrcFolder}\Kits\Objects\Objects.dll"; DestDir: "{userappdata}\Speckle\Kits\Objects"; Flags: ignoreversion onlyifdoesntexist;
 
 
 ; Source: "{#SrcFolder}\DesktopUI2.pdb"; DestDir: "{code:GetTopDir}\bin"; Flags: ignoreversion; Check: IsTopSolidDesignInstalled;

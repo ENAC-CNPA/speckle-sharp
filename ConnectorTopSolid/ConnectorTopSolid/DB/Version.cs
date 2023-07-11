@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -20,7 +20,7 @@ namespace Speckle.ConnectorTopSolid.DB
 		/// <summary>
 		/// Current revision version in string format.
 		/// </summary>
-		public const string CurrentRevisionString = "003";
+		public const string CurrentRevisionString = "004";
 
 
 		/// <summary>
