@@ -376,7 +376,7 @@ namespace Speckle.ConnectorTopSolid.UI
                 //var commitObjs = FlattenCommitObject(commitObject, converter, commitPrefix, state, ref count);
 
                 // flatten the commit object to retrieve children objs
-                int count = 0;
+                //int count = 0;
 
 
                 // TODO TopSolid Add LineType 
@@ -574,6 +574,7 @@ namespace Speckle.ConnectorTopSolid.UI
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Convert receive Commit : " + ex.Message);
                 // TODO : Message box
                 //UndoSequence.UndoCurrent(); // Cancel
                 //throw;
