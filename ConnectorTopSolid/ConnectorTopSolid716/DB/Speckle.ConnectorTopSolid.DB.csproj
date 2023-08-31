@@ -125,6 +125,15 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperation.cs">
+      <Link>Operations\SpeckleFolderOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationReceive.cs">
+      <Link>Operations\SpeckleFolderOperationReceive.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationSend.cs">
+      <Link>Operations\SpeckleFolderOperationSend.cs</Link>
+    </Compile>
     <Compile Include="..\..\ConnectorTopSolid\DB\Properties\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
@@ -137,9 +146,6 @@
     <Compile Include="..\..\ConnectorTopSolid\DB\Version.cs">
       <Link>Version.cs</Link>
     </Compile>
-    <Compile Include="Operations\SpeckleFolderOperation.cs" />
-    <Compile Include="Operations\SpeckleFolderOperationReceive.cs" />
-    <Compile Include="Operations\SpeckleFolderOperationSend.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\DesktopUI2\DesktopUI2\DesktopUI2.csproj">
@@ -148,11 +154,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Operations\SpeckleFolderOperation.resx" />
-    <EmbeddedResource Include="Operations\SpeckleFolderOperationReceive.resx" />
-    <EmbeddedResource Include="Operations\SpeckleFolderOperationSend.resx" />
-  </ItemGroup>
-  <ItemGroup>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperation.resx">
+      <Link>Operations\SpeckleFolderOperation.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationReceive.resx">
+      <Link>Operations\SpeckleFolderOperationReceive.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationSend.resx">
+      <Link>Operations\SpeckleFolderOperationSend.resx</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="Operations\SpeckleFolderOperation.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
