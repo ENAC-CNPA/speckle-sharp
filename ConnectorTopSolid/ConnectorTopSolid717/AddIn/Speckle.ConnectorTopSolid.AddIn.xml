@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TopSolidAddInCertificate version="1">
+	<AddInAssemblyName>Speckle.ConnectorTopSolid.AddIn</AddInAssemblyName>
+	<AddInClassName>Speckle.ConnectorTopSolid.AddIn.AddIn</AddInClassName>
+	<AddInGuid>C534F186-FC35-4B91-8B91-ECF71942011F</AddInGuid>
+	<TopSolidVersion>7.17</TopSolidVersion>
+	<Certificate>FIzB1iXDEQ5RIE1LwOcDr82bOf39IMHWyJy5RXsOcG7H9ieLnYG3oy02hbPrXB4UH8d6eFNkWuLfP15dGqPnA0lGtJyxvb8jsTgr92e9mmJo85nZI1hdnNDnk69yGUwdruO9H0V+QhIAk3ymeq1w0rBTgWAitdjuMiw5DeOU5PabTVfbHxJYZj2IyhyGfPff0LPDjDRfMZAjAE3fMpxg8TCdKUWnlPXtSk6CyXAQKqppOnXRMmY3oFIhBArXDmBgqz4E9bDsUZFmb9xPM6SFmoo2eKxICawdhdTmpU502FV8VQjMN3CshYQrreoKk7iv3MYH8VTi1Upl/5+VacrHAQ==</Certificate>
+</TopSolidAddInCertificate>

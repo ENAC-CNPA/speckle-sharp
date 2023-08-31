@@ -20,7 +20,7 @@
     </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <OutputPath>..\..\..\..\..\..\..\Sources\Topsolid 7.16\Debug x64\</OutputPath>
+    <OutputPath>..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\</OutputPath>
     <PlatformTarget>x64</PlatformTarget>
     <NoWarn>1607</NoWarn>
     <DefineConstants>TRACE;DEBUG;TOPSOLID717</DefineConstants>
@@ -34,12 +34,12 @@
     <WarningLevel>2</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>..\..\..\..\Topsolid 7.16\Release x64\</OutputPath>
+    <OutputPath>..\..\..\..\Topsolid 7.17\Release x64\</OutputPath>
     <DocumentationFile>
     </DocumentationFile>
     <PlatformTarget>x64</PlatformTarget>
     <NoWarn>1607</NoWarn>
-    <DefineConstants>TRACE;TOPSOLID717</DefineConstants>
+    <DefineConstants>TRACE;TOPSOLID716</DefineConstants>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DebugType>pdbonly</DebugType>
     <ErrorReport>prompt</ErrorReport>

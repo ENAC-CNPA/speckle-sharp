@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{0C8A3568-4B4B-4BF9-AC9D-40EF72732940}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Speckle.ConnectorTopSolid.DB</RootNamespace>
+    <AssemblyName>Speckle.ConnectorTopSolid.DB</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <OutputPath>..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <NoWarn>1607</NoWarn>
+    <DefineConstants>TRACE;DEBUG;TOPSOLID717</DefineConstants>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Optimize>false</Optimize>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>..\..\..\..\Topsolid 7.17\Release x64\</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <NoWarn>1607</NoWarn>
+    <DefineConstants>TRACE;TOPSOLID716</DefineConstants>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Optimize>true</Optimize>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="TopSolid.Cad.Design.DB">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.Automating">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D2">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D2.Modeling">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D2.Sketches">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3.Modeling">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3.Shapes">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3.Sketches">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D2.Curves">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D2.Sketches">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.CollisionDetection">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Curves">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Mechanisms">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Shapes">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Sketches">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Surfaces">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Tolerancing">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.GR">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.SX">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.TX">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.WX">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperation.cs">
+      <Link>Operations\SpeckleFolderOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationReceive.cs">
+      <Link>Operations\SpeckleFolderOperationReceive.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationSend.cs">
+      <Link>Operations\SpeckleFolderOperationSend.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Properties\AssemblyInfo.cs">
+      <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Resources.cs">
+      <Link>Resources.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Session.cs">
+      <Link>Session.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\DB\Version.cs">
+      <Link>Version.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\DesktopUI2\DesktopUI2\DesktopUI2.csproj">
+      <Project>{8f879d45-e34b-472e-a597-46ca51052258}</Project>
+      <Name>DesktopUI2</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperation.resx">
+      <Link>Operations\SpeckleFolderOperation.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationReceive.resx">
+      <Link>Operations\SpeckleFolderOperationReceive.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\DB\Operations\SpeckleFolderOperationSend.resx">
+      <Link>Operations\SpeckleFolderOperationSend.resx</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Operations\SpeckleFolderOperation.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
