@@ -144,53 +144,66 @@ namespace Objects.Converter.TopSolid
 
     public Element CurrentHostElement { get; set; }
 
-        public Base ConvertToSpeckle(object @object)
+        public object ConvertToNativeDisplayable(Base @base)
         {
-            switch (@object)
-            {
-                case D3Box o:
-                    return BoxToSpeckle(o);
-
-                case D3Plane o:
-                    return PlaneToSpeckle(o);
-
-                case D3Point o:
-                    return PointToSpeckle(o);
-
-                case D3Vector o:
-                    return VectorToSpeckle(o);
-
-                case D3LineCurve o:
-                    return LineToSpeckle(o);
-
-                case D3PolylineCurve o:
-                    return PolyLineToSpeckle(o);
-
-                case D3BSplineSurface o:
-                    return SurfaceToSpeckle(o);
-
-                case D3Shape o:
-                    return BrepToSpeckle(o);
-
-                case G.D3.Sketches.Planar.PlanarSketch o:
-                    return PlanarSketchToSpeckle(o);
-
-                case G.D3.Sketches.PositionedSketch o:
-                    return PositionedSketchToSpeckle(o);
-
-                case DB.D3.Sketches.PositionedSketchEntity o:
-                    return PositionedSketchToSpeckle(o.Geometry as PositionedSketch);
-
-                case DB.D3.Sketches.Planar.PlanarSketchEntity o:
-                    return PlanarSketchToSpeckle(o.Geometry as PlanarSketch);
-
-                case Element o:
-                    return ElementToSpeckle(o);
-
-                default:
-                    throw new NotSupportedException();
-            }
+          // TODO : Add function in converter 2.16+
+          //var nativeObject = DisplayableObjectToNative(@base);
+          //if (nativeObject.Converted.Cast<Element>().ToList() is List<Element> typedList && typedList.Count >= 1)
+          //{
+          //  receivedObjectsCache?.AddConvertedObjects(@base, typedList);
+          //}
+          //return nativeObject;
+          return null;
         }
+
+
+        public Base ConvertToSpeckle(object @object)
+            {
+                switch (@object)
+                {
+                    case D3Box o:
+                        return BoxToSpeckle(o);
+
+                    case D3Plane o:
+                        return PlaneToSpeckle(o);
+
+                    case D3Point o:
+                        return PointToSpeckle(o);
+
+                    case D3Vector o:
+                        return VectorToSpeckle(o);
+
+                    case D3LineCurve o:
+                        return LineToSpeckle(o);
+
+                    case D3PolylineCurve o:
+                        return PolyLineToSpeckle(o);
+
+                    case D3BSplineSurface o:
+                        return SurfaceToSpeckle(o);
+
+                    case D3Shape o:
+                        return BrepToSpeckle(o);
+
+                    case G.D3.Sketches.Planar.PlanarSketch o:
+                        return PlanarSketchToSpeckle(o);
+
+                    case G.D3.Sketches.PositionedSketch o:
+                        return PositionedSketchToSpeckle(o);
+
+                    case DB.D3.Sketches.PositionedSketchEntity o:
+                        return PositionedSketchToSpeckle(o.Geometry as PositionedSketch);
+
+                    case DB.D3.Sketches.Planar.PlanarSketchEntity o:
+                        return PlanarSketchToSpeckle(o.Geometry as PlanarSketch);
+
+                    case Element o:
+                        return ElementToSpeckle(o);
+
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
 
 
 
@@ -297,6 +310,17 @@ namespace Objects.Converter.TopSolid
         }
 
 
+        public bool CanConvertToNativeDisplayable(Base @object)
+        {
+          // check for schema
+          var schema = @object["@SpeckleSchema"] as Base; // check for contained schema
+          if (schema != null)
+            return CanConvertToNativeDisplayable(schema);
+
+            // TODO : Add function in converter 2.16+
+            //return @object.IsDisplayableObject();
+            return false;
+        }
 
         public bool CanConvertToSpeckle(object @object)
         {

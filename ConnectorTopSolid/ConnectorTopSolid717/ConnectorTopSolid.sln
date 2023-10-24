@@ -5,7 +5,7 @@ VisualStudioVersion = 17.2.32602.215
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Speckle.ConnectorTopSolid.AddIn", "AddIn\Speckle.ConnectorTopSolid.AddIn.csproj", "{197B998A-2851-48B0-99C1-F584156F74C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Speckle.ConnectorTopSolid.UI", "UI\Speckle.ConnectorTopSolid.UI.csproj", "{155758C6-E385-4284-8700-3C3F5A52090C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Speckle.ConnectorTopSolid.UI", "UI\Speckle.ConnectorTopSolid.UI.csproj", "{155758C6-E385-4284-8700-3C3F5A52090C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{630988DA-83DF-42E5-A6F6-50025919ACD7} = {630988DA-83DF-42E5-A6F6-50025919ACD7}
 	EndProjectSection

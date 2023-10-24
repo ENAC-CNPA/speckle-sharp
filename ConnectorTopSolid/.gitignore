@@ -340,8 +340,11 @@ ASALocalRun/
 healthchecksdb
 
 # Build
-ConnectorTopSolid716/setup/Binaries/
 ConnectorTopSolid715/setup/Binaries/
 ConnectorTopSolid715/setup/Sources/
+
+ConnectorTopSolid716/setup/Binaries/
 ConnectorTopSolid716/setup/Sources/
 
+ConnectorTopSolid717/setup/Binaries/
+ConnectorTopSolid717/setup/Sources/

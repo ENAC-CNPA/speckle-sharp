@@ -2,6 +2,7 @@ using DesktopUI2;
 using DesktopUI2.Models;
 using DesktopUI2.Models.Filters;
 using DesktopUI2.Models.Settings;
+using DesktopUI2.Models.TypeMappingOnReceive;
 using DesktopUI2.ViewModels;
 using DynamicData;
 using Speckle.Core.Api;
@@ -29,7 +30,6 @@ using TopSolid.Kernel.DB.Operations;
 using TopSolid.Kernel.SX;
 using TopSolid.Kernel.TX.Undo;
 using TopSolid.Kernel.WX.Printing;
-using static DesktopUI2.ViewModels.MappingViewModel;
 using Application = TopSolid.Kernel.UI.Application;
 
 namespace Speckle.ConnectorTopSolid.UI
@@ -198,11 +198,11 @@ namespace Speckle.ConnectorTopSolid.UI
             // TODO!
         }
 
-        public override async Task<Dictionary<string, List<MappingValue>>> ImportFamilyCommand(Dictionary<string, List<MappingValue>> Mapping)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(500));
-            return new Dictionary<string, List<MappingValue>>();
-        }
+        //public override async Task<Dictionary<string, List<MappingValue>>> ImportFamilyCommand(Dictionary<string, List<MappingValue>> Mapping)
+        //{
+        //    await Task.Delay(TimeSpan.FromMilliseconds(500));
+        //    return new Dictionary<string, List<MappingValue>>();
+        //}
 
         #endregion
 

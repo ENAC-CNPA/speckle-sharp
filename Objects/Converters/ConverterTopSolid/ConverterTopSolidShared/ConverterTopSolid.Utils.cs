@@ -558,11 +558,12 @@ namespace Objects.Converter.TopSolid
 
     public string GetHash(string s)
     {
-      using (MD5 md5 = MD5.Create())
-      {
-        return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(s)))
-                    .Replace("-", "");
-      }
+      return s.GetHashCode().ToString();
+      //using (MD5 md5 = MD5.Create())
+      //{
+      //  return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(s)))
+      //              .Replace("-", "");
+      //}
     }
 
 
