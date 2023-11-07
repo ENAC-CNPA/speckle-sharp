@@ -14,7 +14,6 @@ using Polyline = Objects.Geometry.Polyline;
 using Surface = Objects.Geometry.Surface;
 using Vector = Objects.Geometry.Vector;
 using Curve = Objects.Geometry.Curve;
-using Speckle.Newtonsoft.Json;
 #endregion
 
 #region TopSolid objects using
@@ -32,18 +31,14 @@ using D3BsplineCurve = TopSolid.Kernel.G.D3.Curves.BSplineCurve;
 
 //TopSolid.Kernel.G.D2 Objects
 using D2Point = TopSolid.Kernel.G.D2.Point;
-using D2Box = TopSolid.Kernel.G.D2.Box;
 using D2LineCurve = TopSolid.Kernel.G.D2.Curves.LineCurve;
 using D2PointList = TopSolid.Kernel.G.D2.PointList;
 using D2PolylineCurve = TopSolid.Kernel.G.D2.Curves.PolylineCurve;
-using D2UnitVector = TopSolid.Kernel.G.D2.UnitVector;
 using D2Vector = TopSolid.Kernel.G.D2.Vector;
-using D2BsplineCurve = TopSolid.Kernel.G.D2.Curves.BSplineCurve;
 
 //Others
 using D1Interval = TopSolid.Kernel.G.D1.Generic.Interval<double>;
 using G = TopSolid.Kernel.G;
-using DB = TopSolid.Kernel.DB;
 using TX = TopSolid.Kernel.TX;
 using SX = TopSolid.Kernel.SX;
 using TSX = TopSolid.Kernel.SX.Collections.Generic;
@@ -53,31 +48,18 @@ using TSX = TopSolid.Kernel.SX.Collections.Generic;
 using TopSolid.Kernel.G.D3.Shapes;
 using TopSolid.Kernel.G.D3.Surfaces;
 using TopSolid.Kernel.G.D3;
-using TopSolid.Kernel.G.D3.Curves;
-using Speckle.Core.Kits;
 using TopSolid.Kernel.TX.Items;
 using TopSolid.Kernel.GR.D3;
 using TopSolid.Kernel.G.D3.Shapes.Creations;
 using TopSolid.Kernel.DB.Operations;
-using TopSolid.Kernel.DB.D3.Shapes.Sew;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
-using TopSolid.Kernel.DB.D3.Documents;
-using TopSolid.Kernel.DB.D3.Shapes;
-using TopSolid.Kernel.DB.Parameters;
-using TopSolid.Kernel.TX.Units;
 using TopSolid.Kernel.G.D1;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using Speckle.Core.Models;
 using TopSolid.Kernel.G.D3.Shapes.Sew;
 using TK = TopSolid.Kernel;
-using TopSolid.Kernel.DB.Elements;
-using HarfBuzzSharp;
 using DynamicData;
-using System.Reflection;
-using Speckle.Core.Api;
-using Objects.Other;
-using System.Security.Cryptography;
-using System.Text;
+using TopSolid.Kernel.SX.Collections;
 
 namespace Objects.Converter.TopSolid
 {
@@ -204,6 +186,21 @@ namespace Objects.Converter.TopSolid
       SetInstanceParameters(specklePoint, topSolidpoint);
       return specklePoint;
     }
+    public Point PointToSpeckleWithTransformation(D3Point topSolidpoint, TK.G.D3.Transform inTransform, string units = null)
+    {
+      var u = units ?? ModelUnits;
+      Point specklePointBefore = new Point(topSolidpoint.X, topSolidpoint.Y, topSolidpoint.Z, u);
+
+      Other.Transform speckleTransform = new Other.Transform(
+        new Vector(inTransform.R00, inTransform.R01, inTransform.R02, units),
+        new Vector(inTransform.R10, inTransform.R11, inTransform.R12, units),
+        new Vector(inTransform.R20, inTransform.R21, inTransform.R22, units), new Vector(inTransform.Tx, inTransform.Ty, inTransform.Tz, units));
+      Point specklePoint = new Point();
+      specklePointBefore.TransformTo(speckleTransform, out specklePoint);
+
+      SetInstanceParameters(specklePoint, topSolidpoint);
+      return specklePoint;
+    }
 
     public Point PointToSpeckle(D2Point topSolidpoint, string units = null)
     {
@@ -272,6 +269,11 @@ namespace Objects.Converter.TopSolid
     {
       return new TsPlane(PointToNative(plane.origin), UnitVectorToNative(plane.xdir.Unit()), UnitVectorToNative(plane.ydir.Unit()));
     }
+
+
+
+
+
     #endregion
 
     // LineCurve
@@ -291,8 +293,11 @@ namespace Objects.Converter.TopSolid
       SetInstanceParameters(speckleLine, topSolidline);
       return speckleLine;
     }
-    public D3LineCurve LineToNative(Line line, string units = null)
+    public D3LineCurve LineToNative(Line line, bool isReversed = false, string units = null)
     {
+      if (isReversed)
+        return new D3LineCurve(PointToNative(line.end), PointToNative(line.start));
+
       return new D3LineCurve(PointToNative(line.start), PointToNative(line.end));
     }
     #endregion
@@ -303,7 +308,8 @@ namespace Objects.Converter.TopSolid
     public Base PlanarSketchToSpeckle(G.D3.Sketches.Planar.PlanarSketch topSolidSketch, string units = null)
     {
       var u = units ?? ModelUnits;
-      Base speckleSketch = new Base();  //new Line(PointToSpeckle(topSolidSketch), PointToSpeckle(topSolidSketch.Pe), u);
+
+      Base speckleSketch = new Base();
 
       //SetInstanceParameters(speckleSketch, topSolidSketch);
 
@@ -313,12 +319,15 @@ namespace Objects.Converter.TopSolid
       {
         var geoProfile = profile.MakeGeometricProfile();
         var obj = ObjectToSpeckle(geoProfile);
+        obj["IsSketch"] = "yes";
         list.Add(obj);
       }
 
       speckleSketch["Profiles"] = list;
       speckleSketch["Vertices"] = topSolidSketch.Vertices.Where(X => !X.IsInternal).Select(x => ObjectToSpeckle(x.Geometry));
+
       return speckleSketch;
+
     }
     public G.D3.Sketches.Planar.PlanarSketch PlanarSketchToNative(Line line, string units = null)
     {
@@ -332,10 +341,6 @@ namespace Objects.Converter.TopSolid
       SetInstanceParameters(speckleLine, topSolidSketch);
       return speckleLine;
     }
-    //public G.D3.Sketches.PositionedSketch PositionedSketchToNative(Line line, string units = null)
-    //{
-    //    return new G.D3.Sketches.PositionedSketch();
-    //}
     #endregion
 
     // PolylineCurve
@@ -400,9 +405,11 @@ namespace Objects.Converter.TopSolid
     public Polycurve ProfileToSpeckle(G.D2.Curves.GeometricProfile profile, string units = null)
     {
       var u = units ?? ModelUnits;
+
       Polycurve polyCurve = new Polycurve();
       polyCurve.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve)).ToList();
       polyCurve.units = u;
+
       return polyCurve;
     }
 
@@ -416,11 +423,11 @@ namespace Objects.Converter.TopSolid
     }
 
     //Arc      
-    public CircleCurve ArcToNative(Arc arc, string units = null)
+    public G.D3.Curves.CircleCurve ArcToNative(Arc arc, string units = null)
     {
       //var plane = PlaneToNative(arc.plane);
-      CircleCurve circleCurve = new CircleCurve(PlaneToNative(arc.plane), ScaleToNative((double)arc.radius, arc.units));
-      CircleMaker maker = new CircleMaker(SX.Version.Current, tolerance, global::TopSolid.Kernel.G.Precision.AngularPrecision);
+      G.D3.Curves.CircleCurve circleCurve = new G.D3.Curves.CircleCurve(PlaneToNative(arc.plane), ScaleToNative((double)arc.radius, arc.units));
+      G.D3.Curves.CircleMaker maker = new G.D3.Curves.CircleMaker(SX.Version.Current, tolerance, global::TopSolid.Kernel.G.Precision.AngularPrecision);
       maker.SetByCenterAndTwoPoints(
           PointToNative(arc.plane.origin),
           PointToNative(arc.startPoint),
@@ -460,16 +467,16 @@ namespace Objects.Converter.TopSolid
       var u = units ?? ModelUnits;
       switch (curve)
       {
-        case BSplineCurve bspline:
+        case G.D3.Curves.BSplineCurve bspline:
           return D3BSplineCurveToSpeckle(bspline, u);
-        case CircleCurve circle:
+        case G.D3.Curves.CircleCurve circle:
           if (circle.IsClosed())
             return CircleToSpeckle(circle, u);
           else
             return ArcToSpeckle(circle, u);
-        case LineCurve line:
+        case G.D3.Curves.LineCurve line:
           return LineToSpeckle(line, u);
-        case PolylineCurve poly:
+        case G.D3.Curves.PolylineCurve poly:
           return PolyLineToSpeckle(poly, u);
         default:
           return D3BSplineCurveToSpeckle(curve.GetBSplineCurve(false, false));
@@ -484,20 +491,24 @@ namespace Objects.Converter.TopSolid
       circle.domain = new Interval(0, 1);
       circle.length = 2 * Math.PI * circ.Radius;
       circle.area = Math.PI * circ.Radius * circ.Radius;
+      circle.plane.origin = PointToSpeckle(circ.Center);
+      G.D3.Extent box = (G.D3.Extent)circ.GetBoundingBox();
+      circle.bbox = new Box(circle.plane, new Interval(box.XMin, box.XMax), new Interval(box.YMin, box.YMax), new Interval(box.ZMin, box.ZMax));
       return circle;
     }
 
-    public Circle CircleToSpeckle(CircleCurve circ, string units = null)
+    public Circle CircleToSpeckle(G.D3.Curves.CircleCurve circ, string units = null)
     {
       var u = units ?? ModelUnits;
       var circle = new Circle(PlaneToSpeckle(circ.Plane, u), circ.Radius, u);
       circle.domain = new Interval(0, 1);
       circle.length = 2 * Math.PI * circ.Radius;
       circle.area = Math.PI * circ.Radius * circ.Radius;
+
       return circle;
     }
 
-    public Arc ArcToSpeckle(CircleCurve a, string units = null)
+    public Arc ArcToSpeckle(G.D3.Curves.CircleCurve a, string units = null)
     {
       var u = units ?? ModelUnits;
 
@@ -679,6 +690,88 @@ namespace Objects.Converter.TopSolid
 
       return speckleCurve;
     }
+    public Objects.Geometry.Curve D3BSplineCurveToSpeckleWithTransformation(G.D3.Curves.BSplineCurve topSolidCurve, G.D3.Transform inTransform, string units = null)
+    {
+      Curve speckleCurveBefore = new Curve();
+      var u = units ?? ModelUnits;
+
+
+      //Weights
+      List<double> ptWeights = new List<double>();
+      try
+      {
+        if (topSolidCurve.CWts.Count != 0)
+        {
+          foreach (double weight in topSolidCurve.CWts)
+          {
+            ptWeights.Add(weight);
+          }
+        }
+      }
+      catch { }
+
+      try
+      {
+        double range = (topSolidCurve.Te - topSolidCurve.Ts);
+        D3PointList polyPoints = new D3PointList();
+        for (int i = 0; i < 100; i++)
+        {
+          polyPoints.Add(topSolidCurve.GetPoint((range / 100) * i));
+        }
+        Polyline displayValue = new Polyline();
+        displayValue.value = D3PointsToFlatList(polyPoints);
+        displayValue.units = u;
+        displayValue.closed = false;
+
+        speckleCurveBefore.displayValue = displayValue;
+      }
+      catch { }
+
+      //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
+      List<double> knots = new List<double>();
+
+      for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
+      {
+        knots.Add(topSolidCurve.Bs.ElementAt(i));
+
+      }
+
+      //Prevent errors when weight list is empty
+      if (topSolidCurve.CWts.Count == 0)
+      {
+        ptWeights.Clear();
+        for (int i = 0; i < topSolidCurve.CPts.Count; i++)
+        {
+          ptWeights.Add(1.0);
+        }
+      }
+
+      Interval interval = new Interval(topSolidCurve.Ts, topSolidCurve.Te);
+
+      //set speckle curve info
+      speckleCurveBefore.points = D3PointsToFlatArray(topSolidCurve.CPts).ToList();
+      speckleCurveBefore.knots = knots;
+      speckleCurveBefore.weights = ptWeights;
+      speckleCurveBefore.degree = topSolidCurve.Degree;
+      speckleCurveBefore.periodic = topSolidCurve.IsPeriodic;
+      speckleCurveBefore.rational = topSolidCurve.IsRational;
+      speckleCurveBefore.closed = topSolidCurve.IsClosed();
+      speckleCurveBefore.length = topSolidCurve.GetLength();
+      speckleCurveBefore.domain = interval;
+      //speckleCurve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
+      speckleCurveBefore.units = u;
+
+      Curve speckleCurve = new Curve();
+      Other.Transform speckleTransform = new Other.Transform(
+       new Vector(inTransform.R00, inTransform.R01, inTransform.R02, units),
+       new Vector(inTransform.R10, inTransform.R11, inTransform.R12, units),
+       new Vector(inTransform.R20, inTransform.R21, inTransform.R22, units), new Vector(inTransform.Tx, inTransform.Ty, inTransform.Tz, units));
+      speckleCurveBefore.TransformTo(speckleTransform, out speckleCurve);
+
+      SetInstanceParameters(speckleCurve, topSolidCurve);
+
+      return speckleCurve;
+    }
 
     public Objects.Geometry.Curve Curve2dToSpeckle(G.D2.Curves.BSplineCurve topSolidCurve, string units = null)
     {
@@ -758,16 +851,118 @@ namespace Objects.Converter.TopSolid
 
       return speckleCurve;
     }
+    public Objects.Geometry.Curve Curve2dToSpeckleWithTransformation(G.D2.Curves.BSplineCurve topSolidCurve, TK.G.D3.Transform inTransform, string units = null)
+    {
+      Curve speckleCurveBefore = new Curve();
+      var u = units ?? ModelUnits; //TODO investigate this
+
+
+      List<G.D2.Point> tsPoints = topSolidCurve.CPts.ToList();
+
+      //Weights
+      List<double> ptWeights = new List<double>();
+      try
+      {
+        if (topSolidCurve.CWts.Count != 0)
+        {
+          foreach (double weight in topSolidCurve.CWts)
+          {
+            ptWeights.Add(weight);
+          }
+        }
+      }
+      catch { }
+
+      try
+      {
+        double range = (topSolidCurve.Te - topSolidCurve.Ts);
+        G.D2.PointList polyPoints = new G.D2.PointList();
+        for (int i = 0; i < 100; i++)
+        {
+          polyPoints.Add(topSolidCurve.GetPoint((range / 100) * i));
+        }
+        G.D2.Curves.PolylineCurve tspoly = new G.D2.Curves.PolylineCurve(false, polyPoints);
+        Polyline displayValue = new Polyline();
+        displayValue.value = Points2dToFlatList(polyPoints);
+        displayValue.units = u;
+        displayValue.closed = false;
+
+
+        speckleCurveBefore.displayValue = displayValue;
+      }
+      catch { }
+
+      //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
+      List<double> knots = new List<double>();
+
+      for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
+      {
+        knots.Add(topSolidCurve.Bs.ElementAt(i));
+      }
+
+      //Prevent errors when weight list is empty
+      if (topSolidCurve.CWts.Count == 0)
+      {
+        ptWeights.Clear();
+        for (int i = 0; i < topSolidCurve.CPts.Count; i++)
+        {
+          ptWeights.Add(1.0);
+        }
+      }
+
+      Interval interval = new Interval(topSolidCurve.Ts, topSolidCurve.Te);
+
+      //set speckle curve info
+      speckleCurveBefore.points = Points2dToFlatArray(topSolidCurve.CPts).ToList();
+      speckleCurveBefore.knots = knots;
+      speckleCurveBefore.weights = ptWeights;
+      speckleCurveBefore.degree = topSolidCurve.Degree;
+      speckleCurveBefore.periodic = topSolidCurve.IsPeriodic;
+      speckleCurveBefore.rational = topSolidCurve.IsRational;
+      speckleCurveBefore.closed = topSolidCurve.IsClosed();
+      speckleCurveBefore.length = topSolidCurve.GetLength();
+      speckleCurveBefore.domain = interval;
+      //speckleCurve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
+      speckleCurveBefore.units = u;
+
+      Curve speckleCurve = new Curve();
+      Other.Transform speckleTransform = new Other.Transform(
+      new Vector(inTransform.R00, inTransform.R01, inTransform.R02, units),
+      new Vector(inTransform.R10, inTransform.R11, inTransform.R12, units),
+      new Vector(inTransform.R20, inTransform.R21, inTransform.R22, units), new Vector(inTransform.Tx, inTransform.Ty, inTransform.Tz, units));
+      speckleCurveBefore.TransformTo(speckleTransform, out speckleCurve);
+
+      SetInstanceParameters(speckleCurve, topSolidCurve);
+
+      return speckleCurveBefore;
+    }
+
 
     private G.D3.Curves.Curve CircleToNative(Circle circle)
     {
 
-      CircleCurve circleCurve = new CircleCurve(PlaneToNative(circle.plane), ScaleToNative((double)circle.radius, circle.units));
+      G.D3.Curves.CircleCurve circleCurve = new G.D3.Curves.CircleCurve(PlaneToNative(circle.plane), ScaleToNative((double)circle.radius, circle.units));
+
+      //modif
+      try
+      {
+        G.D3.Curves.CircleMaker maker = new G.D3.Curves.CircleMaker(SX.Version.Current, tolerance, global::TopSolid.Kernel.G.Precision.AngularPrecision);
+        maker.SetByCenterAndTwoPoints(
+            PointToNative(circle.plane.origin),
+            circleCurve.Ps,
+           circleCurve.Pe,
+            false,
+            UnitVectorToNative(circle.plane.normal.Unit()),
+            circleCurve);
+      }
+      catch (Exception e)
+      { }
+
 
       return circleCurve;
 
     }
-    public G.D3.Curves.Curve CurveToNative(ICurve curve)
+    public G.D3.Curves.Curve CurveToNative(ICurve curve, bool isReversed = false, string units = null)
     {
       switch (curve)
       {
@@ -790,7 +985,7 @@ namespace Objects.Converter.TopSolid
           return PolylineToNative(polyline);
 
         case Line line:
-          return LineToNative(line);
+          return LineToNative(line, isReversed);
 
         //case Polycurve polycurve:
         //    return PolycurveToNative(polycurve);
@@ -800,9 +995,9 @@ namespace Objects.Converter.TopSolid
       }
     }
 
-    public EllipseCurve EllipseToNative(Ellipse ellipse)
+    public G.D3.Curves.EllipseCurve EllipseToNative(Ellipse ellipse)
     {
-      return new EllipseCurve(
+      return new G.D3.Curves.EllipseCurve(
           PlaneToNative(ellipse.plane),
           ScaleToNative((double)ellipse.firstRadius, ellipse.units),
           ScaleToNative((double)ellipse.secondRadius, ellipse.units));
@@ -810,15 +1005,15 @@ namespace Objects.Converter.TopSolid
     }
 
 
-    public PolylineCurve PolylineToNative(Polyline polyline)
+    public D3PolylineCurve PolylineToNative(Polyline polyline)
     {
       return new D3PolylineCurve(polyline.closed, ToNativePointList(polyline.points));
 
     }
 
-    public GeometricProfile PolycurveToNative(Polycurve polycurve)
+    public G.D3.Curves.GeometricProfile PolycurveToNative(Polycurve polycurve)
     {
-      GeometricProfile profile = new GeometricProfile();
+      G.D3.Curves.GeometricProfile profile = new G.D3.Curves.GeometricProfile();
       foreach (ICurve segment in polycurve.segments)
       {
         profile.Add(CurveToNative(segment));
@@ -835,19 +1030,19 @@ namespace Objects.Converter.TopSolid
 
       SX.Collections.DoubleList nativeKnot = ToNativeDoubleList(curve.knots);
       var ptsList = curve.GetPoints();
-      PointList nativePts = ToNativePointList(ptsList);
+      G.D3.PointList nativePts = ToNativePointList(ptsList);
       SX.Collections.DoubleList nativeWeights = ToNativeDoubleList(curve.weights.ToList());
       BSpline bspline = new BSpline(isPeriodic, degree, nativeKnot);
       if (isRational)
       {
         //var w = c.Points.ConvertAll(x => x.Weight);
-        BSplineCurve bsplineCurve = new BSplineCurve(bspline, nativePts, nativeWeights);
+        G.D3.Curves.BSplineCurve bsplineCurve = new G.D3.Curves.BSplineCurve(bspline, nativePts, nativeWeights);
         bsplineCurve.SetRange((double)curve.domain.start, (double)curve.domain.end);
         return bsplineCurve;
       }
       else
       {
-        BSplineCurve bsplineCurve = new BSplineCurve(bspline, nativePts);
+        G.D3.Curves.BSplineCurve bsplineCurve = new G.D3.Curves.BSplineCurve(bspline, nativePts);
         bsplineCurve.SetRange((double)curve.domain.start, (double)curve.domain.end);
         return bsplineCurve;
       }
@@ -919,47 +1114,152 @@ namespace Objects.Converter.TopSolid
 
       return speckleSurface;
     }
-    public D3BSplineSurface SurfaceToNative(Surface surface, string units = null)
-    {
-      //var u = units ?? ModelUnits;
-      // Create TopSolid surface
-      //AHW incorrect cause scaling twice ?
-      //List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
-      //  new ControlPoint(
-      //    ScaleToNative(p.x, p.units),
-      //    ScaleToNative(p.y, p.units),
-      //    ScaleToNative(p.z, p.units),
-      //    p.weight,
-      //    p.units)).ToList()).ToList();
 
+    public D3BSplineSurface SurfaceToNative_AFS(Surface surface, int index = 0, string units = null)
+    {
+
+      bool isRational = surface.rational;
+      bool isPeriodicU = surface.closedU;
+      bool isPeriodicV = surface.closedV;
+      var degreeU = surface.degreeU;
+      var degreeV = surface.degreeV;
+      DoubleList knotsU = ToDoubleList(surface.knotsU);
+      DoubleList knotsV = ToDoubleList(surface.knotsV);
       List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
-        new ControlPoint(
-          p.x,
-          p.y,
-          p.z,
-          p.weight,
-          p.units)).ToList()).ToList();
+       new ControlPoint(
+         p.x,
+         p.y,
+         p.z,
+         p.weight,
+         p.units)).ToList()).ToList();
+      var controlPts = surface.GetControlPoints();
+      TSX.List<G.D3.PointList> meshPoints = new TSX.List<G.D3.PointList>();
+      var controlPoints = ControlPointsToNative(surfPts, out meshPoints);
+
+      foreach (var item in surface.GetControlPoints())
+      {
+        foreach (var item2 in item)
+        {
+          if (isPeriodicU || isPeriodicV)
+          {
+            D3Point pt = PointToNative(item2);
+            //pt.CreateDebugEntity(SX.Drawing.Color.Red, null, null);
+          }
+        }
+      }
+
+      int offKnot, nbCPu, nbCPv;
+      DoubleList topKnots = new DoubleList();
+
+      bool isPeriodic = isPeriodicU;
+      if (isPeriodic) // According to v4_WishBone.3dm.
+      {
+        offKnot = degreeU - 1;
+        nbCPu = controlPts.Count - degreeU - 1;//afs
+      }
+      else
+      {
+        offKnot = 0;
+        nbCPu = controlPts.Count;
+
+        topKnots.Add(knotsU[0]);
+      }
+
+
+      for (int i = offKnot; i < surface.knotsU.Count - offKnot; i++)
+        topKnots.Add(knotsU[i]);
+
+
+      if (isPeriodic == false)
+        topKnots.Add(knotsU.Last());
+      else
+      {
+        DoubleList topKnotsAgain = new DoubleList();
+        int iuouoi = 0;
+        foreach (double item in topKnots)
+        {
+          if (Math.Round(item, 2) != 0)
+          {
+            topKnotsAgain.Add(item);
+          }
+          iuouoi++;
+        }
+        topKnots.Clear();
+        topKnots = new DoubleList(topKnotsAgain);
+      }
+
+
+      BSpline bsplineU = new BSpline(isPeriodic, degreeU, topKnots);
+
+      topKnots = new DoubleList();
+
+      isPeriodic = isPeriodicV;
+      if (isPeriodic)
+      {
+        offKnot = degreeV - 1;
+        nbCPv = controlPts[0].Count - degreeV;
+      }
+      else
+      {
+        offKnot = 0;
+        nbCPv = controlPts[0].Count;
+
+        topKnots.Add(knotsV[0]);
+      }
+
+      for (int i = offKnot; i < surface.knotsV.Count - offKnot; i++)
+        topKnots.Add(knotsV[i]);
+
+      if (isPeriodic == false)
+        topKnots.Add(knotsV.Last());
+
+      BSpline bsplV = new BSpline(isPeriodic, degreeV, topKnots);
+
+      DoubleList topWeights = new DoubleList();
+      G.D3.PointList topPnts = new G.D3.PointList();
+
+
+
+
+      for (int i = 0; i < nbCPu; i++)
+        for (int j = 0; j < nbCPv; j++)
+        {
+          D3Point pointToAdd = PointToNative(surfPts[i][j]);
+          topPnts.Add(pointToAdd);
+        }
+
+      for (int k = nbCPu * nbCPv; k < topPnts.Count; k++)
+      {
+        topPnts.RemoveAt(k);
+      }
+
+
+
+      if (surface.rational)
+        return new BSplineSurface(bsplineU, bsplV, topPnts, ToDoubleList(surfPts.SelectMany(x => x).Select(x => x.weight)));
+      else
+        return new BSplineSurface(bsplineU, bsplV, topPnts);
+    }
+
+    public D3BSplineSurface SurfaceToNative(Surface surface, int index = 0, string units = null)
+    {
+      List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
+       new ControlPoint(
+         p.x,
+         p.y,
+         p.z,
+         p.weight,
+         p.units)).ToList()).ToList();
 
 
       var uKnots = SurfaceKnotsToNative(surface.knotsU);
       var vKnots = SurfaceKnotsToNative(surface.knotsV);
-      var ctPts = ControlPointsToNative(surfPts);
+      TSX.List<G.D3.PointList> meshPoints = new TSX.List<G.D3.PointList>();
+      var ctPts = ControlPointsToNative(surfPts, out meshPoints);
 
       BSpline vBspline = new BSpline(surface.closedV, surface.degreeV, ToDoubleList(vKnots));
-      //vBspline.SetRange(new global::TopSolid.Kernel.G.D1.Extent((double)surface.domainV.start, (double)surface.domainV.end));
-      BSpline uBspline = new BSpline(surface.closedU, surface.degreeU, ToDoubleList(uKnots));
-      //uBspline.SetRange(new global::TopSolid.Kernel.G.D1.Extent((double)surface.domainU.start, (double)surface.domainU.end));
 
-      //for (int u = 0; u < points.Count; u++)
-      //{
-      //    for (int v = 0; v < points[u].Count; v++)
-      //    {
-      //        _surface.SetCPt(u, v, PointToNative(points[u][v]));
-      //        _surface.SetCWt(u, v, points[u][v].weight);
-      //        _surface.UBs[u] = surface.knotsU[u];
-      //        _surface.VBs[v] = surface.knotsV[v];
-      //    }
-      //}
+      BSpline uBspline = new BSpline(surface.closedU, surface.degreeU, ToDoubleList(uKnots));
 
       // TODO : Rational option
       if (surface.rational)
@@ -969,45 +1269,38 @@ namespace Objects.Converter.TopSolid
       }
       else
       {
+
         D3BSplineSurface bs = new D3BSplineSurface(uBspline, vBspline, ctPts);
         var gtype = bs.GeometryType;
 
-
-
-        //bs.SetRangeFull();
-
         return bs;
       }
-
-
-
     }
 
-    private PointList ControlPointsToNative(List<List<ControlPoint>> controlPoints)
+
+
+    private G.D3.PointList ControlPointsToNative(List<List<ControlPoint>> controlPoints, out TSX.List<G.D3.PointList> pts)
     {
       var uCount = controlPoints.Count;
       var vCount = controlPoints[0].Count;
       var count = uCount * vCount;
 
-      var points = new PointList(count);
+      var points = new G.D3.PointList(count);
       int p = 0;
 
+      pts = new TSX.List<G.D3.PointList>();
       foreach (var row in controlPoints)
       {
+        G.D3.PointList ptListToAdd = new G.D3.PointList();
         foreach (var pt in row)
         {
           var point = new Point(pt.x, pt.y, pt.z, pt.units);
           points.Add(PointToNative(point));
+          ptListToAdd.Add(PointToNative(point));
         }
+        pts.Add(ptListToAdd);
       }
 
-
-      //controlPoints.ForEach(row =>
-      //  row.ForEach(pt =>
-      //  {
-      //      var point = new Point(pt.x, pt.y, pt.z, pt.units);
-      //      points[p++] = PointToNative(point);
-      //  }));
 
       return points;
     }
@@ -1031,6 +1324,7 @@ namespace Objects.Converter.TopSolid
 
     //Breps & Shapes
     #region Brep
+
     private Brep BrepToSpeckle(Shape shape, string units = null)
     {
       Shape _shape = shape;
@@ -1056,12 +1350,14 @@ namespace Objects.Converter.TopSolid
       List<TSX.List<EdgeList>> globalEdgeList = new List<TSX.List<EdgeList>>(facecount);
       List<SX.Collections.BoolList> globalBoolList = new List<SX.Collections.BoolList>(facecount);
 
-  
+      Dictionary<int, bool> periodicityDictionary = new Dictionary<int, bool>();
       //uv curves, 3d curves and surfaces, per face
       foreach (G.D3.Shapes.Face face in _shape.Faces)
       {
+        SurfaceGeometryType typeOfFace = face.GeometryType;
+
         global2dList.Add(new TSX.List<G.D2.Curves.IGeometricProfile>());
-        global3dList.Add(new TSX.List<IGeometricProfile>());
+        global3dList.Add(new TSX.List<G.D3.Curves.IGeometricProfile>());
         globalEdgeList.Add(new TSX.List<EdgeList>());
         globalBoolList.Add(new SX.Collections.BoolList());
 
@@ -1069,16 +1365,17 @@ namespace Objects.Converter.TopSolid
         var loop3d = global3dList[faceindex];
         var tsEgdes = globalEdgeList[faceindex];
         var boolList = globalBoolList[faceindex];
-  
+
         alias.Faces.Add(new GeometryAlias
         {
           Index = faceindex,
           Moniker = face.Moniker.ToString()
         });
 
-
         //GetTopological info of face
-        OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, false, false, false, boolList, loop2d, loop3d, tsEgdes);
+        OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, true, true, false, FaceTrimmingLoopsConfine.No, boolList, loop2d, loop3d, tsEgdes/*,false*/);
+        bool periodicity = surf.Surface.IsUPeriodic || surf.Surface.IsVPeriodic;
+        periodicityDictionary.Add(faceindex, periodicity);
 
         //Surface
         spcklBrep.Surfaces.Add(SurfaceToSpeckle(surf.Surface as BSplineSurface, u));
@@ -1086,29 +1383,26 @@ namespace Objects.Converter.TopSolid
         faceindex++;
       }
 
-
-
-
       //Flatten lists
       var crv2d = global2dList.SelectMany(x => x.SelectMany(y => y.Segments));
       var crv3d = global3dList.SelectMany(x => x.SelectMany(y => y.Segments));
       var edges = globalEdgeList.SelectMany(x => x.SelectMany(y => y));
-      var tupList = new List<(Edge Edge, IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d)>();
-
-
+      var tupList = new List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d)>();
+      var edC = edges.Count();
+      var crv3dC = crv3d.Count();
+      var crv2dC = crv2d.Count();
       //Vertices
-      List<Vertex> tsVerticesList = _shape.Vertices.ToList();
-
+      List<G.D3.Shapes.Vertex> tsVerticesList = _shape.Vertices.ToList();
 
       spcklBrep.Vertices = tsVerticesList
         .Select(vertex => PointToSpeckle(vertex.GetGeometry(), u)).ToList();
-      
 
       int counter = 0;
 
       //Create a list of tuple linking Edges, crv3d and crv2d ===> some edges are thus repeated
       foreach (var edge in edges)
       {
+        var curve3D = crv3d.ElementAt(counter);
         var myTup = (Edge: edge, Crv3d: crv3d.ElementAt(counter), Crv2d: crv2d.ElementAt(counter));
         tupList.Add(myTup);
         counter++;
@@ -1120,19 +1414,29 @@ namespace Objects.Converter.TopSolid
       int EdgeIndex = 0;
       counter = 0;
       int i = 0; // global Loop index
-      int j = 0;
       int K = 0;
-      var tupwithfaces = new List<(Edge Edge, IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d, int Findex, int Counter, int LoopIndex, int EdgeIndex)>();
-      foreach (var lst in global2dList) //loop through faces
+      var tupwithfaces = new List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d, int Findex, int Counter, int LoopIndex, int EdgeIndex)>();
+
+
+      FaceList facesList = new FaceList();
+      shape.GetFaces(facesList);
+
+      foreach (var lst in global2dList/*global3dList*/) //loop through faces
       {
-        //i = 0;
+        bool isPeriodicSurface = false;
+        periodicityDictionary.TryGetValue(K, out isPeriodicSurface);
+
+        var loopCount = facesList[K].LoopCount;
+        LoopList loops = new LoopList();
+        facesList[K].GetLoops(loops);
+
         foreach (var profile in lst) //loop through loops
         {
-          j = 0;
           foreach (var seg in profile.Segments) //loop through crvs
           {
             if (counter < tupList.Count) //Added to prevent an error when number of edges != number of curves
             {
+
               var edge = tupList.ElementAt(counter).Edge;
 
               if (!listDistinct.Contains(edge))
@@ -1145,22 +1449,23 @@ namespace Objects.Converter.TopSolid
                 EdgeIndex = listDistinct.IndexOf(edge);
               }
 
+              //ici l'index du loop envoyé n'est pas bon
+              //certaines faces ne sont pas décrites à cause de la limite COUNTER
               var mytup = (Edge: edge, crv3d: tupList.ElementAt(counter).Crv3d, crv2d: tupList.ElementAt(counter).Crv2d, faceindex: K, Counter: counter, LoopIndex: i, EdgeIndex: EdgeIndex);
               //tupwithfaces.Add(new Tuple<Edge, IGeometricSegment, G.D2.Curves.IGeometricSegment, int>(tup.ElementAt(counter).Item1, tup.ElementAt(counter).Item2, tup.ElementAt(counter).Item3, K));
               tupwithfaces.Add(mytup);
-              j++;
+
               counter++;
             }
-
-
           }
-          i++;
+          i++;//loop index
         }
+
         K++;
       }
 
       //Create a list of Tuple which associates each edge to a 3d curve and a list of 2D trims
-      var tupforTrims = new List<(Edge Edge, IGeometricSegment Crv3d, List<G.D2.Curves.IGeometricSegment> TrimCrvs, List<int> Crv2dindices)>();
+      var tupforTrims = new List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, List<G.D2.Curves.IGeometricSegment> TrimCrvs, List<int> Crv2dindices)>();
       foreach (var ed in _shape.Edges.OrderBy(x => edges.ToList().IndexOf(x)))
       {
         var localTups = tupList.Where(x => x.Edge == ed); //Get all the tuple with this same edge
@@ -1170,7 +1475,9 @@ namespace Objects.Converter.TopSolid
           crv2dIndices.Add(tupList.IndexOf(tup));
         }
 
-        var mytup = (Edge: ed, Crv3d: tupList.Where(x => x.Edge == ed).First().Crv3d, TrimCrvs: tupList.Where(x => x.Edge == ed).Select(x => x.Crv2d).ToList(), Crv2dindices: crv2dIndices);
+        G.D3.Curves.IGeometricSegment curve3D = tupList.Where(x => x.Edge == ed).First().Crv3d;
+
+        var mytup = (Edge: ed, Crv3d: curve3D, TrimCrvs: tupList.Where(x => x.Edge == ed).Select(x => x.Crv2d).ToList(), Crv2dindices: crv2dIndices);
         tupforTrims.Add(mytup);
       }
 
@@ -1183,13 +1490,17 @@ namespace Objects.Converter.TopSolid
       //Add Faces with correct loops
       foreach (G.D3.Shapes.Face face in _shape.Faces)
       {
+        var typeOfFace = face.GeometryType;
         List<int> faceLoopIndices = new List<int>(face.LoopCount);
         var list = face.Loops;
         foreach (var loop in list)
         {
+          LoopType lp = loop.Type;
           var ind = tsLoopList.IndexOf(loop);
           faceLoopIndices.Add(ind);
-          if (loop.IsOuter)
+          bool isPeriodicU, isPeriodicV = false;
+          face.IsPeriodic(out isPeriodicU, out isPeriodicV);
+          if (loop.IsOuter || (lp == LoopType.Winding && (isPeriodicU || isPeriodicV)))
             outerindex = ind;
         }
         var brepFace = new BrepFace(spcklBrep, faceind, faceLoopIndices, outerindex, face.IsReversed());
@@ -1200,11 +1511,45 @@ namespace Objects.Converter.TopSolid
       }
 
       //Add 3d Curves non repeated
-      BSplineCurve bsCrv3d;
+      G.D3.Curves.BSplineCurve bsCrv3d;
       foreach (var t in tupforTrims)
       {
         bsCrv3d = t.Crv3d.GetOrientedCurve().Curve.GetBSplineCurve(false, false);
-        spcklBrep.Curve3D.Add(D3BSplineCurveToSpeckle(bsCrv3d, u));
+
+        Plane planeToKeep = new Plane();
+        if (bsCrv3d.IsCircular(out G.D3.Curves.CircleCurve circleCurve))
+        {
+          if (circleCurve.IsClosed())
+          {
+            spcklBrep.Curve3D.Add(CircleToSpeckle(circleCurve));
+          }
+          else
+          {
+            D3Point Ps, Pm, Pe, Center;
+            Ps = new D3Point(circleCurve.Ps.X, circleCurve.Ps.Y, 0);
+            Pm = new D3Point(circleCurve.Pm.X, circleCurve.Pm.Y, 0);
+            Pe = new D3Point(circleCurve.Pe.X, circleCurve.Pe.Y, 0);
+            Center = new D3Point(circleCurve.Center.X, circleCurve.Center.Y, 0);
+
+            D3Vector vectorS = new D3Vector(Ps, Center);
+            D3Vector vectorE = new D3Vector(Pe, Center);
+
+            Geometry.Arc arc = new Geometry.Arc();
+            arc.startPoint = PointToSpeckle(circleCurve.Ps);
+            arc.midPoint = PointToSpeckle(circleCurve.Pm);
+            arc.endPoint = PointToSpeckle(circleCurve.Pe);
+            arc.plane = PlaneToSpeckle(circleCurve.Plane);
+            arc.radius = circleCurve.Radius;
+            arc.length = circleCurve.GetLength();
+            arc.domain = new Interval(0, 1);
+
+            spcklBrep.Curve3D.Add(arc);
+          }
+        }
+        else
+        {
+          spcklBrep.Curve3D.Add(D3BSplineCurveToSpeckle(bsCrv3d, u));
+        }
       }
 
       //Add 2D curves
@@ -1212,7 +1557,6 @@ namespace Objects.Converter.TopSolid
       foreach (var t in tupList)
       {
         bsCrv2d = t.Crv2d.GetOrientedCurve().Curve.GetBSplineCurve(false, false);
-        spcklBrep.Curve2D.Add(Curve2dToSpeckle(bsCrv2d, Units.None));
       }
 
       // Add Tags.vertices
@@ -1229,6 +1573,8 @@ namespace Objects.Converter.TopSolid
       foreach (var tuple in tupforTrims)
       {
         var localEdge = tuple.Edge;
+        EdgeType typeOfEdge = tuple.Edge.Type;
+
         startVertInd = tsVerticesList.IndexOf(localEdge.StartVertex);
         endVertInd = tsVerticesList.IndexOf(localEdge.EndVertex);
 
@@ -1254,14 +1600,14 @@ namespace Objects.Converter.TopSolid
 
         //// Update Edge in all vertices
         //foreach (var item in localEdge.Vertices) 
-        
+
         //{
         //  var findex = _shape.Vertices.ToList().FindIndex(x => x.Moniker == item.Moniker);
 
         //  // TODO : Check if no surface and edges => can't force moniker
         //  string eHach = string.Join("-", item.Edges.ToList().Select(f => f.Moniker).OrderBy(s => s));
         //  string vHash = GetHash(alias.Vertices[findex].Hash + "+" + eHach);
-         
+
         //  alias.Vertices[findex].Hash = (vHash);
         //}
 
@@ -1289,13 +1635,14 @@ namespace Objects.Converter.TopSolid
           type = BrepLoopType.Inner;
         else if (l.IsOuter)
           type = BrepLoopType.Outer;
-        else type = BrepLoopType.Unknown;
+        else
+        { type = BrepLoopType.Unknown; }
 
         var loop = new BrepLoop();
         loop.Brep = spcklBrep;
         loop.FaceIndex = tsFaceList.IndexOf(l.GetFace());
-        //loop.TrimIndices = trimIndices;
         loop.Type = type;
+
 
         //Better ordered than getting the Edges via Loop.Edges
         foreach (var tup in tupwithfaces)
@@ -1305,23 +1652,17 @@ namespace Objects.Converter.TopSolid
           else
           {
             var trim = new BrepTrim();
-
-
-            var ind = tup.EdgeIndex;
-            var in2d = tup.Counter;
-
             trim.Brep = spcklBrep;
-            trim.EdgeIndex = ind;
+            trim.EdgeIndex = tup.EdgeIndex;
             trim.FaceIndex = tup.Findex;
             trim.LoopIndex = loopIndex;
-            trim.CurveIndex = in2d;
+            trim.CurveIndex = tup.Counter;
             trim.IsoStatus = 0;
             if (tup.Edge.Type == EdgeType.Boundary)
               trim.TrimType = BrepTrimType.Boundary;
             else
               trim.TrimType = BrepTrimType.Unknown;
             var c2d = tup.Crv2d;
-            //trim.IsReversed = localtup.Edge.IsReversedWithFin(localFace);
             trim.IsReversed = c2d.IsReversed;
             trim.Domain = new Interval(c2d.Range.Min, c2d.Range.Max);
             spcklBrep.Trims.Add(trim);
@@ -1336,6 +1677,7 @@ namespace Objects.Converter.TopSolid
         counter++;
       }
 
+
       //necessary in order to have Trims counted per Loop 
       loopIndex = 0;
       foreach (var l in spcklBrep.Loops)
@@ -1346,19 +1688,23 @@ namespace Objects.Converter.TopSolid
         }
         loopIndex++;
       }
-      
+
       spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
       //Find display values in geometries
       List<Mesh> displayValue = new List<Mesh>();
       displayValue.Add(ShapeDisplayToMesh(shape, u));
       spcklBrep.displayValue = displayValue;
       SetInstanceParameters(spcklBrep, shape, alias);
+
+
       return spcklBrep;
     }
+
 
     OperationList operationsList = new OperationList();
     private Shape BrepToNative(Brep brep, string units = null)
     {
+
       var u = units ?? ModelUnits;
       ModelingDocument doc = Doc;
 
@@ -1378,37 +1724,32 @@ namespace Objects.Converter.TopSolid
       if (shapeList != null && shapeList.Count > 1)
       {
         SheetsSewer sheetsSewer = new SheetsSewer(SX.Version.Current, shapeList.First());
-        sheetsSewer.GapWidth = G.Precision.ModelingLinearTolerance;
-        sheetsSewer.NbIterations = 8;
+        //sheetsSewer.GapWidth = G.Precision.ModelingLinearTolerance;
+        sheetsSewer.GapWidth = tol/*0.1*/;//afs modif
+        sheetsSewer.NbIterations = 1;
         sheetsSewer.CreateNewBodies = true;
         sheetsSewer.ResetEdgesPrecision = true;
-        sheetsSewer.Merges = true;
+        sheetsSewer.Merges = true;//afs comment
         Shape currentShape;
         currentShape = shapeList[0];
 
-        if (shapeList[0].Faces != null && shapeList[0].Faces.Count() > 0)
-        {
-          currentShape.Faces.First().SetMoniker(new ItemMoniker(new SX.CString(alias.Faces[0].Moniker)));
-        }
-
-        // Face Moniker   : F142(1)
-        //shapeList.First().Edges.Select(e => {e. })
         for (int i = 1; i < shapeList.Count; i++)
         {
           currentShape = shapeList[i];
 
           foreach (var face in currentShape.Faces)
           {
-            face.SetMoniker(new ItemMoniker(new SX.CString(alias.Faces[i].Moniker)));
-            Console.WriteLine( face.Edges.Select(e => e.Moniker).ToString());
+            Console.WriteLine(face.Edges.Select(e => e.Moniker).ToString());
           }
           sheetsSewer.AddTool(currentShape, i);
-
         }
+
 
         try
         {
-          sheetsSewer.Sew(null);
+          sheetsSewer.Sew(ItemOperationKey.BasicKey);
+          sheetsSewer.ResetEdgesPrecision = true;
+          EdgeList edgeErrors = sheetsSewer.ErrorEdges;
         }
         catch (Exception ex)
         {
@@ -1441,23 +1782,24 @@ namespace Objects.Converter.TopSolid
           string vHash = GetHashVertex(vertex, -1).Hash;
 
           string newMoniker = null;
-          foreach (var va in alias.Vertices)
-          {
-            if (va.Hash == vHash)
-            {
-              newMoniker = va.Moniker;
-            }
-          }
-          //alias.Vertices.Find(v => v.Hash == vHash)?.Moniker;
+          //AFS commented
+          //foreach (var va in alias.Vertices)
+          //{
+          //  if (va.Hash == vHash)
+          //  {
+          //    newMoniker = va.Moniker;
+          //  }
+          //}
 
-          if (newMoniker != null) vertex.SetMoniker(new ItemMoniker(new SX.CString(newMoniker)));
+          //if (newMoniker != null) vertex.SetMoniker(new ItemMoniker(new SX.CString(newMoniker)));
         }
 
         // TODO : Controle is modified compared hash of brep
 
+        sheetsSewer.Shape.AddRollbackMark(true, false, false, true, out _);
 
         return sheetsSewer.Shape;
-          
+
       }
 
       return shapeList[0];
@@ -1470,12 +1812,14 @@ namespace Objects.Converter.TopSolid
       //var u = units ?? ModelUnits;
       double tol_TS = tol;
       Shape shape = null;
-      ShapeList ioShapes = new ShapeList();
+      ShapeList ioShapes = new ShapeList(brep.Faces.Count);
       int faceind = 0;
       foreach (BrepFace bface in brep.Faces)
       {
         shape = null;
+
         shape = MakeSheetFrom3d(brep, bface, tol_TS, faceind++, alias);
+
 
         if (shape == null || shape.IsEmpty)
         {
@@ -1504,112 +1848,146 @@ namespace Objects.Converter.TopSolid
 
       Surface surface = inBRep.Surfaces[inFace.SurfaceIndex];
 
-      // Reverse surface and curves in 3d mode(according to the drilled cylinder crossed by cube in v5_example.3dm).
-      //if (inFace.rev)
-      //    surface = ImporterHelper.MakeReversed(surface); // Useless.
 
       // Closed BSpline surfaces must not be periodic for parasolid with 3d curves (according to wishbone.3dm and dinnermug.3dm).
       // If new problems come, see about the periodicity of the curves.
 
       //TODO check if planar to simplify            
+      BSplineSurface bsSurface = SurfaceToNative_AFS(surface);
 
-      BSplineSurface bsSurface = SurfaceToNative(surface);
-
+      bool isSurfPeriodic = false;
       if (bsSurface != null && (bsSurface.IsUPeriodic || bsSurface.IsVPeriodic))
       {
+        isSurfPeriodic = true;
         bsSurface = (BSplineSurface)bsSurface.Clone();
+        bsSurface.CreateDebugEntity(SX.Drawing.Color.Red, null, null);
 
         if (bsSurface.IsUPeriodic)
+        {
           bsSurface.MakeUNonPeriodic();
+        }
 
         if (bsSurface.IsVPeriodic)
+        {
           bsSurface.MakeVNonPeriodic();
-        //bsSurface.MakeVNonPeriodic();
-
+        }
       }
 
-      // Recupérer la valeur de sheetMaker (list, etc)
-      sheetMaker.Surface = new OrientedSurface(bsSurface, false);
-      sheetMaker.SurfaceMoniker = new ItemMoniker(false, (byte)ItemType.ShapeFace, key, 1);
 
+      // Recupérer la valeur de sheetMaker (list, etc)
+
+      sheetMaker.Surface = new OrientedSurface(bsSurface, /*inFace.OrientationReversed*/false);//afs modif
+      sheetMaker.SurfaceMoniker = new ItemMoniker(false, (byte)ItemType.ShapeFace, key, faceindex/*1*/);
+
+
+      #region AFS modified
       // Get spatial curves and set to maker.
-      int loopCount = inBRep.Faces.ElementAt(faceindex).Loops.Count;
-      TSX.List<G.D3.Curves.CurveList> loops3d = new TSX.List<G.D3.Curves.CurveList>(loopCount);
+      TK.SX.Collections.Generic.List<G.D3.Curves.CurveList> loops3d = new TK.SX.Collections.Generic.List<G.D3.Curves.CurveList>();
       TSX.List<ItemMonikerList> listItemMok = new TSX.List<ItemMonikerList>();
-      for (int k = 0; k < loopCount; k++)
+      TSX.List<ItemMonikerList> listOfmonikersForVertices = new TSX.List<ItemMonikerList>();
+
+      int loopIndex = 0;
+      int indexMoniker = 0;
+      int indexVertices = 0;
+
+      List<ICurve> curvesInFace = inFace.Brep.Curve3D;
+
+
+      foreach (BrepLoop loop in inFace.Loops)
       {
         loops3d.Add(new G.D3.Curves.CurveList());
         listItemMok.Add(new ItemMonikerList());
-      }
 
+        ItemMonikerList monikersForCurves = new ItemMonikerList();
+        ItemMonikerList verticesMonikers = new ItemMonikerList();
 
-
-      int i = 0;
-
-      //List<int> indices = new List<int>();
-
-
-      int loopindex = 0;
-      int counter = 0;
-      int edgeIndex;
-      foreach (BrepLoop loop in inBRep.Faces.ElementAt(faceindex).Loops)
-      {
-        foreach (BrepTrim trim in loop.Trims)
+        G.D3.Curves.CurveList curvesToAdd = new G.D3.Curves.CurveList();
+        ItemMonikerList monikersCurves = new ItemMonikerList();
+        int indexInLoop = 0;
+        foreach (var trim in loop.Trims)
         {
-          edgeIndex = trim.EdgeIndex;
-          G.D3.Curves.Curve nativeCurve = CurveToNative(inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex)); //TODO check a more general way to cast ICurve to Curve even for lines
-          
-          string curMoniker = null;
-          foreach (var e in alias.Edges)
-          {
-            if (e.Index == edgeIndex)
-            {
-              curMoniker = e.Moniker;
-              break;
-            }
-          }
+          //if (loops3d.Count < loopIndex - 1 || listItemMok.Count < loopIndex - 1) break;
 
-          if (nativeCurve != null)
+          if (trim.Edge != null) //trim.Edge can be null for singular Trims
           {
-            var convertedCrv = nativeCurve;
-            // TODO : Force moniker
-            //listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-           
-            listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(curMoniker)));
-            loops3d.ElementAt(loopindex).Add(convertedCrv);
-          }
-
-          else if (inBRep.Curve3D.ElementAt(trim.Edge.Curve3dIndex) is Polycurve polyCurve)
-          {
-            GeometricProfile profile = PolycurveToNative(polyCurve);
-            if (profile != null)
+            if (trim.Edge.Curve is not Circle)
             {
-              foreach (var seg in profile.Segments)
-              {
-                // TODO : Force moniker
-                //TODO in case same moniker
-                //listItemMok.ElementAt(loopindex).Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, i++));
-                listItemMok.ElementAt(loopindex).Add(new ItemMoniker(new SX.CString(curMoniker)));
-                loops3d.ElementAt(loopindex).Add(seg.GetOrientedCurve().Curve);
-              }
+              G.D3.Curves.Curve curveToAdd = CurveToNative(trim.Edge.Curve);
+              curvesToAdd.Add(curveToAdd);
             }
+            else
+            {
+              G.D3.Curves.Curve curveToAdd = CircleToNative(trim.Edge.Curve as Circle);
+              curvesToAdd.Add(curveToAdd);
+            }
+            monikersCurves.Add(new ItemMoniker(false, (byte)ItemType.SketchSegment, key, new int[] { faceindex, indexMoniker }));
+            indexMoniker++;
+
+            // Make vertices monikers.
+            D3Point verticeStart;
+            if (trim.Edge.Curve is not Circle)
+            {
+              verticeStart = PointToNative(trim.Edge.StartVertex);
+              verticesMonikers.Add(new ItemMoniker(false, (byte)ItemType.SketchVertex, key, new int[] { faceindex, indexMoniker, indexVertices }));
+            }
+
+            indexVertices++;
+            indexInLoop++;
+
           }
-          counter++;
         }
-        loopindex++;
+
+        if (curvesToAdd.Count > 0)
+        {
+          G.D3.Curves.CurveList curvesToAdd_Ordered = new G.D3.Curves.CurveList();
+          curvesToAdd.MakeOrdered(tolerance, curvesToAdd_Ordered);
+
+          loops3d[loopIndex].Add(curvesToAdd_Ordered);
+          listItemMok[loopIndex].Add(monikersCurves);
+
+          loopIndex++;
+
+          if (verticesMonikers.Count > 0)
+            listOfmonikersForVertices.Add(verticesMonikers);
+        }
+
+
       }
+      #endregion
+
+
+
       if (loops3d != null && loops3d.Count != 0)
       {
-        // if (inFace.rev == false || ImporterHelper.MakeReversed(loops3d)) // Useless
         {
-          sheetMaker.SetCurves(loops3d, listItemMok);
+
+          sheetMaker.SetCurves(loops3d, null/*listItemMok*/);
+          if (isSurfPeriodic)
+          {
+            var simplifiedSurface = bsSurface.Simplify(SX.Version.Current, tolerance);
+            if (simplifiedSurface!=null)
+              sheetMaker.Surface = new OrientedSurface(simplifiedSurface, false);//afs modif
+          }
+
+
+          bool valid = sheetMaker.IsValid;
           try
           {
-            //shape = sheetMaker.Make(null, ItemOperationKey.BasicKey);
-            shape = sheetMaker.Make(null, null);
+            shape = sheetMaker.Make(null, TK.TX.Items.ItemOperationKey.BasicKey);
+
+            shape.SetDefaultMonikers(new ItemMonikerKey(TK.TX.Items.ItemOperationKey.BasicKey));
+            //shape.CreateDebugEntity(SX.Drawing.Color.White, null, null);
+
           }
           catch (Exception e)
           {
+            foreach (var curveList in loops3d)
+            {
+              foreach (var curve in curveList)
+              {
+                curve.CreateDebugEntity(SX.Drawing.Color.Red, null, null);
+              }
+            }
             Console.WriteLine(e);
           }
         }
@@ -1663,7 +2041,7 @@ namespace Objects.Converter.TopSolid
       speckleMesh.faces = faces;
       speckleMesh.vertices = verts;
       speckleMesh.units = u;
-      speckleMesh["renderMaterial"] = RenderMaterialToSpeckle(shape.Owner as Element);
+      //speckleMesh["renderMaterial"] = RenderMaterialToSpeckle(shape.Owner as Element);
 
       return speckleMesh;
     }

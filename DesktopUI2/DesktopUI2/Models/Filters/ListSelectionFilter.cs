@@ -14,13 +14,19 @@ public class ListSelectionFilter : ISelectionFilter
   public string Description { get; set; }
   public List<string> Selection { get; set; } = new();
   public Type ViewType { get; } = typeof(ListFilterView);
+  public bool AllowMultipleSelection { get; set; }
 
   public string Summary
   {
     get
     {
       if (Selection.Count != 0)
-        return string.Join(", ", Selection);
+      {
+        if (AllowMultipleSelection)
+          return string.Join(", ", Selection);
+        else
+          return Selection[0];
+      }
       return "nothing";
     }
   }
