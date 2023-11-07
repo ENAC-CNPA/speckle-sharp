@@ -24,6 +24,7 @@ namespace Speckle.ConnectorTopSolid.UI.Entry
     {
         #region Avalonia parent window
         [DllImport("user32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.UserDirectories)]
         static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr value);
         const int GWL_HWNDPARENT = -8;
         private const UInt32 DLGC_WANTARROWS = 0x0001;
