@@ -84,6 +84,7 @@
     <EmbeddedResource Include="..\..\ConnectorTopSolid\AddIn\Resources.fr.resx">
       <Link>Resources.fr.resx</Link>
       <DependentUpon>Resources.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\..\ConnectorTopSolid\AddIn\Resources.resx">
       <Link>Resources.resx</Link>

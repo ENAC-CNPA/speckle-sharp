@@ -118,12 +118,12 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="$Description" xml:space="preserve">
-    <value>AddIn dedicated to training sessions</value>
+    <value>TopSolid -Speckle Connector</value>
   </data>
   <data name="$Manufacturer" xml:space="preserve">
-    <value>Missler Software ADS</value>
+    <value>TopSolid - EPFL</value>
   </data>
   <data name="$Name" xml:space="preserve">
-    <value>Speckle</value>
+    <value>TopSolid -Speckle Connector</value>
   </data>
 </root>
