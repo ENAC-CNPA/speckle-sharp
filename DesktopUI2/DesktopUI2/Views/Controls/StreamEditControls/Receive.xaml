@@ -146,7 +146,7 @@
             SelectedItem="{Binding SelectedReceiveMode}" />
           <!--  AUTO RECEIVE  -->
           <icons:MaterialIcon
-            Grid.Row="1"
+            Grid.Row="1" IsVisible="False"
             Grid.Column="0"
             Margin="0"
             VerticalAlignment="Center"
@@ -154,7 +154,7 @@
             Kind="InfoCircle"
             ToolTip.Tip="{Binding UseFe2, Converter={StaticResource Fe2TextValueConverter}, ConverterParameter='Automatically receive&#x0a;when this branch is updated.&#x0a;NOTE: use with caution!'}" />
           <ToggleSwitch
-            Grid.Row="1"
+            Grid.Row="1" IsVisible="False"
             Grid.Column="1"
             Margin="5,10,0,10"
             HorizontalAlignment="Stretch"

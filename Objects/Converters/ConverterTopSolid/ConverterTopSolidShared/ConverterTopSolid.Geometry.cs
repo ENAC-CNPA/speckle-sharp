@@ -60,6 +60,7 @@ using TopSolid.Kernel.G.D3.Shapes.Sew;
 using TK = TopSolid.Kernel;
 using DynamicData;
 using TopSolid.Kernel.SX.Collections;
+using ItemType = TopSolid.Kernel.TX.Items.ItemType;
 
 namespace Objects.Converter.TopSolid
 {
@@ -175,6 +176,7 @@ namespace Objects.Converter.TopSolid
       }
       return points;
     }
+ 
     #endregion
 
     // Points
@@ -1136,17 +1138,6 @@ namespace Objects.Converter.TopSolid
       TSX.List<G.D3.PointList> meshPoints = new TSX.List<G.D3.PointList>();
       var controlPoints = ControlPointsToNative(surfPts, out meshPoints);
 
-      foreach (var item in surface.GetControlPoints())
-      {
-        foreach (var item2 in item)
-        {
-          if (isPeriodicU || isPeriodicV)
-          {
-            D3Point pt = PointToNative(item2);
-            //pt.CreateDebugEntity(SX.Drawing.Color.Red, null, null);
-          }
-        }
-      }
 
       int offKnot, nbCPu, nbCPv;
       DoubleList topKnots = new DoubleList();
@@ -1154,8 +1145,13 @@ namespace Objects.Converter.TopSolid
       bool isPeriodic = isPeriodicU;
       if (isPeriodic) // According to v4_WishBone.3dm.
       {
-        offKnot = degreeU - 1;
+        /*
+        offKnot = degreeU - 1;       
         nbCPu = controlPts.Count - degreeU - 1;//afs
+        //nbCPu = controlPts.Count - degreeU;
+        */
+        offKnot = 1;
+        nbCPu = controlPts.Count - 2;
       }
       else
       {
@@ -1172,26 +1168,12 @@ namespace Objects.Converter.TopSolid
 
       if (isPeriodic == false)
         topKnots.Add(knotsU.Last());
-      else
-      {
-        DoubleList topKnotsAgain = new DoubleList();
-        int iuouoi = 0;
-        foreach (double item in topKnots)
-        {
-          if (Math.Round(item, 2) != 0)
-          {
-            topKnotsAgain.Add(item);
-          }
-          iuouoi++;
-        }
-        topKnots.Clear();
-        topKnots = new DoubleList(topKnotsAgain);
-      }
 
 
       BSpline bsplineU = new BSpline(isPeriodic, degreeU, topKnots);
 
       topKnots = new DoubleList();
+      
 
       isPeriodic = isPeriodicV;
       if (isPeriodic)
@@ -1219,21 +1201,20 @@ namespace Objects.Converter.TopSolid
       G.D3.PointList topPnts = new G.D3.PointList();
 
 
-
-
       for (int i = 0; i < nbCPu; i++)
+      {
         for (int j = 0; j < nbCPv; j++)
         {
           D3Point pointToAdd = PointToNative(surfPts[i][j]);
           topPnts.Add(pointToAdd);
-        }
+        }        
+      }
+
 
       for (int k = nbCPu * nbCPv; k < topPnts.Count; k++)
       {
         topPnts.RemoveAt(k);
       }
-
-
 
       if (surface.rational)
         return new BSplineSurface(bsplineU, bsplV, topPnts, ToDoubleList(surfPts.SelectMany(x => x).Select(x => x.weight)));
@@ -1319,6 +1300,7 @@ namespace Objects.Converter.TopSolid
 
       return knots;
     }
+    
 
     #endregion
 
@@ -1335,7 +1317,8 @@ namespace Objects.Converter.TopSolid
       alias.Vertices = new List<GeometryAliasLinked>();
 
       //Variables and global counters (not to be reinitialized for each face)
-      double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
+      //double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
+      double tol = global::TopSolid.Kernel.G.Precision.ModelingLinearTolerance;
       var u = units ?? ModelUnits;
       int faceindex = 0;
       int loopIndex = 0;
@@ -1356,29 +1339,54 @@ namespace Objects.Converter.TopSolid
       {
         SurfaceGeometryType typeOfFace = face.GeometryType;
 
-        global2dList.Add(new TSX.List<G.D2.Curves.IGeometricProfile>());
-        global3dList.Add(new TSX.List<G.D3.Curves.IGeometricProfile>());
-        globalEdgeList.Add(new TSX.List<EdgeList>());
-        globalBoolList.Add(new SX.Collections.BoolList());
+       
+          global2dList.Add(new TSX.List<G.D2.Curves.IGeometricProfile>());
+          global3dList.Add(new TSX.List<G.D3.Curves.IGeometricProfile>());
+          globalEdgeList.Add(new TSX.List<EdgeList>());
+          globalBoolList.Add(new SX.Collections.BoolList());
 
-        var loop2d = global2dList[faceindex];
-        var loop3d = global3dList[faceindex];
-        var tsEgdes = globalEdgeList[faceindex];
-        var boolList = globalBoolList[faceindex];
+          var loop2d = global2dList[faceindex];
+          var loop3d = global3dList[faceindex];
+          var tsEgdes = globalEdgeList[faceindex];
+          var boolList = globalBoolList[faceindex];
 
-        alias.Faces.Add(new GeometryAlias
+          alias.Faces.Add(new GeometryAlias
+          {
+            Index = faceindex,
+            Moniker = face.Moniker.ToString()
+          });
+        if (typeOfFace != SurfaceGeometryType.Sphere)
         {
-          Index = faceindex,
-          Moniker = face.Moniker.ToString()
-        });
+          //GetTopological info of face
+          OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, true, true, false, FaceTrimmingLoopsConfine.No, boolList, loop2d, loop3d, tsEgdes/*,false*/);
+          
+          bool periodicity = surf.Surface.IsUPeriodic || surf.Surface.IsVPeriodic;
+          periodicityDictionary.Add(faceindex, periodicity);
 
-        //GetTopological info of face
-        OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, true, true, false, FaceTrimmingLoopsConfine.No, boolList, loop2d, loop3d, tsEgdes/*,false*/);
-        bool periodicity = surf.Surface.IsUPeriodic || surf.Surface.IsVPeriodic;
-        periodicityDictionary.Add(faceindex, periodicity);
-
-        //Surface
-        spcklBrep.Surfaces.Add(SurfaceToSpeckle(surf.Surface as BSplineSurface, u));
+          //Surface
+          spcklBrep.Surfaces.Add(SurfaceToSpeckle(surf.Surface as BSplineSurface, u));
+        }
+        else
+        {
+          var surfs=face.GetBsplineGeometry(tol, true, true, false);
+          var bSplineSurf = surfs.GetBsplineGeometry(tol, true, true, false);
+          EdgeList edList = new EdgeList();
+          face.GetEdges(edList);
+          tsEgdes.Add(edList);
+          LoopList loops = new LoopList();
+          face.GetLoops(loops);
+          int indLoop = 0;
+          foreach (var loop in loops)
+          {            
+            TX.Items.ItemMonikerKey key = new TX.Items.ItemMonikerKey(TX.Items.ItemOperationKey.BasicKey);
+            var crv3dCurve = loop.MakeGeometricProfile(new ItemMoniker(false, (byte)ItemType.ShapeFace, key, new int[] { faceindex, indLoop }));
+            loop3d.Add(crv3dCurve);
+            var crv2dCurve = crv3dCurve.MakeD2GeometricProfile(new TsPlane(Frame.OXYZ));
+            loop2d.Add(crv2dCurve);
+            indLoop++;
+          }
+          spcklBrep.Surfaces.Add(SurfaceToSpeckle(bSplineSurf, u));
+        }
 
         faceindex++;
       }
@@ -1557,6 +1565,7 @@ namespace Objects.Converter.TopSolid
       foreach (var t in tupList)
       {
         bsCrv2d = t.Crv2d.GetOrientedCurve().Curve.GetBSplineCurve(false, false);
+        //spcklBrep.Curve2D.Add(BSplineCurveToSpeckle(bsCrv2d));
       }
 
       // Add Tags.vertices
@@ -1726,7 +1735,7 @@ namespace Objects.Converter.TopSolid
         SheetsSewer sheetsSewer = new SheetsSewer(SX.Version.Current, shapeList.First());
         //sheetsSewer.GapWidth = G.Precision.ModelingLinearTolerance;
         sheetsSewer.GapWidth = tol/*0.1*/;//afs modif
-        sheetsSewer.NbIterations = 1;
+        sheetsSewer.NbIterations = 5;
         sheetsSewer.CreateNewBodies = true;
         sheetsSewer.ResetEdgesPrecision = true;
         sheetsSewer.Merges = true;//afs comment
@@ -1853,14 +1862,13 @@ namespace Objects.Converter.TopSolid
       // If new problems come, see about the periodicity of the curves.
 
       //TODO check if planar to simplify            
-      BSplineSurface bsSurface = SurfaceToNative_AFS(surface);
+      BSplineSurface bsSurface = SurfaceToNative_AFS(surface);      
 
       bool isSurfPeriodic = false;
       if (bsSurface != null && (bsSurface.IsUPeriodic || bsSurface.IsVPeriodic))
       {
         isSurfPeriodic = true;
         bsSurface = (BSplineSurface)bsSurface.Clone();
-        bsSurface.CreateDebugEntity(SX.Drawing.Color.Red, null, null);
 
         if (bsSurface.IsUPeriodic)
         {
@@ -1940,7 +1948,7 @@ namespace Objects.Converter.TopSolid
         if (curvesToAdd.Count > 0)
         {
           G.D3.Curves.CurveList curvesToAdd_Ordered = new G.D3.Curves.CurveList();
-          curvesToAdd.MakeOrdered(tolerance, curvesToAdd_Ordered);
+          curvesToAdd.MakeOrdered(inLinearPrecision, curvesToAdd_Ordered);
 
           loops3d[loopIndex].Add(curvesToAdd_Ordered);
           listItemMok[loopIndex].Add(monikersCurves);
@@ -1964,9 +1972,12 @@ namespace Objects.Converter.TopSolid
           sheetMaker.SetCurves(loops3d, null/*listItemMok*/);
           if (isSurfPeriodic)
           {
-            var simplifiedSurface = bsSurface.Simplify(SX.Version.Current, tolerance);
-            if (simplifiedSurface!=null)
+            var simplifiedSurface = bsSurface.Simplify(SX.Version.Current, inLinearPrecision);
+            if (simplifiedSurface != null)//same nb of points
+            {
               sheetMaker.Surface = new OrientedSurface(simplifiedSurface, false);//afs modif
+            }
+
           }
 
 
@@ -1981,6 +1992,7 @@ namespace Objects.Converter.TopSolid
           }
           catch (Exception e)
           {
+
             foreach (var curveList in loops3d)
             {
               foreach (var curve in curveList)

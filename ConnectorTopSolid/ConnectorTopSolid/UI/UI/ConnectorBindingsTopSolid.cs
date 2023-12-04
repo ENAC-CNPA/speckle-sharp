@@ -20,11 +20,13 @@ using TopSolid.Cad.Design.DB;
 using TopSolid.Cad.Design.DB.Documents;
 using TopSolid.Cad.Design.DB.Representations;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
+using TopSolid.Kernel.DB.D3.PointClouds;
 using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.D3.Sketches;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.DB.Entities;
 using TopSolid.Kernel.DB.Layers;
+using TopSolid.Kernel.TX.Documents;
 using TopSolid.Kernel.TX.Pdm;
 using TopSolid.Kernel.TX.Undo;
 using Application = TopSolid.Kernel.UI.Application;
@@ -33,7 +35,6 @@ namespace Speckle.ConnectorTopSolid.UI
 {
   public partial class ConnectorBindingsTopSolid : ConnectorBindings
   {
-
     public static ModelingDocument Doc => Application.CurrentDocument as ModelingDocument;
 
     public static string streamName = null;
@@ -55,17 +56,6 @@ namespace Speckle.ConnectorTopSolid.UI
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
     public override List<ReceiveMode> GetReceiveModes()
     {
       return new List<ReceiveMode> { ReceiveMode.Update, ReceiveMode.Create, ReceiveMode.Ignore };
@@ -85,8 +75,6 @@ namespace Speckle.ConnectorTopSolid.UI
     #region local streams 
     public override void WriteStreamsToFile(List<StreamState> streams)
     {
-
-
 
       Storage.SpeckleStreamManager.WriteStreamStateList(Doc, streams);
     }
@@ -131,22 +119,6 @@ namespace Speckle.ConnectorTopSolid.UI
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     public override List<string> GetSelectedObjects()
     {
 
@@ -155,18 +127,14 @@ namespace Speckle.ConnectorTopSolid.UI
 
       foreach (TopSolid.Kernel.DB.Elements.Element element in elments)
       {
-        elementsList.Add(element.Id.ToString());
+        if (element is ShapeEntity || element is SketchEntity || element is PartEntity)
+          elementsList.Add(element.Id.ToString());
+        else if (element is PointCloudEntity ptcE)
+          elementsList.Add(ptcE.Id.ToString());
       }
 
       return elementsList;
     }
-
-
-
-
-
-
-
 
 
 
@@ -357,11 +325,8 @@ namespace Speckle.ConnectorTopSolid.UI
     delegate void ReceivingDelegate(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, Speckle.Core.Api.Stream stream, string id);
     private void ConvertReceiveCommit(Base commitObject, ISpeckleConverter converter, StreamState state, ProgressViewModel progress, Speckle.Core.Api.Stream stream, string id)
     {
-
-
       try
       {
-
         // set the context doc for conversion - this is set inside the transaction loop because the converter retrieves this transaction for all db editing when the context doc is set!
 
         converter.SetContextDocument(Doc);
@@ -480,8 +445,6 @@ namespace Speckle.ConnectorTopSolid.UI
         }
         progress.Report.Merge(converter.Report);
 
-
-
         foreach (var commitObj in commitObjs)
         {
 
@@ -530,7 +493,6 @@ namespace Speckle.ConnectorTopSolid.UI
                   ? ApplicationObject.State.Updated
                   : ApplicationObject.State.Created;
           }
-          //Autodesk.AutoCAD.Internal.Utils.FlushGraphics();
 
           // log to progress report and update progress
           progress.Report.Log(commitObj);
@@ -1091,25 +1053,6 @@ namespace Speckle.ConnectorTopSolid.UI
 
     }
 
-    private static void GetEntities(List<Entity> entitiesInsidePartsFolder, FolderEntity partsFolder)
-    {
-      ElementList insidePartsFolder = new ElementList();
-      partsFolder.GetConstituents(insidePartsFolder);
-      foreach (Element constituent in insidePartsFolder)
-      {
-        if (constituent is FolderEntity folder)
-        {
-          GetEntities(entitiesInsidePartsFolder, folder);
-        }
-        else
-        {
-          if (constituent is PartEntity/* || constituent is ShapeEntity*/)
-          {
-            entitiesInsidePartsFolder.Add(constituent as Entity);
-          }
-        }
-      }
-    }
 
     private List<string> GetObjectsFromFilter(ISelectionFilter filter, ISpeckleConverter converter)
     {
@@ -1200,16 +1143,11 @@ namespace Speckle.ConnectorTopSolid.UI
     #endregion
 
     #region events
+
     public void RegisterAppEvents()
     {
       //// GLOBAL EVENT HANDLERS
-
       TopSolid.Kernel.WX.Application.CurrentDocumentChanged += Application_CurrentDocumentChanged;
-
-
-
-
-
     }
 
     private void Application_CurrentDocumentChanged(object sender, EventArgs e)
@@ -1220,14 +1158,13 @@ namespace Speckle.ConnectorTopSolid.UI
         if (e == null)
           return;
 
-        var streams = GetStreamsInFile();
+
+        var streams = GetStreamsInFile();//toujours vide
         if (streams.Count > 0)
           //SpeckleAutocadCommand.CreateOrFocusSpeckle();
 
           if (UpdateSavedStreams != null)
             UpdateSavedStreams(streams);
-
-        MainViewModel.GoHome();
       }
       catch { }
     }
@@ -1244,9 +1181,6 @@ namespace Speckle.ConnectorTopSolid.UI
     {
       try
       {
-
-
-
         var streams = GetStreamsInFile();
         UpdateSavedStreams(streams);
 
@@ -1255,19 +1189,10 @@ namespace Speckle.ConnectorTopSolid.UI
       catch { }
     }
 
-
-
     private void Application_DocumentClosed(object sender)
     {
       try
       {
-
-
-
-
-
-
-
         MainViewModel.GoHome();
       }
       catch { }
@@ -1278,10 +1203,6 @@ namespace Speckle.ConnectorTopSolid.UI
     {
       try
       {
-
-
-
-
         var streams = GetStreamsInFile();
         if (streams.Count > 0)
           //SpeckleAutocadCommand.CreateOrFocusSpeckle();

@@ -80,17 +80,15 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTeklaStructures2020", "Converters\ConverterTeklaStructures\ConverterTeklaStructures2020\ConverterTeklaStructures2020.csproj", "{08EE146E-9F7A-4C82-B790-688FE4532CA7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterGrasshopper6", "Converters\ConverterRhinoGh\ConverterGrasshopper6\ConverterGrasshopper6.csproj", "{1DC0A8F4-1F14-47E8-8456-9D8E9C0E6CFF}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConverterTopSolid", "ConverterTopSolid", "{49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid715", "Converters\ConverterTopSolid\ConverterTopSolid715\ConverterTopSolid715.csproj", "{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ConverterTopSolidShared", "Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.shproj", "{4D0F9F8A-2E89-4780-978A-CD92D6D7B844}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterGrasshopper6", "Converters\ConverterRhinoGh\ConverterGrasshopper6\ConverterGrasshopper6.csproj", "{1DC0A8F4-1F14-47E8-8456-9D8E9C0E6CFF}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterGrasshopper7", "Converters\ConverterRhinoGh\ConverterGrasshopper7\ConverterGrasshopper7.csproj", "{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterGrasshopper7", "Converters\ConverterRhinoGh\ConverterGrasshopper7\ConverterGrasshopper7.csproj", "{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}"
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid716", "Converters\ConverterTopSolid\ConverterTopSolid716\ConverterTopSolid716.csproj", "{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterDxf", "Converters\ConverterDxf\ConverterDxf\ConverterDxf.csproj", "{C6E9DE1F-2CFF-44AC-9B9A-E71783DF6633}"
@@ -138,43 +136,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterNavisworks2024", "Converters\ConverterNavisworks\ConverterNavisworks2024\ConverterNavisworks2024.csproj", "{BFBD40D4-BF2A-47B2-8F35-4371149DD1B6}"
 EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{03bb58ab-1399-4cba-9b2d-8aca75a2e417}*SharedItemsImports = 5
-		Converters\ConverterTeklaStructures\ConverterTeklaStructuresShared\ConverterTeklaStructuresShared.projitems*{08ee146e-9f7a-4c82-b790-688fe4532ca7}*SharedItemsImports = 5
-		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{0bcb32cf-a3cf-4a6a-a9f8-dfe5d85d608c}*SharedItemsImports = 5
-		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{13f93c20-793c-4f2d-b836-68d7744063df}*SharedItemsImports = 5
-		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{156ff86c-8531-46d0-aa23-97db326bc591}*SharedItemsImports = 5
-		Converters\ConverterRhinoGh\ConverterRhinoGhShared\ConverterRhinoGhShared.projitems*{1dc0a8f4-1f14-47e8-8456-9d8e9c0e6cff}*SharedItemsImports = 5
-		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{208b25e4-2d0e-4534-b197-4c5c96cc53ce}*SharedItemsImports = 13
-		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{2c68e80f-38f4-41d0-9b38-473031d1b541}*SharedItemsImports = 5
-		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{2d0f9f8a-2e89-4780-978a-cd92d6d7b843}*SharedItemsImports = 13
-		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{2dcd648d-dca5-4d2a-8b14-ad2cb85d24b0}*SharedItemsImports = 13
-		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{3d91aeca-cd66-4e5b-be43-fbfe6fb76e6c}*SharedItemsImports = 5
-		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{4220c3dc-e198-4084-b74d-85c9b31607f7}*SharedItemsImports = 5
-		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{45ea031d-56a5-4cb3-81dc-af3ef26580e0}*SharedItemsImports = 5
-		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{4d0f9f8a-2e89-4780-978a-cd92d6d7b844}*SharedItemsImports = 13
-		Converters\ConverterDynamo\ConverterDynamoShared\ConverterDynamoShared.projitems*{4f16a993-7d11-4565-a2a5-910899919e00}*SharedItemsImports = 5
-		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{4f16a993-7d11-4565-a2a5-910899919e00}*SharedItemsImports = 5
-		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{5905f0f8-ae1d-473b-87f3-97e40e6cbe55}*SharedItemsImports = 5
-		Converters\ConverterRhinoGh\ConverterRhinoGhShared\ConverterRhinoGhShared.projitems*{5a7671d6-57a1-4422-9ebb-79f3c724c0ba}*SharedItemsImports = 5
-		Converters\ConverterDynamo\ConverterDynamoShared\ConverterDynamoShared.projitems*{5bab09dc-b0fc-4004-9fd5-6496a9634071}*SharedItemsImports = 13
-		Converters\ConverterCSI\ConverterCSIShared\ConverterCSIShared.projitems*{5bbde14e-50f8-4d6e-8e35-747667ad4a09}*SharedItemsImports = 13
-		Converters\ConverterCSI\ConverterCSIShared\ConverterCSIShared.projitems*{62e992b6-2e65-4714-ad37-42f34f9bd5da}*SharedItemsImports = 5
-		Converters\ConverterRhinoGh\ConverterRhinoGhShared\ConverterRhinoGhShared.projitems*{63b3f901-7c14-4530-8a6f-ccad68586664}*SharedItemsImports = 5
-		Converters\ConverterCSI\ConverterCSIShared\ConverterCSIShared.projitems*{79aa475d-7cde-4501-90ce-9a0d9d0db023}*SharedItemsImports = 5
-		Converters\ConverterTeklaStructures\ConverterTeklaStructuresShared\ConverterTeklaStructuresShared.projitems*{7ffdab72-145d-4490-9892-fac5f1d72b17}*SharedItemsImports = 13
-		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{90362309-466a-482b-814a-adb1ce227607}*SharedItemsImports = 5
-		Converters\ConverterTeklaStructures\ConverterTeklaStructuresShared\ConverterTeklaStructuresShared.projitems*{adc53dc0-0592-4f13-b456-65adcb2164a1}*SharedItemsImports = 5
-		Converters\ConverterRhinoGh\ConverterRhinoGhShared\ConverterRhinoGhShared.projitems*{b74cb8c1-187b-46a6-b20b-92b8c129f3ee}*SharedItemsImports = 13
-		Converters\ConverterRhinoGh\ConverterRhinoGhShared\ConverterRhinoGhShared.projitems*{b9649e07-f7b4-4fcc-9e44-076993621d0a}*SharedItemsImports = 5
-		Converters\ConverterDynamo\ConverterDynamoShared\ConverterDynamoShared.projitems*{bc110327-3c61-4c15-ae4c-daae7ca82a7b}*SharedItemsImports = 5
-		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{bf5515b4-c97c-4fb9-9f93-1740d2b615b3}*SharedItemsImports = 5
-		Converters\ConverterMicroStation\ConverterMicroStationOpenShared\ConverterMicroStationOpenShared.projitems*{d8cdf95e-f72d-4f3e-8026-b82863f97d64}*SharedItemsImports = 5
-		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{dd4add16-65f9-46e0-a610-2b7908a966b3}*SharedItemsImports = 5
-		Converters\ConverterCSI\ConverterCSIShared\ConverterCSIShared.projitems*{df4d24c3-2be8-476c-8d40-33892be07b1d}*SharedItemsImports = 5
-		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{e4006179-462f-4133-9481-219279138b93}*SharedItemsImports = 5
-		Converters\ConverterCSI\ConverterCSIShared\ConverterCSIShared.projitems*{f00b2895-b912-432d-a504-99a82e07d9d4}*SharedItemsImports = 5
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
@@ -373,6 +334,14 @@ Global
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}.Release|x64.ActiveCfg = Release|Any CPU
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA}.Release|x64.Build.0 = Release|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Debug|x64.Build.0 = Debug|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Release|x64.ActiveCfg = Release|Any CPU
+		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417}.Release|x64.Build.0 = Release|Any CPU
 		{C6E9DE1F-2CFF-44AC-9B9A-E71783DF6633}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C6E9DE1F-2CFF-44AC-9B9A-E71783DF6633}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6E9DE1F-2CFF-44AC-9B9A-E71783DF6633}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -564,10 +533,10 @@ Global
 		{7FFDAB72-145D-4490-9892-FAC5F1D72B17} = {98B557B0-CD26-40DE-9703-A27F07A942E3}
 		{ADC53DC0-0592-4F13-B456-65ADCB2164A1} = {98B557B0-CD26-40DE-9703-A27F07A942E3}
 		{08EE146E-9F7A-4C82-B790-688FE4532CA7} = {98B557B0-CD26-40DE-9703-A27F07A942E3}
+		{1DC0A8F4-1F14-47E8-8456-9D8E9C0E6CFF} = {1A35077C-2936-4A3D-8D48-65F39F76D999}
 		{49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2} = {CCC09288-CE76-4FDB-B0C9-220112F88CD9}
 		{3D91AECA-CD66-4E5B-BE43-FBFE6FB76E6C} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
 		{4D0F9F8A-2E89-4780-978A-CD92D6D7B844} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
-		{1DC0A8F4-1F14-47E8-8456-9D8E9C0E6CFF} = {1A35077C-2936-4A3D-8D48-65F39F76D999}
 		{5A7671D6-57A1-4422-9EBB-79F3C724C0BA} = {1A35077C-2936-4A3D-8D48-65F39F76D999}
 		{03BB58AB-1399-4CBA-9B2D-8ACA75A2E417} = {49247E71-8AFD-4A27-BC99-E4B0B8BBDFF2}
 		{C6E9DE1F-2CFF-44AC-9B9A-E71783DF6633} = {CCC09288-CE76-4FDB-B0C9-220112F88CD9}
@@ -597,6 +566,7 @@ Global
 		SolutionGuid = {DA57EC2E-0A9E-4F59-B1F7-A65F76A74B74}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{03bb58ab-1399-4cba-9b2d-8aca75a2e417}*SharedItemsImports = 5
 		Converters\ConverterNavisworks\ConverterNavisworks\ConverterNavisworksShared.projitems*{05ff1d88-1b2d-4a25-bf65-2895d4e6746d}*SharedItemsImports = 5
 		Converters\ConverterTeklaStructures\ConverterTeklaStructuresShared\ConverterTeklaStructuresShared.projitems*{08ee146e-9f7a-4c82-b790-688fe4532ca7}*SharedItemsImports = 5
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{0af5ba0f-0fea-463b-9877-f063892ea7de}*SharedItemsImports = 5
@@ -607,9 +577,11 @@ Global
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{2c68e80f-38f4-41d0-9b38-473031d1b541}*SharedItemsImports = 5
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{2d0f9f8a-2e89-4780-978a-cd92d6d7b843}*SharedItemsImports = 13
 		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{2dcd648d-dca5-4d2a-8b14-ad2cb85d24b0}*SharedItemsImports = 13
+		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{3d91aeca-cd66-4e5b-be43-fbfe6fb76e6c}*SharedItemsImports = 5
 		Converters\ConverterBentley\ConverterBentleyShared\ConverterBentleyShared.projitems*{40148f0a-30d3-4919-b45e-4464a5987129}*SharedItemsImports = 5
 		Converters\ConverterBentley\ConverterBentleyShared\ConverterBentleyShared.projitems*{425f0d00-6608-4bd2-a1e0-2730c9f2bfd3}*SharedItemsImports = 13
 		Converters\ConverterAutocadCivil\ConverterAutocadCivilShared\ConverterAutocadCivilShared.projitems*{461b54c0-f71f-4ec2-801d-5594ed046035}*SharedItemsImports = 5
+		Converters\ConverterTopSolid\ConverterTopSolidShared\ConverterTopSolidShared.projitems*{4d0f9f8a-2e89-4780-978a-cd92d6d7b844}*SharedItemsImports = 13
 		Converters\ConverterDynamo\ConverterDynamoShared\ConverterDynamoShared.projitems*{4f16a993-7d11-4565-a2a5-910899919e00}*SharedItemsImports = 5
 		Converters\ConverterRevit\ConverterRevitShared\ConverterRevitShared.projitems*{4f16a993-7d11-4565-a2a5-910899919e00}*SharedItemsImports = 5
 		Converters\ConverterRhinoGh\ConverterRhinoGhShared\ConverterRhinoGhShared.projitems*{5a7671d6-57a1-4422-9ebb-79f3c724c0ba}*SharedItemsImports = 5

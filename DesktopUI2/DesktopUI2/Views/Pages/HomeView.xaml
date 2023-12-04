@@ -464,7 +464,7 @@
 
       </ScrollViewer>
 
-      <Button
+      <Button IsVisible="False"
         Grid.Row="4"
         Margin="5"
         Classes="Flat Mini"
