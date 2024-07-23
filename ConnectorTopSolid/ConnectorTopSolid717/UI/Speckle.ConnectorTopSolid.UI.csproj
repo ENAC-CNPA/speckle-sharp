@@ -7,7 +7,7 @@
     <PlatformTarget>x64</PlatformTarget>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>AnyCPU;ARM64</Platforms>
-    <BaseOutputPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\</BaseOutputPath>
+    <BaseOutputPath>C:\Sources\Topsolid 7.17\Debug x64</BaseOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>$(DefineConstants);TOPSOLID717</DefineConstants>
@@ -57,76 +57,76 @@
     <Reference Include="System.Xaml" />
     <Reference Include="System.Web" />
     <Reference Include="TopSolid.Cad.Design.DB">
-      <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB">
-      <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
     </Reference>
 	<Reference Include="TopSolid.Kernel.DB.D2">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D2.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D2.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Modeling">
-      <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.Modeling.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.Modeling.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Shapes">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.Shapes.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.Shapes.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Surfaces">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Surfaces.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Surfaces.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.UI.D3.Shapes">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.UI.D3.Shapes.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.UI.D3.Shapes.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Shapes">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.GR">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.GR.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.GR.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.SX">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.TX">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.UI">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.UI.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.UI.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.UI.D3">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.UI.D3.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.UI.D3.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.WG">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.WG.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.WG.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.WX">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.WX.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.WX.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Sketches">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.Sketches.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D3.Sketches.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Curves">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Curves.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Curves.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D2.Sketches">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D2.Sketches.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.DB.D2.Sketches.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Sketches">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Sketches.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Sketches.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D2.Curves">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D2.Curves.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D2.Curves.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D3.Shapes">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.G.D2.Sketches">
-       <HintPath>..\..\..\..\..\..\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D2.Sketches.dll</HintPath>
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.G.D2.Sketches.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>

@@ -7,6 +7,7 @@
         <PackageTags>$(PackageTags), ui, desktopui, dui</PackageTags>
         <PackageId>Speckle.DesktopUI</PackageId>
         <IsPackable>true</IsPackable>
+        <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
