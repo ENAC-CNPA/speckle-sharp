@@ -127,7 +127,7 @@ namespace Speckle.ConnectorTopSolid.UI
 
       foreach (TopSolid.Kernel.DB.Elements.Element element in elments)
       {
-        if (element is ShapeEntity || element is SketchEntity || element is PartEntity)
+        if (element is ShapeEntity || element is SketchEntity || element is PartEntity || element is TopSolid.Kernel.DB.D2.Sketches.SketchEntity)
           elementsList.Add(element.Id.ToString());
         else if (element is PointCloudEntity ptcE)
           elementsList.Add(ptcE.Id.ToString());
