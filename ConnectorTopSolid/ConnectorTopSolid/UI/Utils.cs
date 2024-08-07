@@ -89,17 +89,17 @@ namespace Speckle.ConnectorTopSolid.UI
     public static List<string> ConvertibleObjects(this ModelingDocument doc, ISpeckleConverter converter)
     {
       DesignDocument designDoc = doc as DesignDocument;
-      RepresentationEntity currentRepresentation = designDoc.CurrentRepresentationEntity;
+      //RepresentationEntity currentRepresentation = designDoc.CurrentRepresentationEntity;
       var objs = new List<string>();
       ElementList constituents = new ElementList();
-      currentRepresentation.GetConstituents(constituents);
+      designDoc.RootEntity.GetConstituents(constituents);
       foreach (Element item in constituents)
       {
-        if (item is RepresentationConstituentEntity represEntity)
+        if (item is FolderEntity represEntity)
         {
-          EntityList listOfEntities = new EntityList();
-          represEntity.GetDeepContents(listOfEntities);
-          foreach (Entity entityInside in listOfEntities)
+          //EntityList listOfEntities = new EntityList(represEntity.Entities.ToList());
+          //listOfEntities = represEntity.Entities as EntityList;
+          foreach (Entity entityInside in represEntity.Entities)
           {
             if (entityInside is SketchEntity sketchEntity)
             {
@@ -141,7 +141,7 @@ namespace Speckle.ConnectorTopSolid.UI
           if (element is PointCloudEntity ptcE)
             objs.Add(ptcE.Id.ToString());
         }
-      }
+      }      
 
 
       return objs;

@@ -25,6 +25,7 @@ using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.D3.Sketches;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.DB.Entities;
+using TopSolid.Kernel.DB.Families.Documents;
 using TopSolid.Kernel.DB.Layers;
 using TopSolid.Kernel.TX.Documents;
 using TopSolid.Kernel.TX.Pdm;
@@ -134,6 +135,19 @@ namespace Speckle.ConnectorTopSolid.UI
       }
 
       return elementsList;
+    }
+
+    private static List<Element> GetEverything(Dictionary<int, DesignDocument> linkedDocs)
+    {
+      var currentDoc = Doc;
+      var selection = new List<Element>();      
+
+      selection.AddRange(currentDoc.ShapesFolderEntity.Constituents);
+      selection.AddRange(currentDoc.SketchesFolderEntity.Constituents);
+
+     
+
+      return selection;
     }
 
 

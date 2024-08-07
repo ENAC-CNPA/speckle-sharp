@@ -19,6 +19,10 @@ using TopSolid.Kernel.G.D3;
 using TopSolid.Cad.Design.DB.Documents;
 using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Kernel.DB.D3.Meshes;
+using TopSolid.Kernel.DB.Entities;
+using TopSolid.Kernel.SX.Collections.Generic;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using TopSolid.Kernel.DB.Sets;
 
 namespace Objects.Converter.TopSolid
 {
@@ -44,11 +48,11 @@ namespace Objects.Converter.TopSolid
       return speckleElement;
     }
     #region not used    
-    public List<ApplicationObject> ElementToNative(Base speckleElement)
+    public System.Collections.Generic.List<ApplicationObject> ElementToNative(Base speckleElement)
     {
       Element topSolidElement = Doc.Elements[Convert.ToInt32(speckleElement.applicationId)];
       if (topSolidElement != null && ReceiveMode == Speckle.Core.Kits.ReceiveMode.Ignore)
-        return new List<ApplicationObject>(); // { new ApplicationPlaceholderObject { applicationId = speckleElement.applicationId, ApplicationGeneratedId = topSolidElement.Id.ToString(), NativeObject = topSolidElement } }; ;
+        return new System.Collections.Generic.List<ApplicationObject>(); // { new ApplicationPlaceholderObject { applicationId = speckleElement.applicationId, ApplicationGeneratedId = topSolidElement.Id.ToString(), NativeObject = topSolidElement } }; ;
 
       bool isUpdate = true;
       if (topSolidElement == null) // TODO : Create element
@@ -60,7 +64,7 @@ namespace Objects.Converter.TopSolid
         throw new Speckle.Core.Logging.SpeckleException($"Failed to create Entity ${speckleElement.applicationId}.");
       }
 
-      var placeholders = new List<ApplicationObject>();
+      var placeholders = new System.Collections.Generic.List<ApplicationObject>();
 
       //{
       //  new ApplicationPlaceholderObject
@@ -285,6 +289,49 @@ namespace Objects.Converter.TopSolid
     #endregion
 
 
+    public Collection SetToSpeckle(SetDefinitionEntity entitySet)
+    {      
+      Collection speckleElement = new Collection();
+      //System.Collections.Generic.List<Object> list = new System.Collections.Generic.List<object>();
+      foreach (var entity in entitySet.Entities)
+      {      
+          if (entity is CompositeEntity compositeEntity)
+        {
+          speckleElement.elements.Add(GetConstituents(compositeEntity));
+        }
 
+        else
+        {
+          var baseObj = new Base();
+          baseObj["referenced obj id"] = entity.Id;
+          speckleElement.elements.Add(baseObj);
+        }
+
+
+      }
+        return speckleElement;
+    }
+
+    private Collection GetConstituents(CompositeEntity compositeEntity)
+    {
+      Collection collection = new Collection();
+
+      foreach(var entity in compositeEntity.Entities)
+      {
+        if (entity is CompositeEntity compositeEntity2)
+        {
+          collection.elements.Add(GetConstituents(compositeEntity));
+        }
+        else
+        {
+          var baseObj = new Base();
+          baseObj["referenced obj id"] = entity.Id;
+          collection.elements.Add(baseObj);
+        }
+
+      }
+
+      return collection;
+    }
   }
 }

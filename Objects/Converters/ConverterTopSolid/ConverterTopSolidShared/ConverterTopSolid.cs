@@ -36,6 +36,10 @@ using Polyline = Objects.Geometry.Polyline;
 using Surface = Objects.Geometry.Surface;
 using TsEntity = TopSolid.Kernel.DB.Entities.Entity;
 using Vector = Objects.Geometry.Vector;
+using TopSolid.Kernel.SX.Collections.Generic;
+using TopSolid.Kernel.DB.Entities;
+using SX = TopSolid.Kernel.SX;
+using TopSolid.Kernel.DB.Sets;
 
 namespace Objects.Converter.TopSolid
 {
@@ -70,17 +74,17 @@ namespace Objects.Converter.TopSolid
 
     public ReceiveMode ReceiveMode { get; set; }
 
-    public List<ApplicationObject> ContextObjects { get; set; } = new List<ApplicationObject>();
+    public System.Collections.Generic.List<ApplicationObject> ContextObjects { get; set; } = new System.Collections.Generic.List<ApplicationObject>();
 
     // public List<int> ConvertedObjectsList { get; set; } = new List<int>();
 
-    public void SetContextObjects(List<ApplicationObject> objects) => ContextObjects = objects;
+    public void SetContextObjects(System.Collections.Generic.List<ApplicationObject> objects) => ContextObjects = objects;
 
     public void SetConverterSettings(object settings)
     {
       Settings = settings as Dictionary<string, string>;
     }
-    public void SetPreviousContextObjects(List<ApplicationObject> objects) => throw new NotImplementedException();
+    public void SetPreviousContextObjects(System.Collections.Generic.List<ApplicationObject> objects) => throw new NotImplementedException();
 
     public void SetContextDocument(Object doc)
     {
@@ -175,6 +179,9 @@ namespace Objects.Converter.TopSolid
         case DB.D3.Sketches.Planar.PlanarSketchEntity o:
           return PlanarSketchToSpeckle(o.Geometry as PlanarSketch);
 
+          case SetDefinitionEntity o:
+            return SetToSpeckle(o);
+
         case Element o:
           return ElementToSpeckle(o);
 
@@ -185,7 +192,7 @@ namespace Objects.Converter.TopSolid
 
 
 
-    public List<Base> ConvertToSpeckle(List<object> objects) => objects.Select(ConvertToSpeckle).ToList();
+    public System.Collections.Generic.List<Base> ConvertToSpeckle(System.Collections.Generic.List<object> objects) => objects.Select(ConvertToSpeckle).ToList();
 
 
     private Base ObjectToSpeckleBuiltElement(TsEntity o)
@@ -285,6 +292,8 @@ namespace Objects.Converter.TopSolid
           }
         case PointCloudEntity ptCl:
           return true;
+        case SetDefinitionEntity _:
+return true;
         case Element e:
           switch (e.Geometry)
           {
@@ -407,7 +416,7 @@ namespace Objects.Converter.TopSolid
           throw new NotSupportedException();
       }
     }
-    public List<object> ConvertToNative(List<Base> objects)
+    public System.Collections.Generic.List<object> ConvertToNative(System.Collections.Generic.List<Base> objects)
     {
       return objects.Select(x => ConvertToNative(x)).ToList();
     }
@@ -416,9 +425,9 @@ namespace Objects.Converter.TopSolid
 
   public class Alias
   {
-    public List<GeometryAlias> Faces { get; set; }
-    public List<GeometryAlias> Edges { get; set; }
-    public List<GeometryAliasLinked> Vertices { get; set; }
+    public System.Collections.Generic.List<GeometryAlias> Faces { get; set; }
+    public System.Collections.Generic.List<GeometryAlias> Edges { get; set; }
+    public System.Collections.Generic.List<GeometryAliasLinked> Vertices { get; set; }
   }
   public class GeometryAlias
   {

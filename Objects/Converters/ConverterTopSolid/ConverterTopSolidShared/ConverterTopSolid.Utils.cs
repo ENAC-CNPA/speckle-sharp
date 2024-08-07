@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Avalonia.Media;
 using Objects.Geometry;
 using Objects.Other;
 using Speckle.Core.Kits;
@@ -17,6 +18,7 @@ using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.DB.Entities;
 using TopSolid.Kernel.DB.Parameters;
+using TopSolid.Kernel.DB.Sets;
 using TopSolid.Kernel.G;
 using TopSolid.Kernel.G.D3;
 using TopSolid.Kernel.G.D3.Shapes;
@@ -26,6 +28,7 @@ using TopSolid.Kernel.SX.Drawing;
 using TopSolid.Kernel.TX.Units;
 using TKD = TopSolid.Kernel.DB;
 using TKG = TopSolid.Kernel.G;
+using SX = TopSolid.Kernel.SX;
 using TsApp = TopSolid.Kernel.UI.Application;
 
 namespace Objects.Converter.TopSolid
@@ -227,10 +230,10 @@ namespace Objects.Converter.TopSolid
         if (host is PointCloudEntity pointCloudEntity)
         {
           PointCloudItem pointCloudItem = pointCloudEntity.Vertices;
-          List<Tuple<Geometry.Point, Color>> listOfTopSolidPoints = new List<Tuple<Geometry.Point, Color>>();
+          List<Tuple<Geometry.Point, SX.Drawing.Color>> listOfTopSolidPoints = new List<Tuple<Geometry.Point, SX.Drawing.Color>>();
           for (int i = 0; i < pointCloudItem.VertexCount; i++)
           {
-            Color pointColor = pointCloudItem.GetColor(i);
+            SX.Drawing.Color pointColor = pointCloudItem.GetColor(i);
             TKG.D3.Point d3Point = pointCloudItem.GetVertex(i);
             listOfTopSolidPoints.Add(Tuple.Create(PointToSpeckle(d3Point, ModelUnits), pointColor));
           }
@@ -258,6 +261,20 @@ namespace Objects.Converter.TopSolid
           }
 
           return;
+        }
+
+        else if (host is SetDefinitionEntity set)
+        {
+          Base obj = null;
+          obj = ConvertToSpeckle(set);
+
+          if (obj != null)
+          {
+            if (@base["@elements"] == null || !(@base["@elements"] is List<Base>))
+              @base["@elements"] = new List<Base>();
+
+            (@base["@elements"] as List<Base>).Add(obj);
+          }
         }
       }
     }
@@ -558,7 +575,7 @@ namespace Objects.Converter.TopSolid
     #endregion
 
     #region Display and Attributes
-    public (Color, Transparency) DiplayToNative(Base styleBase)
+    public (SX.Drawing.Color, Transparency) DiplayToNative(Base styleBase)
     {
       var color = new System.Drawing.Color();
       RenderMaterial mat = styleBase["renderMaterial"] as RenderMaterial;
@@ -571,11 +588,10 @@ namespace Objects.Converter.TopSolid
       {
         color = System.Drawing.Color.FromArgb(material.diffuse);
       }
-      else return (Color.Blue, Transparency.SemiTransparent);
-      return (new Color(color.R, color.G, color.B), Transparency.FromByte((byte)(byte.MaxValue - color.A)));
+      else return (SX.Drawing.Color.Blue, Transparency.SemiTransparent);
+      return (new SX.Drawing.Color(color.R, color.G, color.B), Transparency.FromByte((byte)(byte.MaxValue - color.A)));
     }
-
-
+    
 
     public GeometryAliasLinked GetHashVertex(Vertex vertex, int index)
     {
@@ -615,6 +631,7 @@ namespace Objects.Converter.TopSolid
     //}
 
     #endregion
+
 
 
 

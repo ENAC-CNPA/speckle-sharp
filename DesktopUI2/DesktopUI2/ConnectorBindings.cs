@@ -170,6 +170,12 @@ public abstract class ConnectorBindings
   /// </summary>
   public abstract List<string> GetSelectedObjects();
 
+  ///// <summary>
+  ///// Gets All Entities, now only shapes and sketches
+  ///// </summary>
+  ///// <returns></returns>
+  //public abstract List<string> GetEverything();
+
   /// <summary>
   /// Gets a list of objects in the currently active view
   /// </summary>
