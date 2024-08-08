@@ -13,6 +13,7 @@ using TopSolid.Kernel.DB.D3.PointClouds;
 using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.Elements;
 using TopSolid.Kernel.DB.Entities;
+using TopSolid.Kernel.DB.Sets;
 using TopSolid.Kernel.TX.Units;
 
 namespace Speckle.ConnectorTopSolid.UI
@@ -111,6 +112,10 @@ namespace Speckle.ConnectorTopSolid.UI
               {
                 objs.Add(entityInside.Id.ToString());
               }
+              else if (entityInside is SetDefinitionEntity)
+              {
+                objs.Add(entityInside.Id.ToString());
+              }
               else
               {
                 ElementList constituentsofPart = new ElementList();
@@ -127,6 +132,10 @@ namespace Speckle.ConnectorTopSolid.UI
                 }
               }
             }
+            
+           
+
+
           }
         }
       }

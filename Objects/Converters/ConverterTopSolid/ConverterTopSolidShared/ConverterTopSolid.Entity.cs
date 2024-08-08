@@ -318,9 +318,9 @@ namespace Objects.Converter.TopSolid
 
       foreach(var entity in compositeEntity.Entities)
       {
-        if (entity is CompositeEntity compositeEntity2)
+        if (entity is SetDefinitionEntity set && set.HasConstituents)
         {
-          collection.elements.Add(GetConstituents(compositeEntity));
+          collection.elements.Add(GetConstituents(set));
         }
         else
         {
