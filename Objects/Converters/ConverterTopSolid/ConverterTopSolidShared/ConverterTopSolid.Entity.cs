@@ -290,43 +290,67 @@ namespace Objects.Converter.TopSolid
 
 
     public Collection SetToSpeckle(SetDefinitionEntity entitySet)
-    {      
-      Collection speckleElement = new Collection();
-      //System.Collections.Generic.List<Object> list = new System.Collections.Generic.List<object>();
-      foreach (var entity in entitySet.Entities)
-      {      
-          if (entity is CompositeEntity compositeEntity)
-        {
-          speckleElement.elements.Add(GetConstituents(compositeEntity));
-        }
-
-        else
-        {
-          var baseObj = new Base();
-          baseObj["referenced obj id"] = entity.Id;
-          speckleElement.elements.Add(baseObj);
-        }
-
-
-      }
-        return speckleElement;
-    }
-
-    private Collection GetConstituents(CompositeEntity compositeEntity)
     {
       Collection collection = new Collection();
+      collection["isSet"] = true;
+      collection.name = entitySet.Name;
+      collection.applicationId = entitySet.Id.ToString();
 
-      foreach(var entity in compositeEntity.Entities)
+      //System.Collections.Generic.List<Object> list = new System.Collections.Generic.List<object>();
+      foreach (var entity in entitySet.Targets)
       {
-        if (entity is SetDefinitionEntity set && set.HasConstituents)
+        if (entity is SetDefinitionEntity SetDefEnt)
         {
-          collection.elements.Add(GetConstituents(set));
+          Collection speckleElement = GetConstituents(SetDefEnt);
+          speckleElement["isSet"] = true;
+          speckleElement.name = SetDefEnt.Name;
+          speckleElement.applicationId = SetDefEnt.Id.ToString();
+          collection.elements.Add(speckleElement);
         }
+
         else
         {
           var baseObj = new Base();
           baseObj["referenced obj id"] = entity.Id;
           collection.elements.Add(baseObj);
+
+        }
+
+
+
+
+      }
+      return collection;
+    }
+
+    private Collection GetConstituents(SetDefinitionEntity setDefinitionEnt)
+    {
+      Collection collection = new Collection();
+      collection["isSet"] = true;
+      collection.name = setDefinitionEnt.Name;
+      collection.applicationId = setDefinitionEnt.Id.ToString();
+
+      foreach (var entity in setDefinitionEnt.Targets)
+      {
+        if (entity is SetDefinitionEntity set)
+        {
+          Collection speckleElement = GetConstituents(set);
+          speckleElement["isSet"] = true;
+          speckleElement.name = entity.Name;
+          speckleElement.applicationId = entity.Id.ToString();
+          collection.elements.Add(speckleElement);
+
+        }
+        else
+        {
+          //foreach (var targetEnt in setDefinitionEnt.Targets)
+          //{
+
+          var baseObj = new Base();
+          baseObj["referenced obj id"] = entity.Id;
+          collection.elements.Add(baseObj);
+          //}
+
         }
 
       }
