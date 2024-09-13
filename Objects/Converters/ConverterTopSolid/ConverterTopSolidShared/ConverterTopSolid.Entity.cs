@@ -312,6 +312,7 @@ namespace Objects.Converter.TopSolid
         {
           var baseObj = new Base();
           baseObj["referenced obj id"] = entity.Id;
+          baseObj["TopSolid_Name"] = entity.Name ?? entity.EditingName;
           collection.elements.Add(baseObj);
 
         }
@@ -348,6 +349,7 @@ namespace Objects.Converter.TopSolid
 
           var baseObj = new Base();
           baseObj["referenced obj id"] = entity.Id;
+          baseObj["TopSolid_Name"] = entity.Name ?? entity.EditingName;
           collection.elements.Add(baseObj);
           //}
 
