@@ -325,8 +325,10 @@ namespace Objects.Converter.TopSolid
         list.Add(obj);
       }
 
+      var vertices = topSolidSketch.Vertices.Select(x => ObjectToSpeckle(x)).ToList();
       speckleSketch["Profiles"] = list;
-      speckleSketch["Vertices"] = topSolidSketch.Vertices.Where(X => !X.IsInternal).Select(x => ObjectToSpeckle(x.Geometry));
+      speckleSketch["Vertices"] = vertices;
+      speckleSketch["isSketch"] = true;
 
       return speckleSketch;
 
@@ -2112,7 +2114,13 @@ namespace Objects.Converter.TopSolid
 
     }
 
-
+    public Point VertexToSpeckle(G.D2.Sketches.Vertex vertex)
+    {
+      Point specklepoint = PointToSpeckle(vertex.Geometry);
+      specklepoint["vertexName"] = vertex.VertexName;
+      specklepoint["namePosVector"] = new Vector(vertex.NamePosVector.X, vertex.NamePosVector.Y);
+      return specklepoint;
+    }
   }
 }
 

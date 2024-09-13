@@ -242,6 +242,8 @@ namespace Objects.Converter.TopSolid
 
         case G.D3.Curves.GeometricProfile o:
           return ProfileToSpeckle(o);
+        
+          
 
         case G.D3.Sketches.Planar.PlanarSketch o:
           return PlanarSketchToSpeckle(o);
@@ -258,7 +260,10 @@ namespace Objects.Converter.TopSolid
       }
     }
 
-
+    public Base ObjectToSpeckle(G.D2.Sketches.Vertex vertex)
+    {
+      return VertexToSpeckle(vertex);
+    }
     public bool CanConvertToNativeDisplayable(Base @object)
     {
       // check for schema
