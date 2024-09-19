@@ -20,7 +20,7 @@ using TopSolid.Cad.Design.DB.Documents;
 using TopSolid.Kernel.DB.Parameters;
 using TopSolid.Kernel.DB.D3.Meshes;
 using TopSolid.Kernel.DB.Entities;
-using TopSolid.Kernel.SX.Collections.Generic;
+//using TopSolid.Kernel.SX.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using TopSolid.Kernel.DB.Sets;
 
