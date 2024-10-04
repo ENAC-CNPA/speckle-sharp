@@ -49,7 +49,7 @@ namespace Speckle.ConnectorTopSolid.UI
     /// 
     public static string GetUnits(GeometricDocument doc)
     {
-      TopSolid.Kernel.TX.Unit unit = doc.LengthUnit;
+      Unit unit = doc.LengthUnit;
       return unit.BaseUnit.Symbol.ToString();
     }
 

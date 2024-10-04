@@ -52,8 +52,16 @@
     <Reference Include="TopSolid.Kernel.SX">
       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
     </Reference>
+    <Reference Include="TopSolid.Kernel.SX.NetStandard, Version=7.18.400.109, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.SX.NetStandard.dll</HintPath>
+    </Reference>
     <Reference Include="TopSolid.Kernel.TX">
       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.TX.NetStandard, Version=7.18.400.109, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.TX.NetStandard.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
