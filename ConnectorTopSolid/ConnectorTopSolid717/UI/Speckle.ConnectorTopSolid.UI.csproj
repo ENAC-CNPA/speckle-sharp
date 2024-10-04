@@ -73,6 +73,15 @@
     <Reference Include="TopSolid.Kernel.G.D3.Surfaces">
        <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D3.Surfaces.dll</HintPath>
     </Reference>
+    <Reference Include="TopSolid.Kernel.SX.NetStandard">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.SX.NetStandard.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.TX">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.TX.NetStandard">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.TX.NetStandard.dll</HintPath>
+    </Reference>
     <Reference Include="TopSolid.Kernel.UI.D3.Shapes">
        <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.D3.Shapes.dll</HintPath>
     </Reference>
@@ -87,9 +96,6 @@
     </Reference>
     <Reference Include="TopSolid.Kernel.SX">
        <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
-    </Reference>
-    <Reference Include="TopSolid.Kernel.TX">
-       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.UI">
        <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.dll</HintPath>

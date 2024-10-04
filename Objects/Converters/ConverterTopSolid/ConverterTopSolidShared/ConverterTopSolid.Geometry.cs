@@ -41,7 +41,7 @@ using D1Interval = TopSolid.Kernel.G.D1.Generic.Interval<double>;
 using G = TopSolid.Kernel.G;
 using TX = TopSolid.Kernel.TX;
 using SX = TopSolid.Kernel.SX;
-using TSX = TopSolid.Kernel.SX/*Collections.Generic*/;
+using TSX = TopSolid.Kernel.SX.Collections.Generic;
 #endregion
 
 
