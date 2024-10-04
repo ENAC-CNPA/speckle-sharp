@@ -9,8 +9,18 @@
     <Platforms>AnyCPU;ARM64</Platforms>
     <BaseOutputPath>C:\Sources\Topsolid 7.18\Debug x64</BaseOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>$(DefineConstants);TOPSOLID718</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <DefineConstants>$(DefineConstants);TOPSOLID718</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>$(DefineConstants);TOPSOLID718</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <DefineConstants>$(DefineConstants);TOPSOLID718</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\ConnectorTopSolid\UI\Entry\App.cs">
       <Link>Entry\App.cs</Link>
