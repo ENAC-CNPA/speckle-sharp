@@ -31,7 +31,7 @@ namespace Speckle.ConnectorTopSolid.UI
         static Assembly ResolveForSpeckleAssemblies(object sender, ResolveEventArgs args)
         {
             var assemblyName = new AssemblyName(args.Name).Name;
-            string path = System.IO.Path.Combine("C:\\Sources\\Topsolid 7.15\\Debug x64", assemblyName + ".dll");
+            string path = System.IO.Path.Combine("C:\\Sources\\Topsolid 7.18\\Debug x64", assemblyName + ".dll");
             //string path = System.IO.Path.Combine(RhinoSystemDirectory, assemblyName + ".dll");
             if (System.IO.File.Exists(path))
                 return Assembly.LoadFrom(path);
@@ -42,7 +42,7 @@ namespace Speckle.ConnectorTopSolid.UI
         static Assembly ResolveForAvaloniaAssemblies(object sender, ResolveEventArgs args)
         {
             var assemblyName = new AssemblyName(args.Name).Name;
-            string path = System.IO.Path.Combine("C:\\Sources\\Topsolid 7.15\\Debug x64", assemblyName + ".dll");
+            string path = System.IO.Path.Combine("C:\\Sources\\Topsolid 7.18\\Debug x64", assemblyName + ".dll");
             //string path = System.IO.Path.Combine(RhinoSystemDirectory, assemblyName + ".dll");
             if (System.IO.File.Exists(path))
                 return Assembly.LoadFrom(path);

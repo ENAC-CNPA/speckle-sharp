@@ -1,0 +1,204 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PlatformTarget>x64</PlatformTarget>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Platforms>AnyCPU;ARM64</Platforms>
+    <BaseOutputPath>C:\Sources\Topsolid 7.18\Debug x64</BaseOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <ItemGroup>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Entry\App.cs">
+      <Link>Entry\App.cs</Link>
+    </Compile>
+	    <Compile Include="..\..\ConnectorTopSolid\UI\Entry\OneClickCommand.cs">
+      <Link>Entry\OneClickCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Entry\SpeckleTopSolidCommand.cs">
+      <Link>Entry\SpeckleTopSolidCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\LaunchCommand\LaunchSpeckleCommand.cs">
+      <Link>LaunchCommand\LaunchSpeckleCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Properties\AssemblyInfo.cs">
+      <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Resolver.cs">
+      <Link>Resolver.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Resources.cs">
+      <Link>Resources.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Session.cs">
+      <Link>Session.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Storage\SpeckleStreamManager.cs">
+      <Link>Storage\SpeckleStreamManager.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\UI\ConnectorBindingsTopSolid.cs">
+      <Link>UI\ConnectorBindingsTopSolid.cs</Link>
+    </Compile>
+    <Compile Include="..\..\ConnectorTopSolid\UI\Utils.cs">
+      <Link>Utils.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Web" />
+    <Reference Include="TopSolid.Cad.Design.DB">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
+    </Reference>
+	<Reference Include="TopSolid.Kernel.DB.D2">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D2.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3.Modeling">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.Modeling.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3.Shapes">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.Shapes.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Surfaces">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D3.Surfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.SX.NetStandard">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.SX.NetStandard.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.TX">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.TX.NetStandard">
+      <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.TX.NetStandard.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.UI.D3.Shapes">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.D3.Shapes.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Shapes">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.GR">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.GR.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.SX">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.UI">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.UI.D3">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.D3.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.WG">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.WG.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.WX">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.WX.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D3.Sketches">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.Sketches.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Curves">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D3.Curves.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.DB.D2.Sketches">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D2.Sketches.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Sketches">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D3.Sketches.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D2.Curves">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D2.Curves.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D3.Shapes">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D3.Shapes.dll</HintPath>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.G.D2.Sketches">
+       <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.G.D2.Sketches.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+   <ItemGroup>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\UI\LaunchCommand\LaunchSpeckleCommand.fr.resx">
+      <Link>LaunchCommand\LaunchSpeckleCommand.fr.resx</Link>
+      <DependentUpon>LaunchSpeckleCommand.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\UI\LaunchCommand\LaunchSpeckleCommand.resx">
+      <Link>LaunchCommand\LaunchSpeckleCommand.resx</Link>
+      <DependentUpon>LaunchSpeckleCommand.cs</DependentUpon>
+    </EmbeddedResource>
+    <!-- <EmbeddedResource Include="ContextMenu.fr.resx"> -->
+      <!-- <DependentUpon>ContextMenu.cs</DependentUpon> -->
+      <!-- <SubType>Designer</SubType> -->
+    <!-- </EmbeddedResource> -->
+    <!-- <EmbeddedResource Include="ContextMenu.resx"> -->
+      <!-- <DependentUpon>ContextMenu.cs</DependentUpon> -->
+    <!-- </EmbeddedResource> -->
+    <EmbeddedResource Include="ContextMenu.xml">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+    <ItemGroup>
+    <EmbeddedResource Include="..\..\ConnectorTopSolid\UI\LaunchCommand\LaunchSpeckleCommand.ico">
+      <Link>LaunchCommand\LaunchSpeckleCommand.ico</Link>
+    </EmbeddedResource>
+	<EmbeddedResource Include="..\..\ConnectorTopSolid\UI\ContextMenu.Item.ico">
+      <Link>ContextMenu.Item.ico</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <!-- <ItemGroup> -->
+    <!-- <Folder Include="Resources\" /> -->
+  <!-- </ItemGroup> -->
+  <ItemGroup>
+    <None Include="..\..\ConnectorTopSolid\UI\app.config">
+      <Link>app.config</Link>
+    </None>
+    <!-- <None Include="..\..\ConnectorTopSolid\UI\packages.config"> -->
+      <!-- <Link>packages.config</Link> -->
+    <!-- </None> -->
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Core\Core\Core.csproj" />
+    <ProjectReference Include="..\..\..\DesktopUI2\DesktopUI2\DesktopUI2.csproj">
+      <Private>True</Private>
+      <CopyLocalSatelliteAssemblies>True</CopyLocalSatelliteAssemblies>
+      <Aliases>global</Aliases>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </ProjectReference>
+    <ProjectReference Include="..\DB\Speckle.ConnectorTopSolid.DB.csproj">
+      <CopyLocalSatelliteAssemblies>True</CopyLocalSatelliteAssemblies>
+      <Private></Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(TargetDir)&quot; &quot;$(TargetDir)..\&quot; /S /Q /Y&#xD;&#xA;rmdir &quot;$(TargetDir)&quot;" />
+  </Target>
+</Project>
