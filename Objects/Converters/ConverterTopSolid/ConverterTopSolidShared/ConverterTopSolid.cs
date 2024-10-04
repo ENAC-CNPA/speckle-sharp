@@ -51,6 +51,8 @@ namespace Objects.Converter.TopSolid
     public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v716);
 #elif TOPSOLID717
     public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v717);
+#elif TOPSOLID718
+    public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v718);
 #endif
 
     public SpeckleFolderOperation sfo = null;

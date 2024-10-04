@@ -33,6 +33,10 @@ namespace Speckle.ConnectorTopSolid.UI
     public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v717);
     public static string AppName = HostApplications.TopSolid.Name;
     public static string Slug = HostApplications.TopSolid.Slug;
+#elif TOPSOLID718
+    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v718);
+    public static string AppName = HostApplications.TopSolid.Name;
+    public static string Slug = HostApplications.TopSolid.Slug;
 #endif
 
     public static string invalidChars = @"<>/\:;""?*|=,‘";

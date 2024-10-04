@@ -28,7 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConverterTopSolid", "Conver
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Speckle.ConnectorTopSolid.DB", "DB\Speckle.ConnectorTopSolid.DB.csproj", "{0C8A3568-4B4B-4BF9-AC9D-40EF72732940}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid717", "..\..\Objects\Converters\ConverterTopSolid\ConverterTopSolid717\ConverterTopSolid717.csproj", "{88B9DF6B-C803-4932-B46D-2D64B5655F7C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConverterTopSolid718", "..\..\Objects\Converters\ConverterTopSolid\ConverterTopSolid717\ConverterTopSolid718.csproj", "{88B9DF6B-C803-4932-B46D-2D64B5655F7C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
