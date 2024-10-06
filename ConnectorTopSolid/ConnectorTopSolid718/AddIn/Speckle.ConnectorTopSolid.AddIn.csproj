@@ -31,12 +31,12 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>..\..\..\..\Topsolid 7.17\Release x64\</OutputPath>
+    <OutputPath>..\..\..\..\Topsolid 7.18\Release x64\</OutputPath>
     <DocumentationFile>
     </DocumentationFile>
     <PlatformTarget>x64</PlatformTarget>
     <NoWarn>1607</NoWarn>
-    <DefineConstants>TRACE;TOPSOLID717</DefineConstants>
+    <DefineConstants>TRACE;TOPSOLID718</DefineConstants>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DebugType>pdbonly</DebugType>
     <ErrorReport>prompt</ErrorReport>
@@ -50,14 +50,15 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.XML" />
     <Reference Include="TopSolid.Kernel.SX">
-      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.SX.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.SX.NetStandard, Version=7.18.400.109, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.SX.NetStandard.dll</HintPath>
     </Reference>
     <Reference Include="TopSolid.Kernel.TX">
-      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.17\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.TX.NetStandard, Version=7.18.400.109, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
