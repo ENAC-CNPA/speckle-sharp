@@ -49,6 +49,7 @@
   <ItemGroup>
     <Reference Include="TopSolid.Cad.Design.DB">
       <HintPath>..\..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.dll</HintPath>
@@ -64,6 +65,7 @@
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Meshes">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.Meshes.dll</HintPath>
@@ -119,6 +121,7 @@
     </Reference>
     <Reference Include="TopSolid.Kernel.SX.NetStandard">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.SX.NetStandard.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.TX">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.TX.dll</HintPath>
@@ -126,6 +129,7 @@
     </Reference>
     <Reference Include="TopSolid.Kernel.TX.NetStandard">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\TopSolid 7.18\Debug x64\TopSolid.Kernel.TX.NetStandard.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TopSolid.Kernel.UI">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.dll</HintPath>
