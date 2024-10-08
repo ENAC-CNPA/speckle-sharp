@@ -176,9 +176,9 @@ public static class SpeckleLog
 
     if (logConfiguration.enhancedLogContext)
       serilogLogConfiguration = serilogLogConfiguration.Enrich
-        .WithClientAgent()
-        .Enrich.WithClientIp()
-        .Enrich.WithExceptionDetails();
+        //.WithClientAgent()
+        //.Enrich.WithClientIp()
+        .WithExceptionDetails();
 
     if (logConfiguration.logToFile && canLogToFile)
       serilogLogConfiguration = serilogLogConfiguration.WriteTo.File(
@@ -261,7 +261,7 @@ public static class SpeckleLog
 
     SentrySdk.ConfigureScope(scope =>
     {
-      scope.User = new User { Id = id };
+      scope.User = new SentryUser { Id = id };
     });
   }
 
