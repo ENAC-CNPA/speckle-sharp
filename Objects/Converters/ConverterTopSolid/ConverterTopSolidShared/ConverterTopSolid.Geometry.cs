@@ -76,6 +76,11 @@ namespace Objects.Converter.TopSolid
     {
       return new double[] { pt.X, pt.Y, 0 };
     }
+    public static double[] D2PointToArray(G.D2.Point pt, G.D3.Plane plane)
+    {
+      var pt3d = plane.ToAbsolute(pt);
+      return new double[] { pt3d.X, pt3d.Y, pt3d.Z };
+    }
 
     public static double[] D3PointToArray(D3Point pt)
     {
@@ -106,6 +111,10 @@ namespace Objects.Converter.TopSolid
     {
       return points.SelectMany(pt => D2PointToArray(pt)).ToArray();
     }
+    public static double[] D2PointsToFlatArray(IEnumerable<G.D2.Point> points, G.D3.Plane plane)
+    {
+      return (double[])points.SelectMany(pt => D2PointToArray(pt, plane).ToArray());
+    }
 
     public static double[] D3PointsToFlatArray(IEnumerable<D3Point> points)
     {
@@ -116,6 +125,11 @@ namespace Objects.Converter.TopSolid
     {
       return points.SelectMany(pt => D2PointToArray(pt)).ToList();
     }
+    public static List<double> D2PointsToFlatList(IEnumerable<G.D2.Point> points, G.D3.Plane plane)
+    {
+      return points.SelectMany(pt => D2PointToArray(pt, plane)).ToList();
+    }
+
     public static List<double> D3PointsToFlatList(IEnumerable<D3Point> points)
     {
       return points.SelectMany(pt => D3PointToArray(pt)).ToList();
@@ -176,7 +190,7 @@ namespace Objects.Converter.TopSolid
       }
       return points;
     }
- 
+
     #endregion
 
     // Points
@@ -188,6 +202,8 @@ namespace Objects.Converter.TopSolid
       SetInstanceParameters(specklePoint, topSolidpoint);
       return specklePoint;
     }
+
+
     public Point PointToSpeckleWithTransformation(D3Point topSolidpoint, TK.G.D3.Transform inTransform, string units = null)
     {
       var u = units ?? ModelUnits;
@@ -208,6 +224,15 @@ namespace Objects.Converter.TopSolid
     {
       var u = units ?? ModelUnits;
       Point specklePoint = new Point(topSolidpoint.X, topSolidpoint.Y, 0, u);
+      SetInstanceParameters(specklePoint, topSolidpoint);
+      return specklePoint;
+    }
+
+    public Point PointToSpeckle(D2Point topSolidpoint, G.D3.Plane plane, string units = null)
+    {
+      var u = units ?? ModelUnits;
+      var absolutepoint = plane.ToAbsolute(topSolidpoint);
+      Point specklePoint = new Point(absolutepoint.X, absolutepoint.Y, absolutepoint.Z, u);
       SetInstanceParameters(specklePoint, topSolidpoint);
       return specklePoint;
     }
@@ -267,6 +292,7 @@ namespace Objects.Converter.TopSolid
     }
 
 
+
     public TsPlane PlaneToNative(Plane plane)
     {
       return new TsPlane(PointToNative(plane.origin), UnitVectorToNative(plane.xdir.Unit()), UnitVectorToNative(plane.ydir.Unit()));
@@ -295,6 +321,14 @@ namespace Objects.Converter.TopSolid
       SetInstanceParameters(speckleLine, topSolidline);
       return speckleLine;
     }
+
+    public Line LineToSpeckle(D2LineCurve topSolidline, G.D3.Plane plane, string units = null)
+    {
+      var u = units ?? ModelUnits;
+      Line speckleLine = new Line(PointToSpeckle(topSolidline.Ps, plane, u), PointToSpeckle(topSolidline.Pe, plane, u), u);
+      SetInstanceParameters(speckleLine, topSolidline);
+      return speckleLine;
+    }
     public D3LineCurve LineToNative(Line line, bool isReversed = false, string units = null)
     {
       if (isReversed)
@@ -314,13 +348,15 @@ namespace Objects.Converter.TopSolid
       Base speckleSketch = new Base();
 
       //SetInstanceParameters(speckleSketch, topSolidSketch);
-
+      bool is3d = topSolidSketch.Is3D;
+      var localPlane = topSolidSketch.Plane;
       //AHW test to add profiles dynmaically
       List<Base> list = new List<Base>();
       foreach (var profile in topSolidSketch.Profiles)
       {
         var geoProfile = profile.MakeGeometricProfile();
-        var obj = ObjectToSpeckle(geoProfile);
+
+        var obj = ObjectToSpeckle(geoProfile, localPlane);
         obj["IsSketch"] = "yes";
         list.Add(obj);
       }
@@ -388,6 +424,27 @@ namespace Objects.Converter.TopSolid
 
     }
 
+    public Polyline PolyLineToSpeckle(D2PolylineCurve topSolidPolyline, G.D3.Plane plane
+      , string units = null)
+    {
+
+      var u = units ?? ModelUnits;
+      List<double> _coordinates = new List<double>();
+
+      D2PointList pts = topSolidPolyline.CPts;
+
+      foreach (D2Point p in pts)
+      {
+        Point _point = PointToSpeckle(p, plane, u);
+        _coordinates.Add(_point.x);
+      }
+
+      Polyline specklePolyline = new Polyline(_coordinates, u);
+      SetInstanceParameters(specklePolyline, topSolidPolyline);
+      return specklePolyline;
+
+    }
+
     public D3PolylineCurve PolyLineToNative(Polyline polyLine, string units = null)
     {
 
@@ -409,9 +466,18 @@ namespace Objects.Converter.TopSolid
     public Polycurve ProfileToSpeckle(G.D2.Curves.GeometricProfile profile, string units = null)
     {
       var u = units ?? ModelUnits;
-
       Polycurve polyCurve = new Polycurve();
       polyCurve.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve)).ToList();
+      polyCurve.units = u;
+
+      return polyCurve;
+    }
+    public Polycurve ProfileToSpeckle(G.D2.Curves.GeometricProfile profile, G.D3.Plane plane, string units = null)
+    {
+      var u = units ?? ModelUnits;
+      Polycurve polyCurve = new Polycurve();
+
+      polyCurve.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve, plane)).ToList();
       polyCurve.units = u;
 
       return polyCurve;
@@ -465,6 +531,28 @@ namespace Objects.Converter.TopSolid
       }
 
     }
+    public ICurve CurveToSpeckle(G.D2.Curves.Curve curve, G.D3.Plane plane, string units = null)
+    {
+
+      var u = units ?? ModelUnits;
+      switch (curve)
+      {
+        case G.D2.Curves.BSplineCurve bspline:
+          return BSplineCurveToSpeckle(bspline, plane, u);
+        case G.D2.Curves.CircleCurve circle:
+          if (circle.IsClosed())
+            return CircleToSpeckle(circle, plane, u);
+          else
+            return ArcToSpeckle(circle, plane, u);
+        case G.D2.Curves.LineCurve line:
+          return LineToSpeckle(line, plane, u);
+        case G.D2.Curves.PolylineCurve poly:
+          return PolyLineToSpeckle(poly, plane, u);
+        default:
+          return BSplineCurveToSpeckle(curve.GetBSplineCurve(false, false), plane, u);
+      }
+
+    }
 
     public ICurve CurveToSpeckle(G.D3.Curves.Curve curve, string units = null)
     {
@@ -500,6 +588,20 @@ namespace Objects.Converter.TopSolid
       circle.bbox = new Box(circle.plane, new Interval(box.XMin, box.XMax), new Interval(box.YMin, box.YMax), new Interval(box.ZMin, box.ZMax));
       return circle;
     }
+    public Circle CircleToSpeckle(G.D2.Curves.CircleCurve circ, G.D3.Plane plane, string units = null)
+    {
+      var u = units ?? ModelUnits;
+      //var circAbsPlane = plane.ToAbsolute(circ.Frame.ToAbsolute(fr);
+
+      var circle = new Circle(PlaneToSpeckle(plane, u), circ.Radius, u);
+      circle.domain = new Interval(0, 1);
+      circle.length = 2 * Math.PI * circ.Radius;
+      circle.area = Math.PI * circ.Radius * circ.Radius;
+      circle.plane.origin = PointToSpeckle(circ.Center, plane);
+      G.D3.Extent box = (G.D3.Extent)circ.GetBoundingBox();
+      circle.bbox = new Box(circle.plane, new Interval(box.XMin, box.XMax), new Interval(box.YMin, box.YMax), new Interval(box.ZMin, box.ZMax));
+      return circle;
+    }
 
     public Circle CircleToSpeckle(G.D3.Curves.CircleCurve circ, string units = null)
     {
@@ -526,6 +628,8 @@ namespace Objects.Converter.TopSolid
       return arc;
     }
 
+
+
     public Arc ArcToSpeckle(G.D2.Curves.CircleCurve a, string units = null)
     {
 
@@ -535,6 +639,23 @@ namespace Objects.Converter.TopSolid
       Arc arc = new Arc(PlaneToSpeckle((TsPlane)a.Frame), PointToSpeckle(a.Ps), PointToSpeckle(a.Pe), angle);
 
       arc.midPoint = PointToSpeckle(a.Pm, u);
+      arc.domain = new Interval(0, 1);
+      arc.length = a.GetLength();
+      //arc.bbox = BoxToSpeckle(new RH.Box(a.BoundingBox()), u);
+      return arc;
+    }
+    public Arc ArcToSpeckle(G.D2.Curves.CircleCurve a, G.D3.Plane plane, string units = null)
+    {
+
+      var u = units ?? ModelUnits;
+      var vec1 = new D2Vector(a.Center, a.Ps);
+      var vec2 = new D2Vector(a.Center, a.Pe);
+
+      double angle = vec1.GetAngle(vec2, false);
+      
+      Arc arc = new Arc(PlaneToSpeckle((plane)), PointToSpeckle(a.Ps, plane, u), PointToSpeckle(a.Pe, plane, u), angle);
+
+      arc.midPoint = PointToSpeckle(a.Pm, plane, u);
       arc.domain = new Interval(0, 1);
       arc.length = a.GetLength();
       //arc.bbox = BoxToSpeckle(new RH.Box(a.BoundingBox()), u);
@@ -573,6 +694,83 @@ namespace Objects.Converter.TopSolid
         }
         Polyline displayValue = new Polyline();
         displayValue.value = D2PointsToFlatList(polyPoints);
+        displayValue.units = u;
+        displayValue.closed = false;
+
+        speckleCurve.displayValue = displayValue;
+      }
+      catch { }
+
+      //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
+      List<double> knots = new List<double>();
+
+      for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
+      {
+        knots.Add(topSolidCurve.Bs.ElementAt(i));
+
+      }
+
+      //Prevent errors when weight list is empty
+      if (topSolidCurve.CWts.Count == 0)
+      {
+        ptWeights.Clear();
+        for (int i = 0; i < topSolidCurve.CPts.Count; i++)
+        {
+          ptWeights.Add(1.0);
+        }
+      }
+
+      Interval interval = new Interval(topSolidCurve.Ts, topSolidCurve.Te);
+
+      //set speckle curve info
+      speckleCurve.points = D2PointsToFlatArray(topSolidCurve.CPts).ToList();
+      speckleCurve.knots = knots;
+      speckleCurve.weights = ptWeights;
+      speckleCurve.degree = topSolidCurve.Degree;
+      speckleCurve.periodic = topSolidCurve.IsPeriodic;
+      speckleCurve.rational = topSolidCurve.IsRational;
+      speckleCurve.closed = topSolidCurve.IsClosed();
+      speckleCurve.length = topSolidCurve.GetLength();
+      speckleCurve.domain = interval;
+      //speckleCurve.bbox = BoxToSpeckle(spline.GeometricExtents, true);
+      speckleCurve.units = u;
+
+      SetInstanceParameters(speckleCurve, topSolidCurve);
+
+      return speckleCurve;
+    }
+
+    public Objects.Geometry.Curve BSplineCurveToSpeckle(G.D2.Curves.BSplineCurve topSolidCurve, G.D3.Plane frame, string units = null)
+    {
+      Curve speckleCurve = new Curve();
+      var u = units ?? ModelUnits;
+
+
+      //Weights
+      List<double> ptWeights = new List<double>();
+      try
+      {
+        if (topSolidCurve.CWts.Count != 0)
+        {
+          foreach (double weight in topSolidCurve.CWts)
+          {
+            ptWeights.Add(weight);
+          }
+        }
+      }
+      catch { }
+
+      try
+      {
+
+        double range = (topSolidCurve.Te - topSolidCurve.Ts);
+        G.D2.PointList polyPoints = new G.D2.PointList();
+        for (int i = 0; i < 100; i++)
+        {
+          polyPoints.Add(topSolidCurve.GetPoint((range / 100) * i));
+        }
+        Polyline displayValue = new Polyline();
+        displayValue.value = D2PointsToFlatList(polyPoints, frame);
         displayValue.units = u;
         displayValue.closed = false;
 
@@ -1175,7 +1373,7 @@ namespace Objects.Converter.TopSolid
       BSpline bsplineU = new BSpline(isPeriodic, degreeU, topKnots);
 
       topKnots = new DoubleList();
-      
+
 
       isPeriodic = isPeriodicV;
       if (isPeriodic)
@@ -1209,7 +1407,7 @@ namespace Objects.Converter.TopSolid
         {
           D3Point pointToAdd = PointToNative(surfPts[i][j]);
           topPnts.Add(pointToAdd);
-        }        
+        }
       }
 
 
@@ -1302,7 +1500,7 @@ namespace Objects.Converter.TopSolid
 
       return knots;
     }
-    
+
 
     #endregion
 
@@ -1341,27 +1539,27 @@ namespace Objects.Converter.TopSolid
       {
         SurfaceGeometryType typeOfFace = face.GeometryType;
 
-       
-          global2dList.Add(new TSX.List<G.D2.Curves.IGeometricProfile>());
-          global3dList.Add(new TSX.List<G.D3.Curves.IGeometricProfile>());
-          globalEdgeList.Add(new TSX.List<EdgeList>());
-          globalBoolList.Add(new SX.Collections.BoolList());
 
-          var loop2d = global2dList[faceindex];
-          var loop3d = global3dList[faceindex];
-          var tsEgdes = globalEdgeList[faceindex];
-          var boolList = globalBoolList[faceindex];
+        global2dList.Add(new TSX.List<G.D2.Curves.IGeometricProfile>());
+        global3dList.Add(new TSX.List<G.D3.Curves.IGeometricProfile>());
+        globalEdgeList.Add(new TSX.List<EdgeList>());
+        globalBoolList.Add(new SX.Collections.BoolList());
 
-          alias.Faces.Add(new GeometryAlias
-          {
-            Index = faceindex,
-            Moniker = face.Moniker.ToString()
-          });
+        var loop2d = global2dList[faceindex];
+        var loop3d = global3dList[faceindex];
+        var tsEgdes = globalEdgeList[faceindex];
+        var boolList = globalBoolList[faceindex];
+
+        alias.Faces.Add(new GeometryAlias
+        {
+          Index = faceindex,
+          Moniker = face.Moniker.ToString()
+        });
         if (typeOfFace != SurfaceGeometryType.Sphere)
         {
           //GetTopological info of face
           OrientedSurface surf = face.GetOrientedBsplineTrimmedGeometry(tol, true, true, false, FaceTrimmingLoopsConfine.No, boolList, loop2d, loop3d, tsEgdes/*,false*/);
-          
+
           bool periodicity = surf.Surface.IsUPeriodic || surf.Surface.IsVPeriodic;
           periodicityDictionary.Add(faceindex, periodicity);
 
@@ -1370,7 +1568,7 @@ namespace Objects.Converter.TopSolid
         }
         else
         {
-          var surfs=face.GetBsplineGeometry(tol, true, true, false);
+          var surfs = face.GetBsplineGeometry(tol, true, true, false);
           var bSplineSurf = surfs.GetBsplineGeometry(tol, true, true, false);
           EdgeList edList = new EdgeList();
           face.GetEdges(edList);
@@ -1379,7 +1577,7 @@ namespace Objects.Converter.TopSolid
           face.GetLoops(loops);
           int indLoop = 0;
           foreach (var loop in loops)
-          {            
+          {
             TX.Items.ItemMonikerKey key = new TX.Items.ItemMonikerKey(TX.Items.ItemOperationKey.BasicKey);
             var crv3dCurve = loop.MakeGeometricProfile(new ItemMoniker(false, (byte)ItemType.ShapeFace, key, new int[] { faceindex, indLoop }));
             loop3d.Add(crv3dCurve);
@@ -1864,7 +2062,7 @@ namespace Objects.Converter.TopSolid
       // If new problems come, see about the periodicity of the curves.
 
       //TODO check if planar to simplify            
-      BSplineSurface bsSurface = SurfaceToNative_AFS(surface);      
+      BSplineSurface bsSurface = SurfaceToNative_AFS(surface);
 
       bool isSurfPeriodic = false;
       if (bsSurface != null && (bsSurface.IsUPeriodic || bsSurface.IsVPeriodic))

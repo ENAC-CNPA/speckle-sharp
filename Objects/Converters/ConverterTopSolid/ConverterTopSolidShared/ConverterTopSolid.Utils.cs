@@ -262,9 +262,16 @@ namespace Objects.Converter.TopSolid
 
           return;
         }
-
+        //AHW testing
         else if (host is SetDefinitionEntity set)
         {
+          //var listofsets = (@base["@elements"] as List<Base>).Where(x => x is Collection collection).ToList();
+          //Collection collection;
+
+          //if (listofsets.Count != 0)
+          //{
+
+          //}
           Base obj = null;
           obj = ConvertToSpeckle(set);
 
@@ -274,6 +281,8 @@ namespace Objects.Converter.TopSolid
               @base["@elements"] = new List<Base>();
 
             (@base["@elements"] as List<Base>).Add(obj);
+            //(@base["Sets"] as List<Base>).Add(obj);
+
           }
         }
       }
@@ -591,7 +600,7 @@ namespace Objects.Converter.TopSolid
       else return (SX.Drawing.Color.Blue, Transparency.SemiTransparent);
       return (new SX.Drawing.Color(color.R, color.G, color.B), Transparency.FromByte((byte)(byte.MaxValue - color.A)));
     }
-    
+
 
     public GeometryAliasLinked GetHashVertex(Vertex vertex, int index)
     {
@@ -642,3 +651,5 @@ namespace Objects.Converter.TopSolid
 
   }
 }
+
+

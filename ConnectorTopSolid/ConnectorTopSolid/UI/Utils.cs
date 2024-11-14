@@ -21,23 +21,24 @@ namespace Speckle.ConnectorTopSolid.UI
   public static class Utils
   {
 
-    //#if TOPSOLID715
-    //    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v715);
-    //    public static string AppName = HostApplications.TopSolid.Name;
-    //    public static string Slug = HostApplications.TopSolid.Slug;
-    //#elif TOPSOLID716
-    //    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v716);
-    //    public static string AppName = HostApplications.TopSolid.Name;
-    //    public static string Slug = HostApplications.TopSolid.Slug;
-    //#elif TOPSOLID717
-    //    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v717);
-    //    public static string AppName = HostApplications.TopSolid.Name;
-    //    public static string Slug = HostApplications.TopSolid.Slug;
-    //#elif TOPSOLID718
+#if TOPSOLID715
+    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v715);
+    public static string AppName = HostApplications.TopSolid.Name;
+    public static string Slug = HostApplications.TopSolid.Slug;
+#elif TOPSOLID716
+    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v716);
+    public static string AppName = HostApplications.TopSolid.Name;
+    public static string Slug = HostApplications.TopSolid.Slug;
+#elif TOPSOLID717
+    public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v717);
+    public static string AppName = HostApplications.TopSolid.Name;
+    public static string Slug = HostApplications.TopSolid.Slug;
+#endif
+#region TOPSOLID718
     public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v718);
     public static string AppName = HostApplications.TopSolid.Name;
     public static string Slug = HostApplications.TopSolid.Slug;
-    //#endif
+#endregion
 
     public static string invalidChars = @"<>/\:;""?*|=,‘";
 
@@ -136,8 +137,8 @@ namespace Speckle.ConnectorTopSolid.UI
                 }
               }
             }
-
-
+            
+           
 
 
           }
@@ -154,7 +155,7 @@ namespace Speckle.ConnectorTopSolid.UI
           if (element is PointCloudEntity ptcE)
             objs.Add(ptcE.Id.ToString());
         }
-      }
+      }      
 
 
       return objs;

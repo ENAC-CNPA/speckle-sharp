@@ -3,7 +3,6 @@ using System.Collections;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
-
 using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Notifications;

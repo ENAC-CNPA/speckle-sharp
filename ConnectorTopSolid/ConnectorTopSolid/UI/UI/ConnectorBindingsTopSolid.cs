@@ -88,7 +88,7 @@ namespace Speckle.ConnectorTopSolid.UI
     #endregion
 
     #region boilerplate
-    public override string GetHostAppNameVersion() => Utils.VersionedAppName.Replace("TopSolid", "TopSolid "); //hack for ADSK store;
+    public override string GetHostAppNameVersion() => Speckle.ConnectorTopSolid.UI.Utils.VersionedAppName.Replace("TopSolid", "TopSolid "); //hack for ADSK store;
 
     public override string GetHostAppName()
     {

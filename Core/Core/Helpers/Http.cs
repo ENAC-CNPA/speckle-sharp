@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
-
+using Polly.Extensions.Http;
 using Polly.Retry;
 using Serilog.Context;
 using Speckle.Core.Credentials;
@@ -64,24 +64,22 @@ public static class Http
 
   public static AsyncRetryPolicy<HttpResponseMessage> HttpAsyncPolicy(IEnumerable<TimeSpan>? delay = null)
   {
-    // Replacing HttpPolicyExtensions with Polly's core Handle<> method
-    return Policy
-        .Handle<HttpRequestException>() // Handle transient HTTP request errors
-        .OrResult<HttpResponseMessage>(r =>
-            !r.IsSuccessStatusCode // Also handle unsuccessful status codes (non-2xx)
-        )
-        .WaitAndRetryAsync(
-            delay ?? DefaultDelay(),
-            (outcome, timeSpan, retryAttempt, context) =>
-            {
-              // Log retry attempt details
-              SpeckleLog.Logger.Information(
-                  "The HTTP request failed, retrying after {cooldown} milliseconds. This is retry attempt {retryAttempt}",
-                  timeSpan.TotalMilliseconds,
-                  retryAttempt
-              );
-            }
-        );
+    return HttpPolicyExtensions
+      .HandleTransientHttpError()
+      .WaitAndRetryAsync(
+        delay ?? DefaultDelay(),
+        (ex, timeSpan, retryAttempt, context) => {
+          //context.Remove("retryCount");
+          //context.Add("retryCount", retryAttempt);
+          //Log.Information(
+          //  ex.Exception,
+          //  "The http request failed with {exceptionType} exception retrying after {cooldown} milliseconds. This is retry attempt {retryAttempt}",
+          //  ex.GetType().Name,
+          //  timeSpan.TotalSeconds * 1000,
+          //  retryAttempt
+          //);
+        }
+      );
   }
 
   /// <summary>
@@ -120,8 +118,7 @@ public static class Http
       .Or<SocketException>()
       .WaitAndRetryAsync(
         DefaultDelay(),
-        (ex, timeSpan, retryAttempt, context) =>
-        {
+        (ex, timeSpan, retryAttempt, context) => {
           //Log.Information(
           //  ex,
           //  "The http request failed with {exceptionType} exception retrying after {cooldown} milliseconds. This is retry attempt {retryAttempt}",

@@ -181,8 +181,8 @@ namespace Objects.Converter.TopSolid
         case DB.D3.Sketches.Planar.PlanarSketchEntity o:
           return PlanarSketchToSpeckle(o.Geometry as PlanarSketch);
 
-          case SetDefinitionEntity o:
-            return SetToSpeckle(o);
+        case SetDefinitionEntity o:
+          return SetToSpeckle(o);
 
         case Element o:
           return ElementToSpeckle(o);
@@ -195,6 +195,7 @@ namespace Objects.Converter.TopSolid
 
 
     public System.Collections.Generic.List<Base> ConvertToSpeckle(System.Collections.Generic.List<object> objects) => objects.Select(ConvertToSpeckle).ToList();
+
 
 
     private Base ObjectToSpeckleBuiltElement(TsEntity o)
@@ -244,8 +245,64 @@ namespace Objects.Converter.TopSolid
 
         case G.D3.Curves.GeometricProfile o:
           return ProfileToSpeckle(o);
-        
-          
+
+
+
+        case G.D3.Sketches.Planar.PlanarSketch o:
+          return PlanarSketchToSpeckle(o);
+
+        case G.D3.Sketches.PositionedSketch o:
+          return PositionedSketchToSpeckle(o);
+
+        // TODO: using multi type (TsGeometry isn't compatible)
+        //case TsVector o:
+        //    return VectorToSpeckle(o);
+
+        default:
+          return null;
+      }
+    }
+
+    public Base ObjectToSpeckle(D3Geometry obj, G.D3.Plane plane)
+    {
+
+      switch (obj)
+      {
+
+        case D3Box o:
+          return BoxToSpeckle(o);
+
+        case D3Plane o:
+          return PlaneToSpeckle(o);
+
+        case D3Point o:
+          return PointToSpeckle(o);
+
+        case G.D2.Point o:
+          return PointToSpeckle(o, plane);
+
+        case D3LineCurve o:
+          return LineToSpeckle(o);
+
+        case D3PolylineCurve o:
+          return PolyLineToSpeckle(o);
+
+        case D3BSplineSurface o:
+          return SurfaceToSpeckle(o);
+
+        case D3Shape o:
+          return BrepToSpeckle(o);
+
+        case Polyhedron o:
+          return PolyhedronToSpeckle(o);
+
+        case G.D2.Curves.GeometricProfile o:
+          return ProfileToSpeckle(o, plane);
+
+        case G.D3.Curves.GeometricProfile o:
+          return ProfileToSpeckle(o);
+
+
 
         case G.D3.Sketches.Planar.PlanarSketch o:
           return PlanarSketchToSpeckle(o);
@@ -300,7 +357,7 @@ namespace Objects.Converter.TopSolid
         case PointCloudEntity ptCl:
           return true;
         case SetDefinitionEntity _:
-return true;
+          return true;
         case Element e:
           switch (e.Geometry)
           {
