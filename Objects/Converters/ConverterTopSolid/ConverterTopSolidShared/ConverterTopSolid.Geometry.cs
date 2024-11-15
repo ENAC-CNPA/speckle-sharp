@@ -356,6 +356,7 @@ namespace Objects.Converter.TopSolid
       {
         var geoProfile = profile.MakeGeometricProfile();
 
+
         var obj = ObjectToSpeckle(geoProfile, localPlane);
         obj["IsSketch"] = "yes";
         list.Add(obj);
@@ -652,7 +653,7 @@ namespace Objects.Converter.TopSolid
       var vec2 = new D2Vector(a.Center, a.Pe);
 
       double angle = vec1.GetAngle(vec2, false);
-      
+
       Arc arc = new Arc(PlaneToSpeckle((plane)), PointToSpeckle(a.Ps, plane, u), PointToSpeckle(a.Pe, plane, u), angle);
 
       arc.midPoint = PointToSpeckle(a.Pm, plane, u);

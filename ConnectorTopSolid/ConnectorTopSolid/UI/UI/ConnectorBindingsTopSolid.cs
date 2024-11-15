@@ -140,12 +140,12 @@ namespace Speckle.ConnectorTopSolid.UI
     private static List<Element> GetEverything(Dictionary<int, DesignDocument> linkedDocs)
     {
       var currentDoc = Doc;
-      var selection = new List<Element>();      
+      var selection = new List<Element>();
 
       selection.AddRange(currentDoc.ShapesFolderEntity.Constituents);
-      selection.AddRange(currentDoc.SketchesFolderEntity.Constituents);
+      selection.AddRange(currentDoc.SketchesFolderEntity.DeepConstituents);
 
-     
+
 
       return selection;
     }

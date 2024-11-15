@@ -98,7 +98,7 @@ namespace Speckle.ConnectorTopSolid.UI
       //RepresentationEntity currentRepresentation = designDoc.CurrentRepresentationEntity;
       var objs = new List<string>();
       ElementList constituents = new ElementList();
-      designDoc.RootEntity.GetConstituents(constituents);
+      designDoc.RootEntity.GetDeepConstituents(constituents);
       foreach (Element item in constituents)
       {
         if (item is FolderEntity represEntity)
