@@ -40,6 +40,7 @@ using TopSolid.Kernel.SX.Collections.Generic;
 using TopSolid.Kernel.DB.Entities;
 using SX = TopSolid.Kernel.SX;
 using TopSolid.Kernel.DB.Sets;
+using TopSolid.Kernel.GR.Attributes;
 
 namespace Objects.Converter.TopSolid
 {
@@ -318,6 +319,7 @@ namespace Objects.Converter.TopSolid
           return null;
       }
     }
+
 
     public Base ObjectToSpeckle(G.D2.Sketches.Vertex vertex)
     {

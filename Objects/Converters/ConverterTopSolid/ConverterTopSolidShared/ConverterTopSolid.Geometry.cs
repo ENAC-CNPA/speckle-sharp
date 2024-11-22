@@ -61,6 +61,8 @@ using TK = TopSolid.Kernel;
 using DynamicData;
 using TopSolid.Kernel.SX.Collections;
 using ItemType = TopSolid.Kernel.TX.Items.ItemType;
+using TopSolid.Kernel.GR.Attributes;
+using TopSolid.Kernel.TX.Attributes;
 
 namespace Objects.Converter.TopSolid
 {
@@ -362,7 +364,7 @@ namespace Objects.Converter.TopSolid
         list.Add(obj);
       }
 
-      var vertices = topSolidSketch.Vertices.Select(x => ObjectToSpeckle(x)).ToList();
+      var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
       speckleSketch["Profiles"] = list;
       speckleSketch["Vertices"] = vertices;
       speckleSketch["isSketch"] = true;
@@ -370,6 +372,8 @@ namespace Objects.Converter.TopSolid
       return speckleSketch;
 
     }
+
+
     public G.D3.Sketches.Planar.PlanarSketch PlanarSketchToNative(Line line, string units = null)
     {
       return null;
@@ -483,6 +487,7 @@ namespace Objects.Converter.TopSolid
 
       return polyCurve;
     }
+
 
     public Polycurve ProfileToSpeckle(G.D3.Curves.GeometricProfile profile, string units = null)
     {
