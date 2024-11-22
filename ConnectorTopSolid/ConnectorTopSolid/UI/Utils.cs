@@ -34,11 +34,11 @@ namespace Speckle.ConnectorTopSolid.UI
     public static string AppName = HostApplications.TopSolid.Name;
     public static string Slug = HostApplications.TopSolid.Slug;
 #endif
-#region TOPSOLID718
+    #region TOPSOLID718
     public static string VersionedAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v718);
     public static string AppName = HostApplications.TopSolid.Name;
     public static string Slug = HostApplications.TopSolid.Slug;
-#endregion
+    #endregion
 
     public static string invalidChars = @"<>/\:;""?*|=,‘";
 
@@ -97,9 +97,9 @@ namespace Speckle.ConnectorTopSolid.UI
       DesignDocument designDoc = doc as DesignDocument;
       //RepresentationEntity currentRepresentation = designDoc.CurrentRepresentationEntity;
       var objs = new List<string>();
-      ElementList constituents = new ElementList();
-      designDoc.RootEntity.GetDeepConstituents(constituents);
-      foreach (Element item in constituents)
+      //ElementList constituents = new ElementList();
+      //designDoc.RootEntity.GetDeepConstituents(constituents);
+      foreach (Element item in designDoc.RootEntity.DeepConstituents)
       {
         if (item is FolderEntity represEntity)
         {
@@ -137,8 +137,8 @@ namespace Speckle.ConnectorTopSolid.UI
                 }
               }
             }
-            
-           
+
+
 
 
           }
@@ -155,7 +155,7 @@ namespace Speckle.ConnectorTopSolid.UI
           if (element is PointCloudEntity ptcE)
             objs.Add(ptcE.Id.ToString());
         }
-      }      
+      }
 
 
       return objs;
