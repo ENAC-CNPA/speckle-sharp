@@ -41,6 +41,8 @@ using TopSolid.Kernel.DB.Entities;
 using SX = TopSolid.Kernel.SX;
 using TopSolid.Kernel.DB.Sets;
 using TopSolid.Kernel.GR.Attributes;
+using TopSolid.Kernel.DB.D3.Axes;
+using TopSolid.Kernel.DB.D3.Planes;
 
 namespace Objects.Converter.TopSolid
 {
@@ -184,6 +186,8 @@ namespace Objects.Converter.TopSolid
 
         case SetDefinitionEntity o:
           return SetToSpeckle(o);
+        case AxisEntity a:
+          return AxisToSpeckle(a);
 
         case Element o:
           return ElementToSpeckle(o);
@@ -359,6 +363,10 @@ namespace Objects.Converter.TopSolid
         case PointCloudEntity ptCl:
           return true;
         case SetDefinitionEntity _:
+          return true;
+        case AxisEntity axis:
+          return true;
+        case PlaneEntity plane:
           return true;
         case Element e:
           switch (e.Geometry)

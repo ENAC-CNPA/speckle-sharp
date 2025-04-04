@@ -263,6 +263,17 @@ namespace Objects.Converter.TopSolid
           return;
         }
         //AHW testing
+        if (host is global::TopSolid.Kernel.DB.D3.Axes.AxisEntity axisEntity)
+        {
+          Base obj = null;
+          obj = ConvertToSpeckle(axisEntity);         
+
+          if (obj != null)
+          {
+            //obj["IsAxis"] = true;
+
+          }
+        }
         else if (host is SetDefinitionEntity set)
         {
           //var listofsets = (@base["@elements"] as List<Base>).Where(x => x is Collection collection).ToList();
@@ -456,11 +467,11 @@ namespace Objects.Converter.TopSolid
       string typeElt = element.GetType().ToString();
       if (element is not PointCloudEntity && element is not PointCloudsFolderEntity)
       {
-        System.Drawing.Color color = element.Color;
+        System.Drawing.Color color = element.ExplicitColor;
         RenderMaterial material = new RenderMaterial()
         {
           name = element.Color.GetKnownName(),
-          opacity = (double)element.Transparency.Opacity,
+          opacity = (double)element.ExplicitTransparency.Opacity,
           //metalness = revitMaterial.Shininess / 128d, //Looks like these are not valid conversions
           //roughness = 1 - (revitMaterial.Smoothness / 100d),
           diffuse = color.ToArgb()

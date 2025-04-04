@@ -132,8 +132,15 @@ namespace Speckle.ConnectorTopSolid.UI
           elementsList.Add(element.Id.ToString());
         else if (element is PointCloudEntity ptcE)
           elementsList.Add(ptcE.Id.ToString());
+        else if (element is TopSolid.Kernel.DB.D3.Axes.AxisEntity axisEntity)
+        {
+          elementsList.Add(axisEntity.Id.ToString());
+        }
+        else if (element is TopSolid.Kernel.DB.D3.Planes.PlaneEntity planeEntity)
+        {
+          elementsList.Add(planeEntity.Id.ToString());
+        }
       }
-
       return elementsList;
     }
 
@@ -144,6 +151,8 @@ namespace Speckle.ConnectorTopSolid.UI
 
       selection.AddRange(currentDoc.ShapesFolderEntity.Constituents);
       selection.AddRange(currentDoc.SketchesFolderEntity.DeepConstituents);
+      selection.AddRange(currentDoc.AxesFolderEntity.DeepConstituents);
+      selection.AddRange(currentDoc.PlanesFolderEntity.DeepConstituents);
 
 
 

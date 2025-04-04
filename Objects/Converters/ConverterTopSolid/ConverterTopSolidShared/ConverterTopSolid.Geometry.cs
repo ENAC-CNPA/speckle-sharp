@@ -63,6 +63,7 @@ using TopSolid.Kernel.SX.Collections;
 using ItemType = TopSolid.Kernel.TX.Items.ItemType;
 using TopSolid.Kernel.GR.Attributes;
 using TopSolid.Kernel.TX.Attributes;
+using TopSolid.Kernel.DB.D3.Axes;
 
 namespace Objects.Converter.TopSolid
 {
@@ -377,6 +378,25 @@ namespace Objects.Converter.TopSolid
     public G.D3.Sketches.Planar.PlanarSketch PlanarSketchToNative(Line line, string units = null)
     {
       return null;
+    }
+
+    public Base AxisToSpeckle(AxisEntity axisEntity, string units = null)
+    {
+      var u = units ?? ModelUnits;
+
+      var Pe = (axisEntity.Geometry.Po + axisEntity.Geometry.Vx);
+      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
+      Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
+      speckleLine["IsAxis"] = true;
+      speckleLine["renderMaterial"] = RenderMaterialToSpeckle(axisEntity);
+
+
+
+
+      SetInstanceParameters(speckleLine, axisEntity);
+      return speckleLine;
+
+
     }
 
     public Base PositionedSketchToSpeckle(G.D3.Sketches.PositionedSketch topSolidSketch, string units = null)
