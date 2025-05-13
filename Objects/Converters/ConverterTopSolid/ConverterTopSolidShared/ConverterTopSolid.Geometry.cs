@@ -64,6 +64,22 @@ using ItemType = TopSolid.Kernel.TX.Items.ItemType;
 using TopSolid.Kernel.GR.Attributes;
 using TopSolid.Kernel.TX.Attributes;
 using TopSolid.Kernel.DB.D3.Axes;
+using Objects.Other;
+using TopSolid.Kernel.G.D2.Curves.Attributes;
+using Speckle.Core.Api;
+using TopSolid.Kernel.G.D3.Curves;
+using TopSolid.Kernel.DB.Entities;
+using TopSolid.Kernel.DB.D3.Planes;
+using TopSolid.Kernel.DB.D2.Axes;
+using TopSolid.Kernel.SX.Collections.Generic;
+using TopSolid.Kernel.DB.Layers;
+using Avalonia.Controls.Shapes;
+
+using Arc = Objects.Geometry.Arc;
+using Ellipse = Objects.Geometry.Ellipse;
+using Shape = TopSolid.Kernel.G.D3.Shapes.Shape;
+using TopSolid.Kernel.DB.D2.Frames;
+using TopSolid.Kernel.DB.D2.Dimensions;
 
 namespace Objects.Converter.TopSolid
 {
@@ -124,16 +140,16 @@ namespace Objects.Converter.TopSolid
       return points.SelectMany(pt => D3PointToArray(pt)).ToArray();
     }
 
-    public static List<double> D2PointsToFlatList(IEnumerable<G.D2.Point> points)
+    public static System.Collections.Generic.List<double> D2PointsToFlatList(IEnumerable<G.D2.Point> points)
     {
       return points.SelectMany(pt => D2PointToArray(pt)).ToList();
     }
-    public static List<double> D2PointsToFlatList(IEnumerable<G.D2.Point> points, G.D3.Plane plane)
+    public static System.Collections.Generic.List<double> D2PointsToFlatList(IEnumerable<G.D2.Point> points, G.D3.Plane plane)
     {
       return points.SelectMany(pt => D2PointToArray(pt, plane)).ToList();
     }
 
-    public static List<double> D3PointsToFlatList(IEnumerable<D3Point> points)
+    public static System.Collections.Generic.List<double> D3PointsToFlatList(IEnumerable<D3Point> points)
     {
       return points.SelectMany(pt => D3PointToArray(pt)).ToList();
     }
@@ -143,12 +159,12 @@ namespace Objects.Converter.TopSolid
       return points.SelectMany(pt => Point2dToArray(pt)).ToArray();
     }
 
-    public static List<double> Points2dToFlatList(IEnumerable<G.D2.Point> points)
+    public static System.Collections.Generic.List<double> Points2dToFlatList(IEnumerable<G.D2.Point> points)
     {
       return points.SelectMany(pt => Point2dToArray(pt)).ToList();
     }
 
-    private List<double> GetCorrectKnots(List<double> knots, int controlPointCount, int degree)
+    private System.Collections.Generic.List<double> GetCorrectKnots(System.Collections.Generic.List<double> knots, int controlPointCount, int degree)
     {
       var correctKnots = knots;
       if (knots.Count == controlPointCount + degree + 1)
@@ -161,15 +177,15 @@ namespace Objects.Converter.TopSolid
 
     }
 
-    public List<List<ControlPoint>> ControlPointsToSpeckle(D3BSplineSurface surface, string units = null)
+    public System.Collections.Generic.List<System.Collections.Generic.List<ControlPoint>> ControlPointsToSpeckle(D3BSplineSurface surface, string units = null)
     {
       var u = units ?? ModelUnits;
 
-      var points = new List<List<ControlPoint>>();
+      var points = new System.Collections.Generic.List<System.Collections.Generic.List<ControlPoint>>();
       int count = 0;
       for (var i = 0; i < surface.UCptsCount; i++)
       {
-        var row = new List<ControlPoint>();
+        var row = new System.Collections.Generic.List<ControlPoint>();
         for (var j = 0; j < surface.VCptsCount; j++)
         {
           var point = surface.CPts[count];
@@ -350,20 +366,150 @@ namespace Objects.Converter.TopSolid
 
       Base speckleSketch = new Base();
 
-      //SetInstanceParameters(speckleSketch, topSolidSketch);
-      bool is3d = topSolidSketch.Is3D;
+     bool is3d = topSolidSketch.Is3D;
       var localPlane = topSolidSketch.Plane;
       //AHW test to add profiles dynmaically
-      List<Base> list = new List<Base>();
+      System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base>();
+      TK.DB.D3.Sketches.Planar.PlanarSketchEntity sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(topSolidSketch.Owner);
+      //TESTAFS
       foreach (var profile in topSolidSketch.Profiles)
       {
-        var geoProfile = profile.MakeGeometricProfile();
+        LineStyle defaultLineStyle = new LineStyle();
+        SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+       
+        if (sketchEntity != null && sketchEntity.HasStyle)
+        {
+          var styleForSketc = sketchEntity.Style;
+          defaultLineStyle = styleForSketc.LineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.LineStyle;
+        }
+        if (sketchEntity != null)
+        {
+          defaultColor = sketchEntity.Color;
+          if (defaultLineStyle == LineStyle.Empty)
+          {
+            defaultLineStyle = sketchEntity.LineStyle;
+          }
+        }
 
+        foreach (var segment in profile.Segments)
+        {
+          var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
 
-        var obj = ObjectToSpeckle(geoProfile, localPlane);
-        obj["IsSketch"] = "yes";
-        list.Add(obj);
+          DisplayStyle displayStyle = new DisplayStyle();
+          //ici, si le lineStyleWith est égale à None alors c'est qu'il y a un style
+          SX.Drawing.Color colorToUse = (segment.Color.IsEmpty ? defaultColor : segment.Color);
+          displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+          LineStyle lineStyleToUse = (segment.LineStyle != LineStyle.Empty) ? segment.LineStyle : defaultLineStyle;
+
+          Tuple<double, string> lineData = GetLineStyleInfos(lineStyleToUse);
+          displayStyle.lineweight = lineData.Item1;
+          displayStyle.linetype = "Continuous";//for now
+          displayStyle.units = "mm";
+
+          var obj = ObjectToSpeckle(geoSegm, localPlane);
+          //nominations
+          if (segment.HasSegmentNameAttribute)//si existe
+          {
+            obj["segmentName"] = segment.SegmentName;
+            obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
+            obj["segmentNameFont"] = segment.NameFontName;
+            obj["segmentNameReversed"] = segment.IsNameLocationReversed;
+            this.GetNamePos(segment, out var outPosition, out var outDirection);
+            obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
+            obj["namePosPointSegment"] = PointToSpeckle(outPosition);
+          }
+
+          obj["IsSketch"] = "yes";
+          obj["displayStyle"] = displayStyle;
+          obj["units"] = u;
+          list.Add(obj);          
+        }
+
+        
       }
+
+      //deal with dimensions, testing for linear only
+      //EDIT 13-05-2025: DOES NOT WORK => REMOVED
+      /*
+      foreach (Entity entity in sketchEntity.Entities)
+      {
+        if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
+        {
+          DistanceDimension dim = new DistanceDimension();
+          dim.position = PointToSpeckle(dimension.FirstTopPoint);
+          dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString+"mm}}";
+          dim.measurement = dimension.MeasuredValue;
+          dim.units = u;
+          dim.isOrdinate = false;
+          dim.value = dimension.TextString+" mm";
+          dim.textPosition = PointToSpeckle(dimension.FirstTopPoint);
+          dim.direction = VectorToSpeckle((D3Vector)dimension.Direction);
+         DisplayStyle dimDisplayStyle = new DisplayStyle { linetype="Continuous",units= "mm",lineweight=0,color=System.Drawing.Color.Red.ToArgb()};
+          dim["displayStyle"] = dimDisplayStyle;
+          System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
+          System.Collections.Generic.List<D2LineCurve> curves = GetDisplayLines(dimension);
+          dim.displayValue = curves.Select(l => LineToSpeckle(l) as ICurve).ToList();
+          dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint), PointToSpeckle(dimension.SecondTopPoint) };
+          dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
+
+          Base topsolidProps = new Base();
+          topsolidProps["class"] = "LinearDimension";
+          topsolidProps["plane"] = PlaneToSpeckle(dimension.Plane);
+          topsolidProps["Suffix"] = "mm";
+          topsolidProps["Aligned"] = "false";
+          topsolidProps["TextFit"] = "Auto";
+          topsolidProps["ArrowFit"] = "Auto";
+          topsolidProps["AltPrefix"] = "[";
+          topsolidProps["AltSuffix"] = "]";
+          topsolidProps["ArrowSize"] = "3";
+          topsolidProps["TextFormula"] = "<>";
+          topsolidProps["ForceDimLine"] = "true";
+          topsolidProps["LengthFactor"] = "1";
+          topsolidProps["TextLocation"] = "AboveDimLine";
+          topsolidProps["TextRotation"] = "0";
+          topsolidProps["DistanceScale"] = "1";
+          topsolidProps["TextAngleType"] = "Aligned";
+          topsolidProps["AnnotationType"] = "Rotated";
+          topsolidProps["ArrowheadType1"] = "Tick";
+          topsolidProps["ArrowheadType2"] = "Tick";
+          topsolidProps["CentermarkSize"] = "3";
+          topsolidProps["LengthRoundoff"] = "0";
+          topsolidProps["AltLengthFactor"] = "1";
+          topsolidProps["AltUnitsDisplay"] = "false";
+          topsolidProps["BaselineSpacing"] = "9";
+          topsolidProps["CentermarkStyle"] = "Mark";
+          topsolidProps["TextOrientation"] = "InPlane";
+          topsolidProps["ToleranceFormat"] = "None";
+          topsolidProps["ZeroSuppression"] = "None";
+          topsolidProps["LengthResolution"] = "0";
+          topsolidProps["AltLengthRoundoff"] = "0";
+          topsolidProps["ForceTextPosition"] = "Auto";
+          topsolidProps["AltZeroSuppression"] = "None";
+          topsolidProps["AlternateBelowLine"] = "false";
+          topsolidProps["DimensionStyleName"] = "Meters Architectural";
+          topsolidProps["ForceArrowPosition"] = "Auto";
+          topsolidProps["SuppressExtension1"] = "false";
+          topsolidProps["SuppressExtension2"] = "false";
+          topsolidProps["AltLengthResolution"] = "2";
+          topsolidProps["ExtensionLineOffset"] = "0.5";
+          topsolidProps["ToleranceLowerValue"] = "0";
+          topsolidProps["ToleranceResolution"] = "4";
+          topsolidProps["ToleranceUpperValue"] = "0";
+          topsolidProps["UseDefaultTextPoint"] = "true";
+          topsolidProps["FixedExtensionLength"] = "1";
+          topsolidProps["ToleranceHeightScale"] = "0.7";
+          topsolidProps["AltToleranceResolution"] = "4";
+          topsolidProps["DimensionLineExtension"] = "1.5";
+          topsolidProps["ExtensionLineExtension"] = "1";
+          topsolidProps["FixedLengthExtensionOn"] = "false";
+          topsolidProps["ForceDimensionLineBetweenExtensionLines"] = "true";
+
+          dim["RhinoProps"] = topsolidProps;
+
+          list.Add(dim);
+        }        
+      }
+      */
 
       var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
       speckleSketch["Profiles"] = list;
@@ -375,12 +521,249 @@ namespace Objects.Converter.TopSolid
     }
 
 
+    private System.Collections.Generic.List<D2LineCurve> GetDisplayLines(TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
+    {
+      //D2LineCurve lineCurve = GetDimensionLine(dimension,dimension.GetCalloutTextPosition();
+      System.Collections.Generic.List<D2LineCurve> curves = new System.Collections.Generic.List<D2LineCurve>();
+      foreach (var f in dimension.Display.Items)
+      {
+        if (f.IsCurveItem)
+        {
+          G.D2.CurveGeometryType geometryType = G.D2.CurveGeometryType.Line;
+          var dimensionLine = dimension.SearchItemCurve(f.Label, geometryType);
+          if (dimensionLine is D2LineCurve dimensionLineCurve)
+          {
+            curves.Add(dimensionLineCurve);
+          }
+        }
+      }
+      return curves;
+    } 
+
+    /// <summary>
+		/// Gets the segment name position.
+		/// </summary>
+		/// <param name="outPosition">Position.</param>
+		/// <param name="outDirection">Direction.</param>
+		/// <remarks>This method does not take <see cref="IsNameLocationReversed"/> property into account.</remarks>
+		internal bool GetNamePos(G.D2.Sketches.Segment inSegment, out D2Point outPosition, out G.D2.UnitVector outDirection)
+    {
+      if (inSegment.Geometry == null)
+      {
+        outPosition = G.D2.Point.P0;
+        outDirection = G.D2.UnitVector.VX;
+        return false;
+      }
+
+      double t = inSegment.NamePosParam;
+      if (inSegment.Geometry.Range.IsFinite)
+        t = inSegment.Geometry.GetDenormalized(t);
+
+      outPosition = inSegment.Geometry.GetPoint(t);
+      outDirection = inSegment.Geometry.GetTangent(t);
+      return true;
+    }
+
+    /// <summary>
+		/// Gets the segment name position.
+		/// </summary>
+		/// <param name="outPosition">Position.</param>
+		/// <param name="outDirection">Direction.</param>
+		/// <remarks>This method does not take <see cref="IsNameLocationReversed"/> property into account.</remarks>
+		internal bool GetNamePos(G.D3.Sketches.Segment inSegment, out D3Point outPosition, out G.D3.UnitVector outDirection)
+    {
+      if (inSegment.Geometry == null)
+      {
+        outPosition = G.D3.Point.P0;
+        outDirection = G.D3.UnitVector.VX;
+        return false;
+      }
+
+      double t = inSegment.NamePosParam;
+      if (inSegment.Geometry.Range.IsFinite)
+        t = inSegment.Geometry.GetDenormalized(t);
+
+      outPosition = inSegment.Geometry.GetPoint(t);
+      outDirection = inSegment.Geometry.GetTangent(t);
+      return true;
+    }
+
+    #region Plane
+    public Polycurve BoundedPlaneToSpeckle(BoundedPlane planeGeometry, string units = null)
+    {
+      var u = units ?? ModelUnits;
+
+      D2PointList corners = new D2PointList();
+      planeGeometry.Extent.GetCorners(true, corners);
+
+      Polycurve polyCurve = new Polycurve();
+
+      for (int i = 0; i <= corners.Count - 1; i++)
+      {
+        D3Point pS = planeGeometry.Plane.ToAbsolute(corners[i]);
+        D3Point pE = planeGeometry.Plane.ToAbsolute((i != 3 ? corners[i + 1] : corners[0]));
+
+        D3LineCurve d3Line = new D3LineCurve(pS, pE);
+        Line speckleLine = LineToSpeckle(d3Line);
+        polyCurve.segments.Add(LineToSpeckle(d3Line));
+      }
+      polyCurve.units = u;
+
+      return polyCurve;
+    }
+
+    public Polycurve PlaneGeometryToSpeckle(PlaneEntity planeEntity, string units = null)
+    {
+      var u = units ?? ModelUnits;
+
+      var planeGeometry = planeEntity.BoundedGeometry;
+      Polycurve polyCurve = BoundedPlaneToSpeckle(planeGeometry, units);
+
+      DisplayStyle displayStyle = new DisplayStyle();
+      displayStyle.color = ((System.Drawing.Color)planeEntity.Color).ToArgb();
+      displayStyle.lineweight = 0;
+      displayStyle.linetype = "Continuous";
+      displayStyle.units = u;
+
+      SetInstanceParameters(polyCurve, planeEntity);
+      polyCurve["displayStyle"] = displayStyle;
+
+      return polyCurve;
+
+    }
+
+   
+    #endregion
+
+    /// <summary>
+    /// Gets LineStyleInfos
+    /// </summary>
+    /// <param name="inLineStyle"></param>
+    /// <returns>A tuple holding linewidth and linetype</returns>
+    private static Tuple<double, string> GetLineStyleInfos(LineStyle inLineStyle)
+    {
+      double lineweight = 0;
+      switch (inLineStyle.Width)
+      {
+        case LineWidth.Custom:
+        case LineWidth.None:
+          lineweight = 0;
+          break;
+        case LineWidth.Thin:
+          lineweight = 1;
+          break;
+        case LineWidth.Medium:
+          lineweight = 3;
+          break;
+        case LineWidth.Thick:
+          lineweight = 4;
+          break;
+        case LineWidth.ExtraThick:
+          lineweight = 5;
+          break;
+        case LineWidth.MediumThin:
+          lineweight = 2;
+          break;
+        default:
+          break;
+      }
+
+      string linetype = "Continuous";
+      switch (inLineStyle.Type)
+      {
+        case LineType.None:
+          linetype = "Continuous";
+          break;
+        case LineType.Custom:
+          linetype = "Custom";
+          break;
+        case LineType.Solid:
+          linetype = "Solid";
+          break;
+        case LineType.Dash:
+          linetype = "Dash";
+          break;
+        case LineType.Dot:
+          linetype = "Dot";
+          break;
+        case LineType.DashDot:
+          linetype = "DashDot";
+          break;
+        case LineType.DashDotDot:
+          linetype = "DashDotDot";
+          break;
+        case LineType.ShortDash:
+        default:
+          linetype = "Continuous";
+          break;
+      }
+
+      return Tuple.Create(lineweight, linetype);
+    }
+
     public G.D3.Sketches.Planar.PlanarSketch PlanarSketchToNative(Line line, string units = null)
     {
       return null;
     }
 
-    public Base AxisToSpeckle(AxisEntity axisEntity, string units = null)
+    #region Frame
+
+    public Base FrameToSpeckle(TK.DB.D3.Frames.FrameEntity frameEntity, string units = null)
+    {
+      var u = units ?? ModelUnits;
+
+      Base speckleFrame = new Base();
+
+      var frameBoundedGeometry = frameEntity.BoundedGeometry;
+      var XY = BoundedPlaneToSpeckle(frameBoundedGeometry.Pxy);
+      var YZ = BoundedPlaneToSpeckle(frameBoundedGeometry.Pyz);
+      var XZ = BoundedPlaneToSpeckle(frameBoundedGeometry.Pxz);
+
+      DisplayStyle displayStyle = new DisplayStyle();
+      displayStyle.lineweight = 0;
+      displayStyle.units = "mm";
+      displayStyle.linetype = "Continuous";
+      displayStyle.color = (System.Drawing.Color.Red).ToArgb();
+      XY["displayStyle"] = displayStyle;
+      XY["FrameDir"] = "XY";
+      XY["FrameId"] = frameEntity.Id.ToString();
+
+      DisplayStyle displayStyle2 = new DisplayStyle();
+      displayStyle2.lineweight = 0;
+      displayStyle2.units = "mm";
+      displayStyle2.linetype = "Continuous";
+      displayStyle2.color = (System.Drawing.Color.Green).ToArgb();
+      YZ["displayStyle"] = displayStyle2;
+      YZ["FrameDir"] = "YZ";
+      YZ["FrameId"] = frameEntity.Id.ToString();
+
+      DisplayStyle displayStyle3 = new DisplayStyle();
+      displayStyle3.lineweight = 0;
+      displayStyle3.units = "mm";
+      displayStyle3.linetype = "Continuous";
+      displayStyle3.color = (System.Drawing.Color.Blue).ToArgb();
+      XZ["displayStyle"] = displayStyle3;
+      XZ["FrameDir"] = "XZ";
+      XZ["FrameId"] = frameEntity.Id.ToString();
+
+      System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base> { XY, YZ, XZ };
+      
+      Point origoPointSpeckle = PointToSpeckle(frameBoundedGeometry.Center);
+      origoPointSpeckle["FrameId"] = frameEntity.Id.ToString();
+      list.Add(origoPointSpeckle);
+
+      speckleFrame["Profiles"] = list;
+      speckleFrame["IsFrame"] = true;
+      speckleFrame["FrameId"] = frameEntity.Id.ToString();
+
+      SetInstanceParameters(speckleFrame, frameEntity);
+      return speckleFrame;
+
+    }
+    #endregion
+
+    #region Axis
+    public Base AxisToSpeckle(TK.DB.D3.Axes.AxisEntity axisEntity, string units = null)
     {
       var u = units ?? ModelUnits;
 
@@ -390,23 +773,126 @@ namespace Objects.Converter.TopSolid
       speckleLine["IsAxis"] = true;
       speckleLine["renderMaterial"] = RenderMaterialToSpeckle(axisEntity);
 
+      //style displau
+      DisplayStyle displayStyle = new DisplayStyle();
+      displayStyle.lineweight = 0;
+      displayStyle.units = null;
+      displayStyle.linetype = "DashDot";
+      displayStyle.color = ((System.Drawing.Color)axisEntity.Color).ToArgb();
 
 
+      speckleLine["displayStyle"] = displayStyle;
+      SetInstanceParameters(speckleLine, axisEntity);
+      return speckleLine;
 
+    }
+
+    public Base AxisToSpeckle(TK.DB.D2.Axes.AxisEntity axisEntity, string units = null)
+    {
+      var u = units ?? ModelUnits;
+
+      var Pe = (axisEntity.Geometry.Po + axisEntity.Geometry.Vx);
+      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
+      Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
+      speckleLine["IsAxis"] = true;
+      speckleLine["renderMaterial"] = RenderMaterialToSpeckle(axisEntity);
+
+      //style displau
+      DisplayStyle displayStyle = new DisplayStyle();
+      displayStyle.lineweight = 0;
+      displayStyle.linetype = "DashDot";
+      displayStyle.color = ((System.Drawing.Color)axisEntity.Color).ToArgb();
+
+
+      speckleLine["displayStyle"] = displayStyle;
       SetInstanceParameters(speckleLine, axisEntity);
       return speckleLine;
 
 
     }
+    #endregion
 
+    #region Positioned Sketch
     public Base PositionedSketchToSpeckle(G.D3.Sketches.PositionedSketch topSolidSketch, string units = null)
     {
       var u = units ?? ModelUnits;
-      Line speckleLine = null;  //new Line(PointToSpeckle(topSolidSketch), PointToSpeckle(topSolidSketch.Pe), u);
-      SetInstanceParameters(speckleLine, topSolidSketch);
-      return speckleLine;
+
+      Base speckleSketch = new Base();
+
+      var haslocalPlane = topSolidSketch.HasPlanarGeometricSection(G.Precision.ModelingLinearTolerance, G.Precision.ModelingAngularTolerance, out TsPlane localPlane);
+
+      if (haslocalPlane)
+      {
+        //AHW test to add profiles dynmaically
+        System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base>();
+
+        //TESTAFS
+        foreach (var profile in topSolidSketch.Profiles)
+        {
+          LineStyle defaultLineStyle = new LineStyle();
+          SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+          TK.DB.D3.Sketches.PositionedSketchEntity sketchEntity = (TK.DB.D3.Sketches.PositionedSketchEntity)(topSolidSketch.Owner);
+          if (sketchEntity != null && sketchEntity.HasStyle)
+          {
+            var styleForSketc = sketchEntity.Style;
+            defaultLineStyle = styleForSketc.LineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.LineStyle;
+          }
+          if (sketchEntity != null)
+          {
+            defaultColor = sketchEntity.Color;
+            if (defaultLineStyle == LineStyle.Empty)
+            {
+              defaultLineStyle = sketchEntity.LineStyle;
+            }
+          }
+
+          foreach (var segment in profile.Segments)
+          {
+            var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
+
+            DisplayStyle displayStyle = new DisplayStyle();
+            //ici, si le lineStyleWith est égale à None alors c'est qu'il y a un style
+            SX.Drawing.Color colorToUse = (segment.Color.IsEmpty ? defaultColor : segment.Color);
+            displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+            LineStyle lineStyleToUse = (segment.LineStyle != LineStyle.Empty) ? segment.LineStyle : defaultLineStyle;
+
+            Tuple<double, string> lineData = GetLineStyleInfos(lineStyleToUse);
+            displayStyle.lineweight = lineData.Item1;
+            displayStyle.linetype = "Continuous";//for now
+            displayStyle.units = "mm";
+
+            var obj = ObjectToSpeckle(geoSegm, localPlane);
+            //nominations
+            if (segment.HasSegmentNameAttribute)//si existe
+            {
+              obj["segmentName"] = segment.SegmentName;
+              obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
+              obj["segmentNameFont"] = segment.NameFontName;
+              this.GetNamePos(segment, out var outPosition, out var outDirection);
+              obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
+              obj["namePosPointSegment"] = PointToSpeckle(outPosition);
+            }
+
+            obj["IsSketch"] = "yes";
+            obj["displayStyle"] = displayStyle;
+            obj["units"] = u;
+            list.Add(obj);
+          }
+        }
+
+        var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
+        speckleSketch["Profiles"] = list;
+        speckleSketch["Vertices"] = vertices;
+        speckleSketch["isSketch"] = true;
+      }
+
+      return speckleSketch;
     }
     #endregion
+
+    #endregion
+
+
 
     // PolylineCurve
     #region Polyline
@@ -414,7 +900,7 @@ namespace Objects.Converter.TopSolid
     {
 
       var u = units ?? ModelUnits;
-      List<double> _coordinates = new List<double>();
+      System.Collections.Generic.List<double> _coordinates = new System.Collections.Generic.List<double>();
 
       D3PointList pts = topSolidPolyline.CPts;
 
@@ -433,7 +919,7 @@ namespace Objects.Converter.TopSolid
     {
 
       var u = units ?? ModelUnits;
-      List<double> _coordinates = new List<double>();
+      System.Collections.Generic.List<double> _coordinates = new System.Collections.Generic.List<double>();
 
       D2PointList pts = topSolidPolyline.CPts;
 
@@ -454,7 +940,7 @@ namespace Objects.Converter.TopSolid
     {
 
       var u = units ?? ModelUnits;
-      List<double> _coordinates = new List<double>();
+      System.Collections.Generic.List<double> _coordinates = new System.Collections.Generic.List<double>();
 
       D2PointList pts = topSolidPolyline.CPts;
 
@@ -519,7 +1005,7 @@ namespace Objects.Converter.TopSolid
     }
 
     //Arc      
-    public G.D3.Curves.CircleCurve ArcToNative(Arc arc, string units = null)
+    public G.D3.Curves.CircleCurve ArcToNative(Geometry.Arc arc, string units = null)
     {
       //var plane = PlaneToNative(arc.plane);
       G.D3.Curves.CircleCurve circleCurve = new G.D3.Curves.CircleCurve(PlaneToNative(arc.plane), ScaleToNative((double)arc.radius, arc.units));
@@ -640,12 +1126,12 @@ namespace Objects.Converter.TopSolid
       return circle;
     }
 
-    public Arc ArcToSpeckle(G.D3.Curves.CircleCurve a, string units = null)
+    public Geometry.Arc ArcToSpeckle(G.D3.Curves.CircleCurve a, string units = null)
     {
       var u = units ?? ModelUnits;
 
       double angle = (new D3Vector(a.Center, a.Ps)).GetAngle(new D3Vector(a.Center, a.Pe));
-      Arc arc = new Arc(PlaneToSpeckle(a.Plane), PointToSpeckle(a.Ps), PointToSpeckle(a.Pe), angle);
+      Geometry.Arc arc = new Geometry.Arc(PlaneToSpeckle(a.Plane), PointToSpeckle(a.Ps), PointToSpeckle(a.Pe), angle);
 
       arc.midPoint = PointToSpeckle(a.Pm, u);
       arc.domain = new Interval(0, 1);
@@ -697,7 +1183,7 @@ namespace Objects.Converter.TopSolid
 
 
       //Weights
-      List<double> ptWeights = new List<double>();
+      System.Collections.Generic.List<double> ptWeights = new System.Collections.Generic.List<double>();
       try
       {
         if (topSolidCurve.CWts.Count != 0)
@@ -728,7 +1214,7 @@ namespace Objects.Converter.TopSolid
       catch { }
 
       //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
-      List<double> knots = new List<double>();
+      System.Collections.Generic.List<double> knots = new System.Collections.Generic.List<double>();
 
       for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
       {
@@ -773,7 +1259,7 @@ namespace Objects.Converter.TopSolid
 
 
       //Weights
-      List<double> ptWeights = new List<double>();
+      System.Collections.Generic.List<double> ptWeights = new System.Collections.Generic.List<double>();
       try
       {
         if (topSolidCurve.CWts.Count != 0)
@@ -805,7 +1291,7 @@ namespace Objects.Converter.TopSolid
       catch { }
 
       //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
-      List<double> knots = new List<double>();
+      System.Collections.Generic.List<double> knots = new System.Collections.Generic.List<double>();
 
       for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
       {
@@ -850,7 +1336,7 @@ namespace Objects.Converter.TopSolid
 
 
       //Weights
-      List<double> ptWeights = new List<double>();
+      System.Collections.Generic.List<double> ptWeights = new System.Collections.Generic.List<double>();
       try
       {
         if (topSolidCurve.CWts.Count != 0)
@@ -881,7 +1367,7 @@ namespace Objects.Converter.TopSolid
       catch { }
 
       //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
-      List<double> knots = new List<double>();
+      System.Collections.Generic.List<double> knots = new System.Collections.Generic.List<double>();
 
       for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
       {
@@ -925,7 +1411,7 @@ namespace Objects.Converter.TopSolid
 
 
       //Weights
-      List<double> ptWeights = new List<double>();
+      System.Collections.Generic.List<double> ptWeights = new System.Collections.Generic.List<double>();
       try
       {
         if (topSolidCurve.CWts.Count != 0)
@@ -956,7 +1442,7 @@ namespace Objects.Converter.TopSolid
       catch { }
 
       //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
-      List<double> knots = new List<double>();
+      System.Collections.Generic.List<double> knots = new System.Collections.Generic.List<double>();
 
       for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
       {
@@ -1007,10 +1493,10 @@ namespace Objects.Converter.TopSolid
       var u = units ?? ModelUnits; //TODO investigate this
 
 
-      List<G.D2.Point> tsPoints = topSolidCurve.CPts.ToList();
+      System.Collections.Generic.List<G.D2.Point> tsPoints = topSolidCurve.CPts.ToList();
 
       //Weights
-      List<double> ptWeights = new List<double>();
+      System.Collections.Generic.List<double> ptWeights = new System.Collections.Generic.List<double>();
       try
       {
         if (topSolidCurve.CWts.Count != 0)
@@ -1043,7 +1529,7 @@ namespace Objects.Converter.TopSolid
       catch { }
 
       //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
-      List<double> knots = new List<double>();
+      System.Collections.Generic.List<double> knots = new System.Collections.Generic.List<double>();
 
       for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
       {
@@ -1085,10 +1571,10 @@ namespace Objects.Converter.TopSolid
       var u = units ?? ModelUnits; //TODO investigate this
 
 
-      List<G.D2.Point> tsPoints = topSolidCurve.CPts.ToList();
+      System.Collections.Generic.List<G.D2.Point> tsPoints = topSolidCurve.CPts.ToList();
 
       //Weights
-      List<double> ptWeights = new List<double>();
+      System.Collections.Generic.List<double> ptWeights = new System.Collections.Generic.List<double>();
       try
       {
         if (topSolidCurve.CWts.Count != 0)
@@ -1121,7 +1607,7 @@ namespace Objects.Converter.TopSolid
       catch { }
 
       //for the knot, the parasolid model uses 2 values more than Rhino, first and last to be removed
-      List<double> knots = new List<double>();
+      System.Collections.Generic.List<double> knots = new System.Collections.Generic.List<double>();
 
       for (int i = 0; i < (topSolidCurve.Bs.Count); i++)
       {
@@ -1353,7 +1839,7 @@ namespace Objects.Converter.TopSolid
       var degreeV = surface.degreeV;
       DoubleList knotsU = ToDoubleList(surface.knotsU);
       DoubleList knotsV = ToDoubleList(surface.knotsV);
-      List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
+      System.Collections.Generic.List<System.Collections.Generic.List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
        new ControlPoint(
          p.x,
          p.y,
@@ -1450,7 +1936,7 @@ namespace Objects.Converter.TopSolid
 
     public D3BSplineSurface SurfaceToNative(Surface surface, int index = 0, string units = null)
     {
-      List<List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
+      System.Collections.Generic.List<System.Collections.Generic.List<ControlPoint>> surfPts = surface.GetControlPoints().Select(l => l.Select(p =>
        new ControlPoint(
          p.x,
          p.y,
@@ -1486,7 +1972,7 @@ namespace Objects.Converter.TopSolid
 
 
 
-    private G.D3.PointList ControlPointsToNative(List<List<ControlPoint>> controlPoints, out TSX.List<G.D3.PointList> pts)
+    private G.D3.PointList ControlPointsToNative(System.Collections.Generic.List<System.Collections.Generic.List<ControlPoint>> controlPoints, out TSX.List<G.D3.PointList> pts)
     {
       var uCount = controlPoints.Count;
       var vCount = controlPoints[0].Count;
@@ -1512,7 +1998,7 @@ namespace Objects.Converter.TopSolid
       return points;
     }
 
-    public double[] SurfaceKnotsToNative(List<double> list)
+    public double[] SurfaceKnotsToNative(System.Collections.Generic.List<double> list)
     {
       var count = list.Count;
       var knots = new double[count + 2];
@@ -1538,9 +2024,9 @@ namespace Objects.Converter.TopSolid
       Shape _shape = shape;
       Brep spcklBrep = new Brep();
       Alias alias = new Alias();
-      alias.Faces = new List<GeometryAlias>();
-      alias.Edges = new List<GeometryAlias>();
-      alias.Vertices = new List<GeometryAliasLinked>();
+      alias.Faces = new System.Collections.Generic.List<GeometryAlias>();
+      alias.Edges = new System.Collections.Generic.List<GeometryAlias>();
+      alias.Vertices = new System.Collections.Generic.List<GeometryAliasLinked>();
 
       //Variables and global counters (not to be reinitialized for each face)
       //double tol = global::TopSolid.Kernel.G.Precision.LinearPrecision;
@@ -1554,10 +2040,10 @@ namespace Objects.Converter.TopSolid
       int facecount = _shape.FaceCount;
 
       //Lists to get Curves and Edges for each face
-      List<TSX.List<G.D2.Curves.IGeometricProfile>> global2dList = new List<TSX.List<G.D2.Curves.IGeometricProfile>>(facecount);
-      List<TSX.List<G.D3.Curves.IGeometricProfile>> global3dList = new List<TSX.List<G.D3.Curves.IGeometricProfile>>(facecount);
-      List<TSX.List<EdgeList>> globalEdgeList = new List<TSX.List<EdgeList>>(facecount);
-      List<SX.Collections.BoolList> globalBoolList = new List<SX.Collections.BoolList>(facecount);
+      System.Collections.Generic.List<TSX.List<G.D2.Curves.IGeometricProfile>> global2dList = new System.Collections.Generic.List<TSX.List<G.D2.Curves.IGeometricProfile>>(facecount);
+      System.Collections.Generic.List<TSX.List<G.D3.Curves.IGeometricProfile>> global3dList = new System.Collections.Generic.List<TSX.List<G.D3.Curves.IGeometricProfile>>(facecount);
+      System.Collections.Generic.List<TSX.List<EdgeList>> globalEdgeList = new System.Collections.Generic.List<TSX.List<EdgeList>>(facecount);
+      System.Collections.Generic.List<SX.Collections.BoolList> globalBoolList = new System.Collections.Generic.List<SX.Collections.BoolList>(facecount);
 
       Dictionary<int, bool> periodicityDictionary = new Dictionary<int, bool>();
       //uv curves, 3d curves and surfaces, per face
@@ -1621,12 +2107,12 @@ namespace Objects.Converter.TopSolid
       var crv2d = global2dList.SelectMany(x => x.SelectMany(y => y.Segments));
       var crv3d = global3dList.SelectMany(x => x.SelectMany(y => y.Segments));
       var edges = globalEdgeList.SelectMany(x => x.SelectMany(y => y));
-      var tupList = new List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d)>();
+      var tupList = new System.Collections.Generic.List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d)>();
       var edC = edges.Count();
       var crv3dC = crv3d.Count();
       var crv2dC = crv2d.Count();
       //Vertices
-      List<G.D3.Shapes.Vertex> tsVerticesList = _shape.Vertices.ToList();
+      System.Collections.Generic.List<G.D3.Shapes.Vertex> tsVerticesList = _shape.Vertices.ToList();
 
       spcklBrep.Vertices = tsVerticesList
         .Select(vertex => PointToSpeckle(vertex.GetGeometry(), u)).ToList();
@@ -1649,7 +2135,7 @@ namespace Objects.Converter.TopSolid
       counter = 0;
       int i = 0; // global Loop index
       int K = 0;
-      var tupwithfaces = new List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d, int Findex, int Counter, int LoopIndex, int EdgeIndex)>();
+      var tupwithfaces = new System.Collections.Generic.List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, G.D2.Curves.IGeometricSegment Crv2d, int Findex, int Counter, int LoopIndex, int EdgeIndex)>();
 
 
       FaceList facesList = new FaceList();
@@ -1699,11 +2185,11 @@ namespace Objects.Converter.TopSolid
       }
 
       //Create a list of Tuple which associates each edge to a 3d curve and a list of 2D trims
-      var tupforTrims = new List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, List<G.D2.Curves.IGeometricSegment> TrimCrvs, List<int> Crv2dindices)>();
+      var tupforTrims = new System.Collections.Generic.List<(Edge Edge, G.D3.Curves.IGeometricSegment Crv3d, System.Collections.Generic.List<G.D2.Curves.IGeometricSegment> TrimCrvs, System.Collections.Generic.List<int> Crv2dindices)>();
       foreach (var ed in _shape.Edges.OrderBy(x => edges.ToList().IndexOf(x)))
       {
         var localTups = tupList.Where(x => x.Edge == ed); //Get all the tuple with this same edge
-        var crv2dIndices = new List<int>(localTups.Count());
+        var crv2dIndices = new System.Collections.Generic.List<int>(localTups.Count());
         foreach (var tup in localTups) //get the indices of the 2d crvs
         {
           crv2dIndices.Add(tupList.IndexOf(tup));
@@ -1725,7 +2211,7 @@ namespace Objects.Converter.TopSolid
       foreach (G.D3.Shapes.Face face in _shape.Faces)
       {
         var typeOfFace = face.GeometryType;
-        List<int> faceLoopIndices = new List<int>(face.LoopCount);
+        System.Collections.Generic.List<int> faceLoopIndices = new System.Collections.Generic.List<int>(face.LoopCount);
         var list = face.Loops;
         foreach (var loop in list)
         {
@@ -1861,7 +2347,7 @@ namespace Objects.Converter.TopSolid
 
       foreach (var l in tsLoopList)
       {
-        List<int> triminds = new List<int>();
+        System.Collections.Generic.List<int> triminds = new System.Collections.Generic.List<int>();
         var localFace = l.GetFace();
         faceind = tsFaceList.IndexOf(localFace);
 
@@ -1926,7 +2412,7 @@ namespace Objects.Converter.TopSolid
 
       spcklBrep.bbox = BoxToSpeckle(shape.FindBox(), u);
       //Find display values in geometries
-      List<Mesh> displayValue = new List<Mesh>();
+      System.Collections.Generic.List<Mesh> displayValue = new System.Collections.Generic.List<Mesh>();
       displayValue.Add(ShapeDisplayToMesh(shape, u));
       spcklBrep.displayValue = displayValue;
       SetInstanceParameters(spcklBrep, shape, alias);
@@ -2124,7 +2610,7 @@ namespace Objects.Converter.TopSolid
       int indexMoniker = 0;
       int indexVertices = 0;
 
-      List<ICurve> curvesInFace = inFace.Brep.Curve3D;
+      System.Collections.Generic.List<ICurve> curvesInFace = inFace.Brep.Curve3D;
 
 
       foreach (BrepLoop loop in inFace.Loops)
@@ -2240,10 +2726,10 @@ namespace Objects.Converter.TopSolid
     {
       var u = units ?? ModelUnits;
 
-      var verts = new List<double>();
-      List<int> vertIndices = new List<int>();
+      var verts = new System.Collections.Generic.List<double>();
+      System.Collections.Generic.List<int> vertIndices = new System.Collections.Generic.List<int>();
       int ind = 0;
-      var faces = new List<int>();
+      var faces = new System.Collections.Generic.List<int>();
       foreach (var f in shape.Display.Items.FaceItems)
       {
 
@@ -2291,10 +2777,10 @@ namespace Objects.Converter.TopSolid
     {
       var u = units ?? ModelUnits;
 
-      var verts = new List<double>();
-      List<int> vertIndices = new List<int>();
+      var verts = new System.Collections.Generic.List<double>();
+      System.Collections.Generic.List<int> vertIndices = new System.Collections.Generic.List<int>();
       int ind = 0;
-      var faces = new List<int>();
+      var faces = new System.Collections.Generic.List<int>();
 
 
       foreach (var f in polyhedron.Display.Items.FaceItems)
@@ -2342,7 +2828,57 @@ namespace Objects.Converter.TopSolid
     {
       Point specklepoint = PointToSpeckle(vertex.Geometry);
       specklepoint["vertexName"] = vertex.VertexName;
+      specklepoint["vertexColor"] = ((System.Drawing.Color)vertex.NameColor).ToArgb();
+      specklepoint["vertexFont"] = vertex.NameFontName;
       specklepoint["namePosVector"] = new Vector(vertex.NamePosVector.X, vertex.NamePosVector.Y);
+
+
+      SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+      var sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(vertex.Sketch.Owner);
+      if (sketchEntity != null && sketchEntity.HasStyle)
+      {
+        var styleForSketc = sketchEntity.Style;
+      }
+      if (sketchEntity != null)
+      {
+        defaultColor = sketchEntity.Color;
+      }
+      DisplayStyle displayStyle = new DisplayStyle();
+      SX.Drawing.Color colorToUse = (vertex.Color.IsEmpty ? defaultColor : vertex.Color);
+      displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+      displayStyle.lineweight = 0;
+      displayStyle.linetype = "Continuous";
+      specklepoint["displayStyle"] = displayStyle;
+
+      return specklepoint;
+    }
+
+    public Point VertexToSpeckle(G.D3.Sketches.Vertex vertex)
+    {
+      Point specklepoint = PointToSpeckle(vertex.Geometry);
+      specklepoint["vertexName"] = vertex.VertexName;
+      specklepoint["vertexColor"] = ((System.Drawing.Color)vertex.NameColor).ToArgb();
+      specklepoint["vertexFont"] = vertex.NameFontName;
+      specklepoint["namePosVector"] = new Vector(vertex.NamePosVector.X, vertex.NamePosVector.Y);
+
+
+      SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+      var sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(vertex.Sketch.Owner);
+      if (sketchEntity != null && sketchEntity.HasStyle)
+      {
+        var styleForSketc = sketchEntity.Style;
+      }
+      if (sketchEntity != null)
+      {
+        defaultColor = sketchEntity.Color;
+      }
+      DisplayStyle displayStyle = new DisplayStyle();
+      SX.Drawing.Color colorToUse = (vertex.Color.IsEmpty ? defaultColor : vertex.Color);
+      displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+      displayStyle.lineweight = 0;
+      displayStyle.linetype = "Continuous";
+      specklepoint["displayStyle"] = displayStyle;
+
       return specklepoint;
     }
   }

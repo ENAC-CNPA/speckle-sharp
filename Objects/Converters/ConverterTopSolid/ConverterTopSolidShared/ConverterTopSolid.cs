@@ -43,6 +43,8 @@ using TopSolid.Kernel.DB.Sets;
 using TopSolid.Kernel.GR.Attributes;
 using TopSolid.Kernel.DB.D3.Axes;
 using TopSolid.Kernel.DB.D3.Planes;
+using TopSolid.Kernel.DB.D2.Frames;
+using TopSolid.Kernel.G.D3;
 
 namespace Objects.Converter.TopSolid
 {
@@ -188,6 +190,14 @@ namespace Objects.Converter.TopSolid
           return SetToSpeckle(o);
         case AxisEntity a:
           return AxisToSpeckle(a);
+        case DB.D2.Axes.AxisEntity a:
+          return AxisToSpeckle(a);
+
+        case DB.D3.Frames.FrameEntity fr:
+          return FrameToSpeckle(fr);
+
+        case PlaneEntity pl:
+          return PlaneGeometryToSpeckle(pl);
 
         case Element o:
           return ElementToSpeckle(o);
@@ -307,8 +317,6 @@ namespace Objects.Converter.TopSolid
         case G.D3.Curves.GeometricProfile o:
           return ProfileToSpeckle(o);
 
-
-
         case G.D3.Sketches.Planar.PlanarSketch o:
           return PlanarSketchToSpeckle(o);
 
@@ -329,6 +337,11 @@ namespace Objects.Converter.TopSolid
     {
       return VertexToSpeckle(vertex);
     }
+    public Base ObjectToSpeckle(G.D3.Sketches.Vertex vertex)
+    {
+      return VertexToSpeckle(vertex);
+    }
+
     public bool CanConvertToNativeDisplayable(Base @object)
     {
       // check for schema
@@ -366,6 +379,8 @@ namespace Objects.Converter.TopSolid
           return true;
         case AxisEntity axis:
           return true;
+        case FrameEntity frame:
+          return true;
         case PlaneEntity plane:
           return true;
         case Element e:
@@ -381,6 +396,7 @@ namespace Objects.Converter.TopSolid
             case D3Shape _:
             case Polyhedron _:
             case Sketch _:
+            case G.D3.Frame _:
             case G.D2.Sketches.Sketch _:
 
               return true;

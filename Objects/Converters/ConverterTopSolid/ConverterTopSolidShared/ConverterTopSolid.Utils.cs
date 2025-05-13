@@ -274,7 +274,18 @@ namespace Objects.Converter.TopSolid
 
           }
         }
-        else if (host is SetDefinitionEntity set)
+        else if  (host is global::TopSolid.Kernel.DB.D3.Frames.FrameEntity frameEntity)
+          {
+            Base obj = null;
+            obj = ConvertToSpeckle(frameEntity);
+
+            if (obj != null)
+            {
+              //obj["IsAxis"] = true;
+
+            }
+          }
+          else if (host is SetDefinitionEntity set)
         {
           //var listofsets = (@base["@elements"] as List<Base>).Where(x => x is Collection collection).ToList();
           //Collection collection;

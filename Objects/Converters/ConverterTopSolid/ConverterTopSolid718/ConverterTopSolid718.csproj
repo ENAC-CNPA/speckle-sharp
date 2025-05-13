@@ -47,6 +47,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="TopSolid.Cad.Design.DB">
       <HintPath>..\..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Cad.Design.DB.dll</HintPath>
       <Private>False</Private>

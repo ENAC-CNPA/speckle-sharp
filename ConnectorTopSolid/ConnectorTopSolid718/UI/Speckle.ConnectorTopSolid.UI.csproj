@@ -7,10 +7,17 @@
     <PlatformTarget>x64</PlatformTarget>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>AnyCPU;ARM64</Platforms>
-    <BaseOutputPath>C:\Sources\TopSolid 7.18\Debug x64</BaseOutputPath>
+    <!-- <BaseOutputPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64</BaseOutputPath> -->
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <PropertyGroup>
+  <OutputPath>..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\</OutputPath>
+</PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE;TOPSOLID718</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <DefineConstants>DEBUG;TRACE;TOPSOLID718</DefineConstants>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" />
   <ItemGroup>
@@ -200,7 +207,12 @@
     <!-- </None> -->
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Core\Core\Core.csproj" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Core\Core\Core.csproj">
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\DesktopUI2\DesktopUI2\DesktopUI2.csproj">
       <Private>True</Private>
       <CopyLocalSatelliteAssemblies>True</CopyLocalSatelliteAssemblies>
@@ -209,7 +221,7 @@
     </ProjectReference>
     <ProjectReference Include="..\DB\Speckle.ConnectorTopSolid.DB.csproj">
       <CopyLocalSatelliteAssemblies>True</CopyLocalSatelliteAssemblies>
-      <Private></Private>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -224,5 +236,26 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Update="System.Numerics">
+      <Private>False</Private>
+      <CopyLocal>False</CopyLocal>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Update="System">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Update="System.Xml.Linq">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Update="System.Xml">
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 </Project>

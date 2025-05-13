@@ -132,9 +132,13 @@ namespace Speckle.ConnectorTopSolid.UI
           elementsList.Add(element.Id.ToString());
         else if (element is PointCloudEntity ptcE)
           elementsList.Add(ptcE.Id.ToString());
-        else if (element is TopSolid.Kernel.DB.D3.Axes.AxisEntity axisEntity)
+        else if (element is TopSolid.Kernel.DB.D3.Axes.AxisEntity || element is TopSolid.Kernel.DB.D2.Axes.AxisEntity)
         {
-          elementsList.Add(axisEntity.Id.ToString());
+          elementsList.Add(element.Id.ToString());
+        }
+        else if (element is TopSolid.Kernel.DB.D3.Frames.FrameEntity || element is TopSolid.Kernel.DB.D2.Frames.FrameEntity)
+        {
+          elementsList.Add(element.Id.ToString());
         }
         else if (element is TopSolid.Kernel.DB.D3.Planes.PlaneEntity planeEntity)
         {
