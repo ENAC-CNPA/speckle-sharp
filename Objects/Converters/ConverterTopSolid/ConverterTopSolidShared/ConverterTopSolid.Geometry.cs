@@ -430,7 +430,7 @@ namespace Objects.Converter.TopSolid
 
       //deal with dimensions, testing for linear only
       //EDIT 13-05-2025: DOES NOT WORK => REMOVED
-      /*
+      
       foreach (Entity entity in sketchEntity.Entities)
       {
         if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
@@ -439,77 +439,45 @@ namespace Objects.Converter.TopSolid
           dim.position = PointToSpeckle(dimension.FirstTopPoint);
           dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString+"mm}}";
           dim.measurement = dimension.MeasuredValue;
-          dim.units = u;
+          dim.units = "mm";
           dim.isOrdinate = false;
           dim.value = dimension.TextString+" mm";
-          dim.textPosition = PointToSpeckle(dimension.FirstTopPoint);
-          dim.direction = VectorToSpeckle((D3Vector)dimension.Direction);
-         DisplayStyle dimDisplayStyle = new DisplayStyle { linetype="Continuous",units= "mm",lineweight=0,color=System.Drawing.Color.Red.ToArgb()};
+          dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X+dimension.SecondTopPoint.X)*0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5));
+          //dim.direction = VectorToSpeckle((D3Vector)dimension.Direction);
+          dim.direction = VectorToSpeckle((D3Vector)new D2Vector(dimension.SecondTopPoint, dimension.FirstTopPoint));
+          DisplayStyle dimDisplayStyle = new DisplayStyle { linetype="Continuous",units= "mm",lineweight=0,color=System.Drawing.Color.Red.ToArgb()};
           dim["displayStyle"] = dimDisplayStyle;
           System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
           System.Collections.Generic.List<D2LineCurve> curves = GetDisplayLines(dimension);
           dim.displayValue = curves.Select(l => LineToSpeckle(l) as ICurve).ToList();
           dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint), PointToSpeckle(dimension.SecondTopPoint) };
           dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
+          dim["height"] = "11";
 
-          Base topsolidProps = new Base();
-          topsolidProps["class"] = "LinearDimension";
-          topsolidProps["plane"] = PlaneToSpeckle(dimension.Plane);
-          topsolidProps["Suffix"] = "mm";
-          topsolidProps["Aligned"] = "false";
-          topsolidProps["TextFit"] = "Auto";
-          topsolidProps["ArrowFit"] = "Auto";
-          topsolidProps["AltPrefix"] = "[";
-          topsolidProps["AltSuffix"] = "]";
-          topsolidProps["ArrowSize"] = "3";
-          topsolidProps["TextFormula"] = "<>";
-          topsolidProps["ForceDimLine"] = "true";
-          topsolidProps["LengthFactor"] = "1";
-          topsolidProps["TextLocation"] = "AboveDimLine";
-          topsolidProps["TextRotation"] = "0";
-          topsolidProps["DistanceScale"] = "1";
-          topsolidProps["TextAngleType"] = "Aligned";
-          topsolidProps["AnnotationType"] = "Rotated";
-          topsolidProps["ArrowheadType1"] = "Tick";
-          topsolidProps["ArrowheadType2"] = "Tick";
-          topsolidProps["CentermarkSize"] = "3";
-          topsolidProps["LengthRoundoff"] = "0";
-          topsolidProps["AltLengthFactor"] = "1";
-          topsolidProps["AltUnitsDisplay"] = "false";
-          topsolidProps["BaselineSpacing"] = "9";
-          topsolidProps["CentermarkStyle"] = "Mark";
-          topsolidProps["TextOrientation"] = "InPlane";
-          topsolidProps["ToleranceFormat"] = "None";
-          topsolidProps["ZeroSuppression"] = "None";
-          topsolidProps["LengthResolution"] = "0";
-          topsolidProps["AltLengthRoundoff"] = "0";
-          topsolidProps["ForceTextPosition"] = "Auto";
-          topsolidProps["AltZeroSuppression"] = "None";
-          topsolidProps["AlternateBelowLine"] = "false";
-          topsolidProps["DimensionStyleName"] = "Meters Architectural";
-          topsolidProps["ForceArrowPosition"] = "Auto";
-          topsolidProps["SuppressExtension1"] = "false";
-          topsolidProps["SuppressExtension2"] = "false";
-          topsolidProps["AltLengthResolution"] = "2";
-          topsolidProps["ExtensionLineOffset"] = "0.5";
-          topsolidProps["ToleranceLowerValue"] = "0";
-          topsolidProps["ToleranceResolution"] = "4";
-          topsolidProps["ToleranceUpperValue"] = "0";
-          topsolidProps["UseDefaultTextPoint"] = "true";
-          topsolidProps["FixedExtensionLength"] = "1";
-          topsolidProps["ToleranceHeightScale"] = "0.7";
-          topsolidProps["AltToleranceResolution"] = "4";
-          topsolidProps["DimensionLineExtension"] = "1.5";
-          topsolidProps["ExtensionLineExtension"] = "1";
-          topsolidProps["FixedLengthExtensionOn"] = "false";
-          topsolidProps["ForceDimensionLineBetweenExtensionLines"] = "true";
 
-          dim["RhinoProps"] = topsolidProps;
+          Text speckleText = new Text();
+          speckleText.height = 0.05;
+          speckleText.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
+          var planetouse= PlaneToSpeckle(dimension.Plane);    
+          speckleText.value = dimension.TextString + " mm";
+          speckleText.units = "mm";
+          speckleText["renderMaterial"] = RenderMaterialToSpeckle(dimension);
+          dimension.FindPointsOnLineAxis(out D2Point firstPoint, out D2Point secondPoint);
+          planetouse.origin = /*PointToSpeckle(firstPoint);*/PointToSpeckle(new D2Point((firstPoint.X + secondPoint.X) * 0.5, (firstPoint.Y + secondPoint.Y) * 0.5));
+          //il faudrait sans doute translaterl'origine
+          double rotation = G.D2.Vector.VX.GetAngle(new D2Vector(secondPoint, firstPoint), true);//angle en radians
+          planetouse.xdir = new Vector(planetouse.xdir.Length * Math.Cos(rotation), planetouse.xdir.Length*Math.Sin(rotation));
+          planetouse.ydir = new Vector(planetouse.ydir.Length * Math.Cos(Math.PI/2+rotation), planetouse.ydir.Length * Math.Sin(Math.PI/2+rotation));
+          speckleText.plane = planetouse;
+          speckleText.rotation = 0;
+          speckleText["displayStyle"] = dimDisplayStyle;
+          SetInstanceParameters(speckleText, dimension);
+          list.Add(speckleText);
 
           list.Add(dim);
         }        
       }
-      */
+      
 
       var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
       speckleSketch["Profiles"] = list;
