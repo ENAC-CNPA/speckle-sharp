@@ -80,6 +80,8 @@ using Ellipse = Objects.Geometry.Ellipse;
 using Shape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using TopSolid.Kernel.DB.D2.Frames;
 using TopSolid.Kernel.DB.D2.Dimensions;
+using TopSolid.Kernel.DB.D2;
+
 
 namespace Objects.Converter.TopSolid
 {
@@ -366,7 +368,7 @@ namespace Objects.Converter.TopSolid
 
       Base speckleSketch = new Base();
 
-     bool is3d = topSolidSketch.Is3D;
+      bool is3d = topSolidSketch.Is3D;
       var localPlane = topSolidSketch.Plane;
       //AHW test to add profiles dynmaically
       System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base>();
@@ -376,7 +378,7 @@ namespace Objects.Converter.TopSolid
       {
         LineStyle defaultLineStyle = new LineStyle();
         SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
-       
+
         if (sketchEntity != null && sketchEntity.HasStyle)
         {
           var styleForSketc = sketchEntity.Style;
@@ -413,71 +415,74 @@ namespace Objects.Converter.TopSolid
             obj["segmentName"] = segment.SegmentName;
             obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
             obj["segmentNameFont"] = segment.NameFontName;
-            obj["segmentNameReversed"] = segment.IsNameLocationReversed;
+
+            obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed;
+
             this.GetNamePos(segment, out var outPosition, out var outDirection);
             obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
             obj["namePosPointSegment"] = PointToSpeckle(outPosition);
           }
 
+          obj["IsInternal"] = segment.IsInternal ? "true" : "false";
           obj["IsSketch"] = "yes";
           obj["displayStyle"] = displayStyle;
           obj["units"] = u;
-          list.Add(obj);          
+          list.Add(obj);
         }
-
-        
       }
 
       //deal with dimensions, testing for linear only
       //EDIT 13-05-2025: DOES NOT WORK => REMOVED
-      
+
       foreach (Entity entity in sketchEntity.Entities)
       {
         if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
         {
           DistanceDimension dim = new DistanceDimension();
           dim.position = PointToSpeckle(dimension.FirstTopPoint);
-          dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString+"mm}}";
+          dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
           dim.measurement = dimension.MeasuredValue;
           dim.units = "mm";
           dim.isOrdinate = false;
-          dim.value = dimension.TextString+" mm";
-          dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X+dimension.SecondTopPoint.X)*0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5));
+          dim.value = dimension.TextString + " mm";
+          dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X + dimension.SecondTopPoint.X) * 0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5));
           //dim.direction = VectorToSpeckle((D3Vector)dimension.Direction);
           dim.direction = VectorToSpeckle((D3Vector)new D2Vector(dimension.SecondTopPoint, dimension.FirstTopPoint));
-          DisplayStyle dimDisplayStyle = new DisplayStyle { linetype="Continuous",units= "mm",lineweight=0,color=System.Drawing.Color.Red.ToArgb()};
+          DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
           dim["displayStyle"] = dimDisplayStyle;
           System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
           System.Collections.Generic.List<D2LineCurve> curves = GetDisplayLines(dimension);
           dim.displayValue = curves.Select(l => LineToSpeckle(l) as ICurve).ToList();
           dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint), PointToSpeckle(dimension.SecondTopPoint) };
           dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
-          dim["height"] = "11";
+          dim["height"] = "11";//ne marche pas
+          dim["IsInternal"] = dimension.IsInternal;
 
-
-          Text speckleText = new Text();
-          speckleText.height = 0.05;
-          speckleText.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
-          var planetouse= PlaneToSpeckle(dimension.Plane);    
-          speckleText.value = dimension.TextString + " mm";
-          speckleText.units = "mm";
-          speckleText["renderMaterial"] = RenderMaterialToSpeckle(dimension);
-          dimension.FindPointsOnLineAxis(out D2Point firstPoint, out D2Point secondPoint);
-          planetouse.origin = /*PointToSpeckle(firstPoint);*/PointToSpeckle(new D2Point((firstPoint.X + secondPoint.X) * 0.5, (firstPoint.Y + secondPoint.Y) * 0.5));
-          //il faudrait sans doute translaterl'origine
-          double rotation = G.D2.Vector.VX.GetAngle(new D2Vector(secondPoint, firstPoint), true);//angle en radians
-          planetouse.xdir = new Vector(planetouse.xdir.Length * Math.Cos(rotation), planetouse.xdir.Length*Math.Sin(rotation));
-          planetouse.ydir = new Vector(planetouse.ydir.Length * Math.Cos(Math.PI/2+rotation), planetouse.ydir.Length * Math.Sin(Math.PI/2+rotation));
-          speckleText.plane = planetouse;
-          speckleText.rotation = 0;
-          speckleText["displayStyle"] = dimDisplayStyle;
-          SetInstanceParameters(speckleText, dimension);
-          list.Add(speckleText);
+          #region ajout du texte -- commenté le 09-06-2025
+          //Text speckleText = new Text();
+          //speckleText.height = 0.05;
+          //speckleText.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
+          //var planetouse= PlaneToSpeckle(dimension.Plane);    
+          //speckleText.value = dimension.TextString + " mm";
+          //speckleText.units = "mm";
+          //speckleText["renderMaterial"] = RenderMaterialToSpeckle(dimension);
+          //dimension.FindPointsOnLineAxis(out D2Point firstPoint, out D2Point secondPoint);
+          //planetouse.origin = /*PointToSpeckle(firstPoint);*/PointToSpeckle(new D2Point((firstPoint.X + secondPoint.X) * 0.5, (firstPoint.Y + secondPoint.Y) * 0.5));
+          ////il faudrait sans doute translaterl'origine
+          //double rotation = G.D2.Vector.VX.GetAngle(new D2Vector(secondPoint, firstPoint), true);//angle en radians
+          //planetouse.xdir = new Vector(planetouse.xdir.Length * Math.Cos(rotation), planetouse.xdir.Length*Math.Sin(rotation));
+          //planetouse.ydir = new Vector(planetouse.ydir.Length * Math.Cos(Math.PI/2+rotation), planetouse.ydir.Length * Math.Sin(Math.PI/2+rotation));
+          //speckleText.plane = planetouse;
+          //speckleText.rotation = 0;
+          //speckleText["displayStyle"] = dimDisplayStyle;
+          //SetInstanceParameters(speckleText, dimension);
+          //list.Add(speckleText);
+          #endregion
 
           list.Add(dim);
-        }        
+        }
       }
-      
+
 
       var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
       speckleSketch["Profiles"] = list;
@@ -506,15 +511,15 @@ namespace Objects.Converter.TopSolid
         }
       }
       return curves;
-    } 
+    }
 
     /// <summary>
-		/// Gets the segment name position.
-		/// </summary>
-		/// <param name="outPosition">Position.</param>
-		/// <param name="outDirection">Direction.</param>
-		/// <remarks>This method does not take <see cref="IsNameLocationReversed"/> property into account.</remarks>
-		internal bool GetNamePos(G.D2.Sketches.Segment inSegment, out D2Point outPosition, out G.D2.UnitVector outDirection)
+    /// Gets the segment name position.
+    /// </summary>
+    /// <param name="outPosition">Position.</param>
+    /// <param name="outDirection">Direction.</param>
+    /// <remarks>This method does not take <see cref="IsNameLocationReversed"/> property into account.</remarks>
+    internal bool GetNamePos(G.D2.Sketches.Segment inSegment, out D2Point outPosition, out G.D2.UnitVector outDirection)
     {
       if (inSegment.Geometry == null)
       {
@@ -600,7 +605,7 @@ namespace Objects.Converter.TopSolid
 
     }
 
-   
+
     #endregion
 
     /// <summary>
@@ -695,6 +700,7 @@ namespace Objects.Converter.TopSolid
       XY["displayStyle"] = displayStyle;
       XY["FrameDir"] = "XY";
       XY["FrameId"] = frameEntity.Id.ToString();
+      XY["FrameVX"] = frameBoundedGeometry.Ax.ToString();
 
       DisplayStyle displayStyle2 = new DisplayStyle();
       displayStyle2.lineweight = 0;
@@ -704,6 +710,7 @@ namespace Objects.Converter.TopSolid
       YZ["displayStyle"] = displayStyle2;
       YZ["FrameDir"] = "YZ";
       YZ["FrameId"] = frameEntity.Id.ToString();
+      YZ["FrameVY"] = frameBoundedGeometry.Ay.ToString();
 
       DisplayStyle displayStyle3 = new DisplayStyle();
       displayStyle3.lineweight = 0;
@@ -713,9 +720,10 @@ namespace Objects.Converter.TopSolid
       XZ["displayStyle"] = displayStyle3;
       XZ["FrameDir"] = "XZ";
       XZ["FrameId"] = frameEntity.Id.ToString();
+      XZ["FrameVZ"] = frameBoundedGeometry.Az.ToString();
 
       System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base> { XY, YZ, XZ };
-      
+
       Point origoPointSpeckle = PointToSpeckle(frameBoundedGeometry.Center);
       origoPointSpeckle["FrameId"] = frameEntity.Id.ToString();
       list.Add(origoPointSpeckle);
@@ -817,6 +825,7 @@ namespace Objects.Converter.TopSolid
           foreach (var segment in profile.Segments)
           {
             var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
+            
 
             DisplayStyle displayStyle = new DisplayStyle();
             //ici, si le lineStyleWith est égale à None alors c'est qu'il y a un style
@@ -829,11 +838,28 @@ namespace Objects.Converter.TopSolid
             displayStyle.linetype = "Continuous";//for now
             displayStyle.units = "mm";
 
-            var obj = ObjectToSpeckle(geoSegm, localPlane);
+
+            //localPlane.TransformByInverse(topSolidSketch.Frame.GetPositioningTransform());
+
+            
+
+            var obj = ObjectToSpeckle(geoSegm, topSolidSketch.Frame.Pxy /*localPlane*/);
             //nominations
             if (segment.HasSegmentNameAttribute)//si existe
             {
               obj["segmentName"] = segment.SegmentName;
+
+              obj["segmentNameDirectionInverted"] = (!segment.NameIsFirstDirectionInverted) ? "No" : "Yes";
+              if (segment.NameIsFirstDirectionInverted)
+              {
+                obj["segmentNameIsDirectionXPlus"] = (segment.NameIsSecondDirectionX && !segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionXMoins"] = (segment.NameIsSecondDirectionX && segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionYPlus"] = (segment.NameIsSecondDirectionY && !segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionYMoins"] = (segment.NameIsSecondDirectionY && segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionZPlus"] = (segment.NameIsSecondDirectionZ && !segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionZMoins"] = (segment.NameIsSecondDirectionZ && segment.NameIsSecondDirectionInverted).ToString();
+              }
+
               obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
               obj["segmentNameFont"] = segment.NameFontName;
               this.GetNamePos(segment, out var outPosition, out var outDirection);
@@ -841,6 +867,7 @@ namespace Objects.Converter.TopSolid
               obj["namePosPointSegment"] = PointToSpeckle(outPosition);
             }
 
+            obj["IsInternal"] = segment.IsInternal ? "true" : "false";
             obj["IsSketch"] = "yes";
             obj["displayStyle"] = displayStyle;
             obj["units"] = u;
@@ -962,6 +989,16 @@ namespace Objects.Converter.TopSolid
       return polyCurve;
     }
 
+    public Polycurve ProfileToSpeckle(G.D3.Curves.GeometricProfile profile, G.D3.Plane plane, string units = null)
+    {
+      var u = units ?? ModelUnits;
+
+      Polycurve polyCurveBefore = new Polycurve();
+      polyCurveBefore.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve.MakeTransformedCurve(SX.Version.Current,plane.GetTransform(), G.Precision.ModelingLinearTolerance))).ToList();
+      polyCurveBefore.units = u;
+
+      return polyCurveBefore;
+    }
 
     public Polycurve ProfileToSpeckle(G.D3.Curves.GeometricProfile profile, string units = null)
     {
@@ -1034,6 +1071,7 @@ namespace Objects.Converter.TopSolid
 
     }
 
+  
     public ICurve CurveToSpeckle(G.D3.Curves.Curve curve, string units = null)
     {
       var u = units ?? ModelUnits;
