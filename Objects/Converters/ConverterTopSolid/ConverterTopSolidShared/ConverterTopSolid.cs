@@ -262,7 +262,6 @@ namespace Objects.Converter.TopSolid
           return ProfileToSpeckle(o);
 
 
-
         case G.D3.Sketches.Planar.PlanarSketch o:
           return PlanarSketchToSpeckle(o);
 

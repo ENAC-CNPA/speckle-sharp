@@ -439,21 +439,22 @@ namespace Objects.Converter.TopSolid
         if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
         {
           DistanceDimension dim = new DistanceDimension();
-          dim.position = PointToSpeckle(dimension.FirstTopPoint);
+          dim.position = PointToSpeckle(dimension.FirstTopPoint,localPlane);
           dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
           dim.measurement = dimension.MeasuredValue;
           dim.units = "mm";
           dim.isOrdinate = false;
           dim.value = dimension.TextString + " mm";
-          dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X + dimension.SecondTopPoint.X) * 0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5));
-          //dim.direction = VectorToSpeckle((D3Vector)dimension.Direction);
-          dim.direction = VectorToSpeckle((D3Vector)new D2Vector(dimension.SecondTopPoint, dimension.FirstTopPoint));
+          dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X + dimension.SecondTopPoint.X) * 0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5), localPlane);
+          var firstPoint = PointToSpeckle(dimension.SecondTopPoint, localPlane);
+          var secondPoint = PointToSpeckle(dimension.FirstTopPoint, localPlane);
+          dim.direction = new Vector(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y, secondPoint.z - firstPoint.z);
           DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
           dim["displayStyle"] = dimDisplayStyle;
           System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
           System.Collections.Generic.List<D2LineCurve> curves = GetDisplayLines(dimension);
-          dim.displayValue = curves.Select(l => LineToSpeckle(l) as ICurve).ToList();
-          dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint), PointToSpeckle(dimension.SecondTopPoint) };
+          dim.displayValue = curves.Select(l => LineToSpeckle(l,localPlane) as ICurve).ToList();
+          dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint, localPlane), PointToSpeckle(dimension.SecondTopPoint, localPlane) };
           dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
           dim["height"] = "11";//ne marche pas
           dim["IsInternal"] = dimension.IsInternal;
@@ -841,8 +842,6 @@ namespace Objects.Converter.TopSolid
 
             //localPlane.TransformByInverse(topSolidSketch.Frame.GetPositioningTransform());
 
-            
-
             var obj = ObjectToSpeckle(geoSegm, topSolidSketch.Frame.Pxy /*localPlane*/);
             //nominations
             if (segment.HasSegmentNameAttribute)//si existe
@@ -873,6 +872,65 @@ namespace Objects.Converter.TopSolid
             obj["units"] = u;
             list.Add(obj);
           }
+
+          //deal with dimensions, testing for linear only
+          //EDIT 13-05-2025: DOES NOT WORK => REMOVED
+
+          
+          foreach (Entity entity in sketchEntity.Entities)
+          {
+            if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
+            {
+              DistanceDimension dim = new DistanceDimension();
+              TsPlane planeToUse = new TsPlane(dimension.Plane.Frame);
+              dim.position = PointToSpeckle(dimension.FirstTopPoint, planeToUse);              
+
+              dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
+              dim.measurement = dimension.MeasuredValue;
+              dim.units = "mm";
+              dim.isOrdinate = false;
+              dim.value = dimension.TextString + " mm";
+              dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X + dimension.SecondTopPoint.X) * 0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5), planeToUse);
+              var firstPoint = PointToSpeckle(dimension.FirstTopPoint, planeToUse);
+              var secondPoint = PointToSpeckle(dimension.SecondTopPoint, planeToUse);
+              //dim.direction=
+              dim.direction = new Vector(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y, secondPoint.z - firstPoint.z);
+              DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
+              dim["displayStyle"] = dimDisplayStyle;
+              System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
+              System.Collections.Generic.List<D2LineCurve> curves = GetDisplayLines(dimension);
+              dim.displayValue = curves.Select(l => LineToSpeckle(l, planeToUse) as ICurve).ToList();
+              dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint, planeToUse), PointToSpeckle(dimension.SecondTopPoint, planeToUse) };
+              dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
+              dim["height"] = "11";//ne marche pas
+              dim["IsInternal"] = dimension.IsInternal;
+
+
+              #region ajout du texte -- commenté le 09-06-2025
+              //Text speckleText = new Text();
+              //speckleText.height = 0.05;
+              //speckleText.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
+              //var planetouse= PlaneToSpeckle(dimension.Plane);    
+              //speckleText.value = dimension.TextString + " mm";
+              //speckleText.units = "mm";
+              //speckleText["renderMaterial"] = RenderMaterialToSpeckle(dimension);
+              //dimension.FindPointsOnLineAxis(out D2Point firstPoint, out D2Point secondPoint);
+              //planetouse.origin = /*PointToSpeckle(firstPoint);*/PointToSpeckle(new D2Point((firstPoint.X + secondPoint.X) * 0.5, (firstPoint.Y + secondPoint.Y) * 0.5));
+              ////il faudrait sans doute translaterl'origine
+              //double rotation = G.D2.Vector.VX.GetAngle(new D2Vector(secondPoint, firstPoint), true);//angle en radians
+              //planetouse.xdir = new Vector(planetouse.xdir.Length * Math.Cos(rotation), planetouse.xdir.Length*Math.Sin(rotation));
+              //planetouse.ydir = new Vector(planetouse.ydir.Length * Math.Cos(Math.PI/2+rotation), planetouse.ydir.Length * Math.Sin(Math.PI/2+rotation));
+              //speckleText.plane = planetouse;
+              //speckleText.rotation = 0;
+              //speckleText["displayStyle"] = dimDisplayStyle;
+              //SetInstanceParameters(speckleText, dimension);
+              //list.Add(speckleText);
+              #endregion
+
+              list.Add(dim);
+            }
+          }
+
         }
 
         var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
