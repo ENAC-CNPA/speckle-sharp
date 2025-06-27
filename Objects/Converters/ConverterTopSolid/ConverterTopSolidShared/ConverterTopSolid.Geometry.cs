@@ -405,7 +405,7 @@ namespace Objects.Converter.TopSolid
 
           Tuple<double, string> lineData = GetLineStyleInfos(lineStyleToUse);
           displayStyle.lineweight = lineData.Item1;
-          displayStyle.linetype = "Continuous";//for now
+          displayStyle.linetype = lineData.Item2;//for now
           displayStyle.units = "mm";
 
           var obj = ObjectToSpeckle(geoSegm, localPlane);
@@ -439,7 +439,7 @@ namespace Objects.Converter.TopSolid
         if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
         {
           DistanceDimension dim = new DistanceDimension();
-          dim.position = PointToSpeckle(dimension.FirstTopPoint,localPlane);
+          dim.position = PointToSpeckle(dimension.FirstTopPoint, localPlane);
           dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
           dim.measurement = dimension.MeasuredValue;
           dim.units = "mm";
@@ -453,7 +453,7 @@ namespace Objects.Converter.TopSolid
           dim["displayStyle"] = dimDisplayStyle;
           System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
           System.Collections.Generic.List<D2LineCurve> curves = GetDisplayLines(dimension);
-          dim.displayValue = curves.Select(l => LineToSpeckle(l,localPlane) as ICurve).ToList();
+          dim.displayValue = curves.Select(l => LineToSpeckle(l, localPlane) as ICurve).ToList();
           dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint, localPlane), PointToSpeckle(dimension.SecondTopPoint, localPlane) };
           dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
           dim["height"] = "11";//ne marche pas
@@ -745,8 +745,8 @@ namespace Objects.Converter.TopSolid
       var u = units ?? ModelUnits;
 
       var Pe = (axisEntity.Geometry.Po + axisEntity.Geometry.Vx);
-      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
-      Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
+      Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
+      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
       speckleLine["IsAxis"] = true;
       speckleLine["renderMaterial"] = RenderMaterialToSpeckle(axisEntity);
 
@@ -769,11 +769,10 @@ namespace Objects.Converter.TopSolid
       var u = units ?? ModelUnits;
 
       var Pe = (axisEntity.Geometry.Po + axisEntity.Geometry.Vx);
-      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
-      Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
+      Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
+      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
       speckleLine["IsAxis"] = true;
       speckleLine["renderMaterial"] = RenderMaterialToSpeckle(axisEntity);
-
       //style displau
       DisplayStyle displayStyle = new DisplayStyle();
       displayStyle.lineweight = 0;
@@ -826,7 +825,7 @@ namespace Objects.Converter.TopSolid
           foreach (var segment in profile.Segments)
           {
             var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
-            
+
 
             DisplayStyle displayStyle = new DisplayStyle();
             //ici, si le lineStyleWith est égale à None alors c'est qu'il y a un style
@@ -836,7 +835,7 @@ namespace Objects.Converter.TopSolid
 
             Tuple<double, string> lineData = GetLineStyleInfos(lineStyleToUse);
             displayStyle.lineweight = lineData.Item1;
-            displayStyle.linetype = "Continuous";//for now
+            displayStyle.linetype = lineData.Item2;//for now
             displayStyle.units = "mm";
 
 
@@ -876,14 +875,14 @@ namespace Objects.Converter.TopSolid
           //deal with dimensions, testing for linear only
           //EDIT 13-05-2025: DOES NOT WORK => REMOVED
 
-          
+
           foreach (Entity entity in sketchEntity.Entities)
           {
             if (entity is TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
             {
               DistanceDimension dim = new DistanceDimension();
               TsPlane planeToUse = new TsPlane(dimension.Plane.Frame);
-              dim.position = PointToSpeckle(dimension.FirstTopPoint, planeToUse);              
+              dim.position = PointToSpeckle(dimension.FirstTopPoint, planeToUse);
 
               dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
               dim.measurement = dimension.MeasuredValue;
@@ -1052,7 +1051,7 @@ namespace Objects.Converter.TopSolid
       var u = units ?? ModelUnits;
 
       Polycurve polyCurveBefore = new Polycurve();
-      polyCurveBefore.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve.MakeTransformedCurve(SX.Version.Current,plane.GetTransform(), G.Precision.ModelingLinearTolerance))).ToList();
+      polyCurveBefore.segments = profile.Segments.Select(x => CurveToSpeckle(x.GetOrientedCurve().Curve.MakeTransformedCurve(SX.Version.Current, plane.GetTransform(), G.Precision.ModelingLinearTolerance))).ToList();
       polyCurveBefore.units = u;
 
       return polyCurveBefore;
@@ -1129,7 +1128,7 @@ namespace Objects.Converter.TopSolid
 
     }
 
-  
+
     public ICurve CurveToSpeckle(G.D3.Curves.Curve curve, string units = null)
     {
       var u = units ?? ModelUnits;
@@ -2927,14 +2926,29 @@ namespace Objects.Converter.TopSolid
 
 
       SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
-      var sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(vertex.Sketch.Owner);
-      if (sketchEntity != null && sketchEntity.HasStyle)
+      if (vertex.Sketch.Owner is TK.DB.D3.Sketches.Planar.PlanarSketchEntity sketchEntity)
       {
-        var styleForSketc = sketchEntity.Style;
+        //var sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(vertex.Sketch.Owner);
+        if (sketchEntity != null && sketchEntity.HasStyle)
+        {
+          var styleForSketc = sketchEntity.Style;
+        }
+        if (sketchEntity != null)
+        {
+          defaultColor = sketchEntity.Color;
+        }
       }
-      if (sketchEntity != null)
+      else if (vertex.Sketch.Owner is TK.DB.D3.Sketches.PositionedSketchEntity sketchEntityAgain)
       {
-        defaultColor = sketchEntity.Color;
+        //var sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(vertex.Sketch.Owner);
+        if (sketchEntityAgain != null && sketchEntityAgain.HasStyle)
+        {
+          var styleForSketc = sketchEntityAgain.Style;
+        }
+        if (sketchEntityAgain != null)
+        {
+          defaultColor = sketchEntityAgain.Color;
+        }
       }
       DisplayStyle displayStyle = new DisplayStyle();
       SX.Drawing.Color colorToUse = (vertex.Color.IsEmpty ? defaultColor : vertex.Color);
