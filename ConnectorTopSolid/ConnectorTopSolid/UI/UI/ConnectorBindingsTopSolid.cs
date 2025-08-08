@@ -21,6 +21,7 @@ using TopSolid.Cad.Design.DB.Documents;
 using TopSolid.Cad.Design.DB.Representations;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
 using TopSolid.Kernel.DB.D3.PointClouds;
+using TopSolid.Kernel.DB.D3.Points;
 using TopSolid.Kernel.DB.D3.Shapes;
 using TopSolid.Kernel.DB.D3.Sketches;
 using TopSolid.Kernel.DB.Elements;
@@ -143,6 +144,10 @@ namespace Speckle.ConnectorTopSolid.UI
         else if (element is TopSolid.Kernel.DB.D3.Planes.PlaneEntity planeEntity)
         {
           elementsList.Add(planeEntity.Id.ToString());
+        }
+        else if (element is PointEntity pointEntity)
+        {
+          elementsList.Add(pointEntity.Id.ToString());
         }
       }
       return elementsList;

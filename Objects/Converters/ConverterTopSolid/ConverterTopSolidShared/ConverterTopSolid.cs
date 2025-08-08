@@ -23,6 +23,7 @@ using D3Geometry = TopSolid.Kernel.G.IGeometry;
 using D3LineCurve = TopSolid.Kernel.G.D3.Curves.LineCurve;
 using D3Plane = TopSolid.Kernel.G.D3.Plane;
 using D3Point = TopSolid.Kernel.G.D3.Point;
+using D2Point = TopSolid.Kernel.G.D2.Point;
 using D3PolylineCurve = TopSolid.Kernel.G.D3.Curves.PolylineCurve;
 using D3Shape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using D3Vector = TopSolid.Kernel.G.D3.Vector;
@@ -159,6 +160,9 @@ namespace Objects.Converter.TopSolid
         case D3Point o:
           return PointToSpeckle(o);
 
+        //case D2Point o:
+        //  return PointToSpeckle(o);
+
         case D3Vector o:
           return VectorToSpeckle(o);
 
@@ -198,6 +202,9 @@ namespace Objects.Converter.TopSolid
 
         case PlaneEntity pl:
           return PlaneGeometryToSpeckle(pl);
+
+        case DB.D3.Points.PointEntity pt:
+          return PointGeometryToSpeckle(pt);
 
         case Element o:
           return ElementToSpeckle(o);
@@ -331,15 +338,25 @@ namespace Objects.Converter.TopSolid
       }
     }
 
+    public Base ObjectToSpeckle(G.D3.Sketches.Vertex vertex)
+    {
+      return VertexToSpeckle(vertex);
+    }
 
     public Base ObjectToSpeckle(G.D2.Sketches.Vertex vertex)
     {
       return VertexToSpeckle(vertex);
     }
-    public Base ObjectToSpeckle(G.D3.Sketches.Vertex vertex)
-    {
-      return VertexToSpeckle(vertex);
-    }
+
+    //public Base ObjectToSpeckle(G.D2.Sketches.Vertex vertex,G.D3.Plane plane)
+    //{
+    //  return VertexToSpeckle(vertex,plane);
+    //}
+
+    //public Base ObjectToSpeckle(G.D3.Sketches.Vertex vertex, G.D3.Plane plane)
+    //{
+    //  return VertexToSpeckle(vertex, plane);
+    //}
 
     public bool CanConvertToNativeDisplayable(Base @object)
     {
@@ -377,6 +394,8 @@ namespace Objects.Converter.TopSolid
         case SetDefinitionEntity _:
           return true;
         case AxisEntity axis:
+          return true;
+        case DB.D3.Points.PointEntity point:
           return true;
         case FrameEntity frame:
           return true;

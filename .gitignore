@@ -374,3 +374,5 @@ ConnectorNavisworks/ConnectorNavisworks/Sample Models
 ConnectorArchicad/AddOn/Build*
 **/dist/
 
+/ConnectorTopSolid/ConnectorTopSolid718/setup/Sources/Speckle/Kits/Objects/Objects.Converter.TopSolid718.dll
+/ConnectorTopSolid/ConnectorTopSolid718/setup/Sources/Speckle/Kits/Objects/Objects.Converter.TopSolid718.dll

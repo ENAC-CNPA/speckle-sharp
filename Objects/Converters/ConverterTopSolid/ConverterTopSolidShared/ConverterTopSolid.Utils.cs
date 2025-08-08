@@ -30,6 +30,7 @@ using TKD = TopSolid.Kernel.DB;
 using TKG = TopSolid.Kernel.G;
 using SX = TopSolid.Kernel.SX;
 using TsApp = TopSolid.Kernel.UI.Application;
+using TopSolid.Kernel.DB.D3.Points;
 
 namespace Objects.Converter.TopSolid
 {
@@ -274,6 +275,11 @@ namespace Objects.Converter.TopSolid
 
           }
         }
+        else if (host is TKD.D3.Points.PointEntity pointEntity)
+        {
+          Base obj = null;
+          obj = ConvertToSpeckle(pointEntity);
+        }
         else if  (host is global::TopSolid.Kernel.DB.D3.Frames.FrameEntity frameEntity)
           {
             Base obj = null;
@@ -430,6 +436,7 @@ namespace Objects.Converter.TopSolid
       {
         if (paramBase.GetMembers().Any())
           speckleElement["parameters"] = paramBase;
+
         speckleElement["units"] = ModelUnits;
         speckleElement["isTopSolidAssembly"] = isTopSolidAssembly;
         speckleElement["elementId"] = topSolidElement.Owner != null ? (topSolidElement.Owner as Element).Id.ToString() : "-";

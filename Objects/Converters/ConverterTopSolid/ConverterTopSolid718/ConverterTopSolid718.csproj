@@ -83,6 +83,14 @@
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.Shapes.dll</HintPath>
       <Private>False</Private>
     </Reference>
+     <Reference Include="TopSolid.Kernel.UI.D3">
+      <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.D3.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TopSolid.Kernel.UI.D3.Sketches">
+      <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.UI.D3.Sketches.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="TopSolid.Kernel.DB.D3.Sketches">
       <HintPath>..\..\..\..\..\..\..\..\..\Sources\Topsolid 7.18\Debug x64\TopSolid.Kernel.DB.D3.Sketches.dll</HintPath>
       <Private>False</Private>

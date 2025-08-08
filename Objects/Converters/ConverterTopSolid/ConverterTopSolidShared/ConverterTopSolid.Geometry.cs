@@ -81,6 +81,10 @@ using Shape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using TopSolid.Kernel.DB.D2.Frames;
 using TopSolid.Kernel.DB.D2.Dimensions;
 using TopSolid.Kernel.DB.D2;
+using TopSolid.Kernel.G.D3.Sketches;
+using TopSolid.Kernel.GR.D2;
+using TopSolid.Kernel.G.D2.Curves;
+using TopSolid.Kernel.G.D2.Sketches;
 
 
 namespace Objects.Converter.TopSolid
@@ -373,28 +377,38 @@ namespace Objects.Converter.TopSolid
       //AHW test to add profiles dynmaically
       System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base>();
       TK.DB.D3.Sketches.Planar.PlanarSketchEntity sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(topSolidSketch.Owner);
-      //TESTAFS
-      foreach (var profile in topSolidSketch.Profiles)
+      //localPlane.CreateDebugEntity(SX.Drawing.Color.Red, null, null);
+      //default colors and style
+      LineStyle defaultLineStyle = new LineStyle();
+      LineStyle defaultAxeLineStyle = new LineStyle();
+      SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+
+      if (sketchEntity != null && sketchEntity.HasStyle)
       {
-        LineStyle defaultLineStyle = new LineStyle();
-        SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
-
-        if (sketchEntity != null && sketchEntity.HasStyle)
+        var styleForSketc = sketchEntity.Style;
+        defaultLineStyle = styleForSketc.LineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.LineStyle;
+        defaultAxeLineStyle = styleForSketc.AxesLineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.AxesLineStyle;
+      }
+      if (sketchEntity != null)
+      {
+        defaultColor = sketchEntity.Color;
+        if (defaultLineStyle == LineStyle.Empty)
         {
-          var styleForSketc = sketchEntity.Style;
-          defaultLineStyle = styleForSketc.LineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.LineStyle;
+          defaultLineStyle = sketchEntity.LineStyle;
         }
-        if (sketchEntity != null)
+        if (defaultAxeLineStyle ==LineStyle.Empty)
         {
-          defaultColor = sketchEntity.Color;
-          if (defaultLineStyle == LineStyle.Empty)
-          {
-            defaultLineStyle = sketchEntity.LineStyle;
-          }
+          defaultAxeLineStyle = sketchEntity.LineStyle;
         }
+      }
 
+      //TESTAFS => profile from sketchentity (construction are ignored in Profiles)
+      foreach (var profile in topSolidSketch.Profiles)
+      {        
         foreach (var segment in profile.Segments)
         {
+          if (segment.IsConstruction) continue; // en pratique, jamais
+
           var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
 
           DisplayStyle displayStyle = new DisplayStyle();
@@ -425,6 +439,51 @@ namespace Objects.Converter.TopSolid
 
           obj["IsInternal"] = segment.IsInternal ? "true" : "false";
           obj["IsSketch"] = "yes";
+          obj["IsConstruction"] = "false";
+          obj["displayStyle"] = displayStyle;
+          obj["units"] = u;
+          list.Add(obj);
+        }
+      }
+
+      //for internal construction lines from sketch segments - sort items
+      G.D2.Sketches.SegmentList segmentList = new G.D2.Sketches.SegmentList();
+      ((G.D2.Sketches.Sketch)topSolidSketch).GetSegments(segmentList);
+      foreach (G.D2.Sketches.Segment segment in segmentList)
+      {
+        if (segment.IsConstruction && !segment.IsGhost && !segment.IsInfinite && !segment.IsInternal)
+        {          
+          var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
+
+          DisplayStyle displayStyle = new DisplayStyle();
+          //ici, si le lineStyleWith est égale à None alors c'est qu'il y a un style
+          SX.Drawing.Color colorToUse = (segment.Color.IsEmpty ? defaultColor : segment.Color);
+          displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+          LineStyle lineStyleToUse = (segment.LineStyle != LineStyle.Empty) ? segment.LineStyle : defaultAxeLineStyle;
+
+          Tuple<double, string> lineData = GetLineStyleInfos(lineStyleToUse);
+          displayStyle.lineweight = lineData.Item1;
+          displayStyle.linetype = lineData.Item2;//for now
+          displayStyle.units = "mm";
+
+          var obj = ObjectToSpeckle(geoSegm, localPlane);
+          //nominations
+          if (segment.HasSegmentNameAttribute)//si existe
+          {
+            obj["segmentName"] = segment.SegmentName;
+            obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
+            obj["segmentNameFont"] = segment.NameFontName;
+
+            obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed;
+
+            this.GetNamePos(segment, out var outPosition, out var outDirection);
+            obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
+            obj["namePosPointSegment"] = PointToSpeckle(outPosition);
+          }
+
+          obj["IsInternal"] = segment.IsInternal ? "true" : "false";
+          obj["IsSketch"] = "yes";
+          obj["IsConstruction"] = "true";
           obj["displayStyle"] = displayStyle;
           obj["units"] = u;
           list.Add(obj);
@@ -445,7 +504,8 @@ namespace Objects.Converter.TopSolid
           dim.units = "mm";
           dim.isOrdinate = false;
           dim.value = dimension.TextString + " mm";
-          dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X + dimension.SecondTopPoint.X) * 0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5), localPlane);
+          D2Point dimTextPos = this.GetDimensionTextPosition(dimension);
+          dim.textPosition = PointToSpeckle(dimTextPos, localPlane);          
           var firstPoint = PointToSpeckle(dimension.SecondTopPoint, localPlane);
           var secondPoint = PointToSpeckle(dimension.FirstTopPoint, localPlane);
           dim.direction = new Vector(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y, secondPoint.z - firstPoint.z);
@@ -457,28 +517,7 @@ namespace Objects.Converter.TopSolid
           dim.measured = new System.Collections.Generic.List<Point> { PointToSpeckle(dimension.FirstTopPoint, localPlane), PointToSpeckle(dimension.SecondTopPoint, localPlane) };
           dim["renderMaterial"] = RenderMaterialToSpeckle(dimension);
           dim["height"] = "11";//ne marche pas
-          dim["IsInternal"] = dimension.IsInternal;
-
-          #region ajout du texte -- commenté le 09-06-2025
-          //Text speckleText = new Text();
-          //speckleText.height = 0.05;
-          //speckleText.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
-          //var planetouse= PlaneToSpeckle(dimension.Plane);    
-          //speckleText.value = dimension.TextString + " mm";
-          //speckleText.units = "mm";
-          //speckleText["renderMaterial"] = RenderMaterialToSpeckle(dimension);
-          //dimension.FindPointsOnLineAxis(out D2Point firstPoint, out D2Point secondPoint);
-          //planetouse.origin = /*PointToSpeckle(firstPoint);*/PointToSpeckle(new D2Point((firstPoint.X + secondPoint.X) * 0.5, (firstPoint.Y + secondPoint.Y) * 0.5));
-          ////il faudrait sans doute translaterl'origine
-          //double rotation = G.D2.Vector.VX.GetAngle(new D2Vector(secondPoint, firstPoint), true);//angle en radians
-          //planetouse.xdir = new Vector(planetouse.xdir.Length * Math.Cos(rotation), planetouse.xdir.Length*Math.Sin(rotation));
-          //planetouse.ydir = new Vector(planetouse.ydir.Length * Math.Cos(Math.PI/2+rotation), planetouse.ydir.Length * Math.Sin(Math.PI/2+rotation));
-          //speckleText.plane = planetouse;
-          //speckleText.rotation = 0;
-          //speckleText["displayStyle"] = dimDisplayStyle;
-          //SetInstanceParameters(speckleText, dimension);
-          //list.Add(speckleText);
-          #endregion
+          dim["IsInternal"] = dimension.IsInternal;         
 
           list.Add(dim);
         }
@@ -493,6 +532,21 @@ namespace Objects.Converter.TopSolid
       return speckleSketch;
 
     }
+
+    private D2Point GetDimensionTextPosition(TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
+    {
+      foreach (var item in dimension.Display.Items)
+      {
+        if (item is TK.GR.D2.TextItem)
+          return (D2Point)(item as TK.GR.D2.TextItem).Position;
+
+        if (item is TK.GR.D3.TextItem)
+          return (D2Point)(item as TK.GR.D3.TextItem).Position;
+      }
+
+      return new D2Point();
+    }
+
 
 
     private System.Collections.Generic.List<D2LineCurve> GetDisplayLines(TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
@@ -606,7 +660,26 @@ namespace Objects.Converter.TopSolid
 
     }
 
+    public Point PointGeometryToSpeckle(TK.DB.D3.Points.PointEntity pointEntity, string units = null)
+    {
+      var u = units ?? ModelUnits;
 
+      var pointGeometry = pointEntity.Geometry;
+      Point specklepoint = PointToSpeckle(pointGeometry, units);
+      specklepoint["Name"] = pointEntity.Name;
+
+      DisplayStyle displayStyle = new DisplayStyle();
+      displayStyle.color = ((System.Drawing.Color)pointEntity.Color).ToArgb();
+      displayStyle.lineweight = 0;
+      displayStyle.linetype = "Continuous";
+      displayStyle.units = u;
+
+      //SetInstanceParameters(specklepoint, pointEntity);
+      specklepoint["displayStyle"] = displayStyle;
+      specklepoint["IsPoint"] = "true";
+
+      return specklepoint;
+    }
     #endregion
 
     /// <summary>
@@ -743,10 +816,9 @@ namespace Objects.Converter.TopSolid
     public Base AxisToSpeckle(TK.DB.D3.Axes.AxisEntity axisEntity, string units = null)
     {
       var u = units ?? ModelUnits;
-
-      var Pe = (axisEntity.Geometry.Po + axisEntity.Geometry.Vx);
+            
+      var Pe = axisEntity.BoundedGeometry.Pe;
       Line speckleLine = new Line(PointToSpeckle(axisEntity.Geometry.Po), PointToSpeckle(Pe), u);
-      //Line speckleLine = new Line(PointToSpeckle(axisEntity.Display.GetExtent().Min), PointToSpeckle(axisEntity.Display.GetExtent().Max), u);
       speckleLine["IsAxis"] = true;
       speckleLine["renderMaterial"] = RenderMaterialToSpeckle(axisEntity);
 
@@ -802,28 +874,37 @@ namespace Objects.Converter.TopSolid
         //AHW test to add profiles dynmaically
         System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base>();
 
+        //default color and styles
+        LineStyle defaultLineStyle = new LineStyle();
+        SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+        LineStyle defaultAxeLineStyle = new LineStyle();
+        TK.DB.D3.Sketches.PositionedSketchEntity sketchEntity = (TK.DB.D3.Sketches.PositionedSketchEntity)(topSolidSketch.Owner);
+        if (sketchEntity != null && sketchEntity.HasStyle)
+        {
+          var styleForSketc = sketchEntity.Style;
+          defaultLineStyle = styleForSketc.LineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.LineStyle;
+          defaultAxeLineStyle = styleForSketc.AxesLineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.AxesLineStyle;
+        }
+        if (sketchEntity != null)
+        {
+          defaultColor = sketchEntity.Color;
+          if (defaultLineStyle == LineStyle.Empty)
+          {
+            defaultLineStyle = sketchEntity.LineStyle;
+          }
+          if (defaultAxeLineStyle == LineStyle.Empty)
+          {
+            defaultAxeLineStyle = sketchEntity.LineStyle;
+          }
+        }
+
         //TESTAFS
         foreach (var profile in topSolidSketch.Profiles)
-        {
-          LineStyle defaultLineStyle = new LineStyle();
-          SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
-          TK.DB.D3.Sketches.PositionedSketchEntity sketchEntity = (TK.DB.D3.Sketches.PositionedSketchEntity)(topSolidSketch.Owner);
-          if (sketchEntity != null && sketchEntity.HasStyle)
-          {
-            var styleForSketc = sketchEntity.Style;
-            defaultLineStyle = styleForSketc.LineStyle.IsEmpty ? LineStyle.Empty : styleForSketc.LineStyle;
-          }
-          if (sketchEntity != null)
-          {
-            defaultColor = sketchEntity.Color;
-            if (defaultLineStyle == LineStyle.Empty)
-            {
-              defaultLineStyle = sketchEntity.LineStyle;
-            }
-          }
-
+        {         
           foreach (var segment in profile.Segments)
           {
+            if (segment.IsConstruction) continue; // en pratique, jamais
+
             var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
 
 
@@ -867,14 +948,11 @@ namespace Objects.Converter.TopSolid
 
             obj["IsInternal"] = segment.IsInternal ? "true" : "false";
             obj["IsSketch"] = "yes";
+            obj["IsConstruction"] = "false";
             obj["displayStyle"] = displayStyle;
             obj["units"] = u;
             list.Add(obj);
-          }
-
-          //deal with dimensions, testing for linear only
-          //EDIT 13-05-2025: DOES NOT WORK => REMOVED
-
+          }                   
 
           foreach (Entity entity in sketchEntity.Entities)
           {
@@ -889,10 +967,10 @@ namespace Objects.Converter.TopSolid
               dim.units = "mm";
               dim.isOrdinate = false;
               dim.value = dimension.TextString + " mm";
-              dim.textPosition = PointToSpeckle(new D2Point((dimension.FirstTopPoint.X + dimension.SecondTopPoint.X) * 0.5, (dimension.FirstTopPoint.Y + dimension.SecondTopPoint.Y) * 0.5), planeToUse);
+              D2Point dimTextPos = this.GetDimensionTextPosition(dimension);
+              dim.textPosition = PointToSpeckle(dimTextPos, localPlane);
               var firstPoint = PointToSpeckle(dimension.FirstTopPoint, planeToUse);
-              var secondPoint = PointToSpeckle(dimension.SecondTopPoint, planeToUse);
-              //dim.direction=
+              var secondPoint = PointToSpeckle(dimension.SecondTopPoint, planeToUse);              
               dim.direction = new Vector(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y, secondPoint.z - firstPoint.z);
               DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
               dim["displayStyle"] = dimDisplayStyle;
@@ -904,32 +982,61 @@ namespace Objects.Converter.TopSolid
               dim["height"] = "11";//ne marche pas
               dim["IsInternal"] = dimension.IsInternal;
 
-
-              #region ajout du texte -- commenté le 09-06-2025
-              //Text speckleText = new Text();
-              //speckleText.height = 0.05;
-              //speckleText.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + dimension.TextString + "mm}}";
-              //var planetouse= PlaneToSpeckle(dimension.Plane);    
-              //speckleText.value = dimension.TextString + " mm";
-              //speckleText.units = "mm";
-              //speckleText["renderMaterial"] = RenderMaterialToSpeckle(dimension);
-              //dimension.FindPointsOnLineAxis(out D2Point firstPoint, out D2Point secondPoint);
-              //planetouse.origin = /*PointToSpeckle(firstPoint);*/PointToSpeckle(new D2Point((firstPoint.X + secondPoint.X) * 0.5, (firstPoint.Y + secondPoint.Y) * 0.5));
-              ////il faudrait sans doute translaterl'origine
-              //double rotation = G.D2.Vector.VX.GetAngle(new D2Vector(secondPoint, firstPoint), true);//angle en radians
-              //planetouse.xdir = new Vector(planetouse.xdir.Length * Math.Cos(rotation), planetouse.xdir.Length*Math.Sin(rotation));
-              //planetouse.ydir = new Vector(planetouse.ydir.Length * Math.Cos(Math.PI/2+rotation), planetouse.ydir.Length * Math.Sin(Math.PI/2+rotation));
-              //speckleText.plane = planetouse;
-              //speckleText.rotation = 0;
-              //speckleText["displayStyle"] = dimDisplayStyle;
-              //SetInstanceParameters(speckleText, dimension);
-              //list.Add(speckleText);
-              #endregion
-
               list.Add(dim);
             }
           }
+        }
 
+        //for internal construction lines from sketch segments - sort items
+        G.D3.Sketches.SegmentList segmentList = new G.D3.Sketches.SegmentList();
+        ((G.D3.Sketches.Sketch)topSolidSketch).GetSegments(segmentList);
+        foreach (G.D3.Sketches.Segment segment in segmentList)
+        {
+          if (segment.IsConstruction && !segment.IsGhost && !segment.IsInfinite && !segment.IsInternal)
+          {
+            var geoSegm = segment.MakeGeometricProfile(G.D2.Curves.Attributes.AttributeType.Color);
+
+            DisplayStyle displayStyle = new DisplayStyle();
+            //ici, si le lineStyleWith est égale à None alors c'est qu'il y a un style
+            SX.Drawing.Color colorToUse = (segment.Color.IsEmpty ? defaultColor : segment.Color);
+            displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+            LineStyle lineStyleToUse = (segment.LineStyle != LineStyle.Empty) ? segment.LineStyle : defaultAxeLineStyle;
+
+            Tuple<double, string> lineData = GetLineStyleInfos(lineStyleToUse);
+            displayStyle.lineweight = lineData.Item1;
+            displayStyle.linetype = lineData.Item2;//for now
+            displayStyle.units = "mm";
+            var obj = ObjectToSpeckle(geoSegm, topSolidSketch.Frame.Pxy);
+            //nominations
+            if (segment.HasSegmentNameAttribute)//si existe
+            {
+              obj["segmentName"] = segment.SegmentName;
+
+              obj["segmentNameDirectionInverted"] = (!segment.NameIsFirstDirectionInverted) ? "No" : "Yes";
+              if (segment.NameIsFirstDirectionInverted)
+              {
+                obj["segmentNameIsDirectionXPlus"] = (segment.NameIsSecondDirectionX && !segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionXMoins"] = (segment.NameIsSecondDirectionX && segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionYPlus"] = (segment.NameIsSecondDirectionY && !segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionYMoins"] = (segment.NameIsSecondDirectionY && segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionZPlus"] = (segment.NameIsSecondDirectionZ && !segment.NameIsSecondDirectionInverted).ToString();
+                obj["segmentNameIsDirectionZMoins"] = (segment.NameIsSecondDirectionZ && segment.NameIsSecondDirectionInverted).ToString();
+              }
+
+              obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
+              obj["segmentNameFont"] = segment.NameFontName;
+              this.GetNamePos(segment, out var outPosition, out var outDirection);
+              obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
+              obj["namePosPointSegment"] = PointToSpeckle(outPosition);
+            }
+
+            obj["IsConstruction"] = "true";
+            obj["IsInternal"] = segment.IsInternal ? "true" : "false";
+            obj["IsSketch"] = "yes";
+            obj["displayStyle"] = displayStyle;
+            obj["units"] = u;
+            list.Add(obj);
+          }
         }
 
         var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
@@ -2782,7 +2889,6 @@ namespace Objects.Converter.TopSolid
 
       return shape;
     }
-
 
     //Preview Mesh for the Web (or else replacement in case conversion fails)
     public Mesh ShapeDisplayToMesh(Shape shape, string units = null)
