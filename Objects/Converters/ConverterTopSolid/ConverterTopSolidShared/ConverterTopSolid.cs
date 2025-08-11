@@ -348,15 +348,10 @@ namespace Objects.Converter.TopSolid
       return VertexToSpeckle(vertex);
     }
 
-    //public Base ObjectToSpeckle(G.D2.Sketches.Vertex vertex,G.D3.Plane plane)
-    //{
-    //  return VertexToSpeckle(vertex,plane);
-    //}
-
-    //public Base ObjectToSpeckle(G.D3.Sketches.Vertex vertex, G.D3.Plane plane)
-    //{
-    //  return VertexToSpeckle(vertex, plane);
-    //}
+    public Base ObjectToSpeckle(G.D2.Sketches.Vertex vertex, G.D3.Plane plane)
+    {
+      return VertexToSpeckle(vertex, plane);
+    }
 
     public bool CanConvertToNativeDisplayable(Base @object)
     {

@@ -260,7 +260,8 @@ namespace Objects.Converter.TopSolid
       Point specklePoint = new Point(absolutepoint.X, absolutepoint.Y, absolutepoint.Z, u);
       SetInstanceParameters(specklePoint, topSolidpoint);
       return specklePoint;
-    }
+    }    
+
     public D3Point PointToNative(Point point, string units = null)
     {
       var _point = new D3Point(ScaleToNative(point.x, point.units),
@@ -429,12 +430,14 @@ namespace Objects.Converter.TopSolid
             obj["segmentName"] = segment.SegmentName;
             obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
             obj["segmentNameFont"] = segment.NameFontName;
+            obj["segmentNameStyle"] = segment.NameFontStyle.ToString();
+            obj["segmentNameSize"] = segment.NameHeight.Value.ToString();
 
             obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed;
 
             this.GetNamePos(segment, out var outPosition, out var outDirection);
             obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
-            obj["namePosPointSegment"] = PointToSpeckle(outPosition);
+            obj["namePosPointSegment"] = PointToSpeckle(outPosition, localPlane);
           }
 
           obj["IsInternal"] = segment.IsInternal ? "true" : "false";
@@ -473,12 +476,15 @@ namespace Objects.Converter.TopSolid
             obj["segmentName"] = segment.SegmentName;
             obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
             obj["segmentNameFont"] = segment.NameFontName;
+            obj["segmentNameStyle"] = segment.NameFontStyle.ToString();
+            obj["segmentNameSize"] = segment.NameHeight.Value.ToString();
 
             obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed;
 
             this.GetNamePos(segment, out var outPosition, out var outDirection);
             obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
-            obj["namePosPointSegment"] = PointToSpeckle(outPosition);
+            obj["namePosPointSegment"] = PointToSpeckle(outPosition,localPlane);
+
           }
 
           obj["IsInternal"] = segment.IsInternal ? "true" : "false";
@@ -524,7 +530,8 @@ namespace Objects.Converter.TopSolid
       }
 
 
-      var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
+      //var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
+      var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x, localPlane)).ToList();
       speckleSketch["Profiles"] = list;
       speckleSketch["Vertices"] = vertices;
       speckleSketch["isSketch"] = true;
@@ -1039,7 +1046,7 @@ namespace Objects.Converter.TopSolid
           }
         }
 
-        var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();
+        var vertices = topSolidSketch.Vertices.Where(y => !y.IsInternal).Select(x => ObjectToSpeckle(x)).ToList();      
         speckleSketch["Profiles"] = list;
         speckleSketch["Vertices"] = vertices;
         speckleSketch["isSketch"] = true;
@@ -3022,6 +3029,35 @@ namespace Objects.Converter.TopSolid
       return specklepoint;
     }
 
+    public Point VertexToSpeckle(G.D2.Sketches.Vertex vertex, G.D3.Plane plane)
+    {
+      Point specklepoint = PointToSpeckle(vertex.Geometry,plane);
+      specklepoint["vertexName"] = vertex.VertexName;
+      specklepoint["vertexColor"] = ((System.Drawing.Color)vertex.NameColor).ToArgb();
+      specklepoint["vertexFont"] = vertex.NameFontName;
+      specklepoint["namePosVector"] = new Vector(vertex.NamePosVector.X, vertex.NamePosVector.Y);
+
+
+      SX.Drawing.Color defaultColor = SX.Drawing.Color.Empty;
+      var sketchEntity = (TK.DB.D3.Sketches.Planar.PlanarSketchEntity)(vertex.Sketch.Owner);
+      if (sketchEntity != null && sketchEntity.HasStyle)
+      {
+        var styleForSketc = sketchEntity.Style;
+      }
+      if (sketchEntity != null)
+      {
+        defaultColor = sketchEntity.Color;
+      }
+      DisplayStyle displayStyle = new DisplayStyle();
+      SX.Drawing.Color colorToUse = (vertex.Color.IsEmpty ? defaultColor : vertex.Color);
+      displayStyle.color = ((System.Drawing.Color)colorToUse).ToArgb();
+      displayStyle.lineweight = 0;
+      displayStyle.linetype = "Continuous";
+      specklepoint["displayStyle"] = displayStyle;
+
+      return specklepoint;
+    }
+
     public Point VertexToSpeckle(G.D3.Sketches.Vertex vertex)
     {
       Point specklepoint = PointToSpeckle(vertex.Geometry);
@@ -3065,6 +3101,8 @@ namespace Objects.Converter.TopSolid
 
       return specklepoint;
     }
+
+  
   }
 }
 
