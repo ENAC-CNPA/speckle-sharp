@@ -81,6 +81,7 @@ using Shape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using TopSolid.Kernel.DB.D2.Frames;
 using TopSolid.Kernel.DB.D2.Dimensions;
 using TopSolid.Kernel.DB.D2;
+using TopSolid.Kernel.GR.Items;
 using TopSolid.Kernel.G.D3.Sketches;
 using TopSolid.Kernel.GR.D2;
 using TopSolid.Kernel.G.D2.Curves;
@@ -405,7 +406,7 @@ namespace Objects.Converter.TopSolid
 
       //TESTAFS => profile from sketchentity (construction are ignored in Profiles)
       foreach (var profile in topSolidSketch.Profiles)
-      {        
+      {      
         foreach (var segment in profile.Segments)
         {
           if (segment.IsConstruction) continue; // en pratique, jamais
@@ -426,26 +427,33 @@ namespace Objects.Converter.TopSolid
           var obj = ObjectToSpeckle(geoSegm, localPlane);
           //nominations
           if (segment.HasSegmentNameAttribute)//si existe
-          {
+          {            
             obj["segmentName"] = segment.SegmentName;
             obj["segmentNameColor"] = ((System.Drawing.Color)segment.NameColor).ToArgb();
             obj["segmentNameFont"] = segment.NameFontName;
             obj["segmentNameStyle"] = segment.NameFontStyle.ToString();
             obj["segmentNameSize"] = segment.NameHeight.Value.ToString();
 
-            obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed;
+            obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed? "Yes" : "No";            
 
             this.GetNamePos(segment, out var outPosition, out var outDirection);
-            obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
+
+            Point specklePoint = PointToSpeckle(new D2Point(0,0), localPlane);
+            Point specklePoint2 = PointToSpeckle(new D2Point(outDirection.X,outDirection.Y), localPlane);
+
+            obj["namePosDirSegment"] = new Vector(specklePoint2 - specklePoint);
             obj["namePosPointSegment"] = PointToSpeckle(outPosition, localPlane);
+
           }
 
           obj["IsInternal"] = segment.IsInternal ? "true" : "false";
           obj["IsSketch"] = "yes";
-          obj["IsConstruction"] = "false";
+          obj["IsConstruction"] = segment.IsConstruction? "true" : "false";
           obj["displayStyle"] = displayStyle;
           obj["units"] = u;
           list.Add(obj);
+
+         
         }
       }
 
@@ -479,11 +487,16 @@ namespace Objects.Converter.TopSolid
             obj["segmentNameStyle"] = segment.NameFontStyle.ToString();
             obj["segmentNameSize"] = segment.NameHeight.Value.ToString();
 
-            obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed;
+            obj["segmentNameDirectionInverted"] = segment.IsNameLocationReversed ? "Yes" : "No";
 
             this.GetNamePos(segment, out var outPosition, out var outDirection);
-            obj["namePosDirSegment"] = new Vector(outDirection.X, outDirection.Y);
-            obj["namePosPointSegment"] = PointToSpeckle(outPosition,localPlane);
+
+            Point specklePoint = PointToSpeckle(new D2Point(0, 0), localPlane);
+            Point specklePoint2 = PointToSpeckle(new D2Point(outDirection.X, outDirection.Y), localPlane);
+
+            obj["namePosDirSegment"] = new Vector(specklePoint2 - specklePoint);
+            obj["namePosPointSegment"] = PointToSpeckle(outPosition, localPlane);
+
 
           }
 
@@ -512,8 +525,8 @@ namespace Objects.Converter.TopSolid
           dim.value = dimension.TextString + " mm";
           D2Point dimTextPos = this.GetDimensionTextPosition(dimension);
           dim.textPosition = PointToSpeckle(dimTextPos, localPlane);          
-          var firstPoint = PointToSpeckle(dimension.SecondTopPoint, localPlane);
-          var secondPoint = PointToSpeckle(dimension.FirstTopPoint, localPlane);
+          var firstPoint = PointToSpeckle(dimension.FirstTopPoint, localPlane);
+          var secondPoint = PointToSpeckle(dimension.SecondTopPoint, localPlane);
           dim.direction = new Vector(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y, secondPoint.z - firstPoint.z);
           DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
           dim["displayStyle"] = dimDisplayStyle;
@@ -526,6 +539,50 @@ namespace Objects.Converter.TopSolid
           dim["IsInternal"] = dimension.IsInternal;         
 
           list.Add(dim);
+        }
+        else if (entity is TK.DB.D2.Dimensions.AngularDimensionEntity angularDimension)
+        {
+          AngleDimension dim = new AngleDimension();
+
+          D2Point centerPoint = angularDimension.CenterPoint;
+          D2Vector dir = angularDimension.FirstDirection;
+          D2Vector dir2 = angularDimension.SecondDirection;
+          D2Point pointFirstDir = new D2Point(centerPoint.X, centerPoint.Y);
+          D2Point pointSecondDir = new D2Point(centerPoint.X, centerPoint.Y);
+
+          G.D2.Transform translationTransformFirst = G.D2.Transform.Identity;
+          translationTransformFirst.AddTranslation(dir);
+          pointFirstDir.Transform(translationTransformFirst);
+          G.D2.Transform translationTransformSecond = G.D2.Transform.Identity;
+          translationTransformSecond.AddTranslation(dir2);
+          pointSecondDir.Transform(translationTransformSecond);
+
+          dim.position = PointToSpeckle(angularDimension.FirstTopPoint, localPlane);
+          dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + angularDimension.TextString + "°}}";
+          dim.measurement = angularDimension.MeasuredValue;
+          dim.units = "°";
+          dim.value = angularDimension.TextString + " °";
+          D2Point dimTextPos = this.GetDimensionTextPosition(angularDimension);
+          dim.textPosition = PointToSpeckle(dimTextPos, localPlane);
+          var firstPoint = PointToSpeckle(angularDimension.SecondTopPoint, localPlane);
+          var secondPoint = PointToSpeckle(angularDimension.FirstTopPoint, localPlane);
+          Line firstLine = new Line(PointToSpeckle(centerPoint, localPlane), PointToSpeckle(pointFirstDir, localPlane));
+          Line secondLine = new Line(PointToSpeckle(centerPoint, localPlane), PointToSpeckle(pointSecondDir, localPlane));          
+          DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
+          dim["displayStyle"] = dimDisplayStyle;
+          System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
+          System.Collections.Generic.List<G.D2.Curves.CircleCurve> curves = GetDisplayLines(angularDimension);
+          dim.displayValue = curves.Select(l => CurveToSpeckle(l, localPlane) as ICurve).ToList();
+          dim.measured = new System.Collections.Generic.List<Line> { firstLine, secondLine };
+          dim["renderMaterial"] = RenderMaterialToSpeckle(angularDimension);
+          dim["height"] = "11";//ne marche pas
+          dim["IsInternal"] = angularDimension.IsInternal;
+
+          list.Add(dim);
+        }
+        else if (entity is TK.DB.D2.Dimensions.SingleValueDimensionEntity singleValueDimension)
+        {
+          
         }
       }
 
@@ -554,11 +611,25 @@ namespace Objects.Converter.TopSolid
       return new D2Point();
     }
 
+    private D2Point GetDimensionTextPosition(TK.DB.D2.Dimensions.AngularDimensionEntity dimension)
+    {
+      foreach (var item in dimension.Display.Items)
+      {
+        if (item is TK.GR.D2.TextItem)
+          return (D2Point)(item as TK.GR.D2.TextItem).Position;
+
+        if (item is TK.GR.D3.TextItem)
+          return (D2Point)(item as TK.GR.D3.TextItem).Position;
+      }
+
+      return new D2Point();
+    }
+
 
 
     private System.Collections.Generic.List<D2LineCurve> GetDisplayLines(TK.DB.D2.Dimensions.LinearDimensionEntity dimension)
     {
-      //D2LineCurve lineCurve = GetDimensionLine(dimension,dimension.GetCalloutTextPosition();
+      //D2LineCurve lineCurve = GetDimensionLine(angularDimension,angularDimension.GetCalloutTextPosition();
       System.Collections.Generic.List<D2LineCurve> curves = new System.Collections.Generic.List<D2LineCurve>();
       foreach (var f in dimension.Display.Items)
       {
@@ -571,6 +642,32 @@ namespace Objects.Converter.TopSolid
             curves.Add(dimensionLineCurve);
           }
         }
+      }
+      return curves;
+    }
+
+    private System.Collections.Generic.List<G.D2.Curves.CircleCurve> GetDisplayLines(TK.DB.D2.Dimensions.AngularDimensionEntity dimension)
+    {
+      //D2LineCurve lineCurve = GetDimensionLine(angularDimension,angularDimension.GetCalloutTextPosition();
+      System.Collections.Generic.List<G.D2.Curves.CircleCurve> curves = new System.Collections.Generic.List<G.D2.Curves.CircleCurve>();
+      foreach (var item in dimension.Display.Items)
+      {
+        if (item is GroupItem tr)
+        {
+          foreach (var f in tr.Items)
+          {
+            if (f.IsCurveItem)
+            {              
+              
+              G.D2.CurveGeometryType geometryTypePolyLine = G.D2.CurveGeometryType.Polyline;
+              var dimensionPolyLine = dimension.SearchItemCurve(item.Label, geometryTypePolyLine);
+              if (dimensionPolyLine is G.D2.Curves.CircleCurve dimensionCircleCurve)
+              {
+                curves.Add(dimensionCircleCurve);
+              }             
+            }
+          }          
+        }        
       }
       return curves;
     }
@@ -990,6 +1087,50 @@ namespace Objects.Converter.TopSolid
               dim["IsInternal"] = dimension.IsInternal;
 
               list.Add(dim);
+            }
+            else if (entity is TK.DB.D2.Dimensions.AngularDimensionEntity angularDimension)
+            {
+              AngleDimension dim = new AngleDimension();
+
+              D2Point centerPoint = angularDimension.CenterPoint;
+              D2Vector dir = angularDimension.FirstDirection;
+              D2Vector dir2 = angularDimension.SecondDirection;
+              D2Point pointFirstDir = new D2Point(centerPoint.X, centerPoint.Y);
+              D2Point pointSecondDir = new D2Point(centerPoint.X, centerPoint.Y);
+
+              G.D2.Transform translationTransformFirst = G.D2.Transform.Identity;
+              translationTransformFirst.AddTranslation(dir);
+              pointFirstDir.Transform(translationTransformFirst);
+              G.D2.Transform translationTransformSecond = G.D2.Transform.Identity;
+              translationTransformSecond.AddTranslation(dir2);
+              pointSecondDir.Transform(translationTransformSecond);
+
+              dim.position = PointToSpeckle(angularDimension.FirstTopPoint, localPlane);
+              dim.richText = @"{\rtf1\deff0{\fonttbl{\f0 Arial;}}\f0 \fs11{\f0 " + angularDimension.TextString + "°}}";
+              dim.measurement = angularDimension.MeasuredValue;
+              dim.units = "°";
+              dim.value = angularDimension.TextString + " °";
+              D2Point dimTextPos = this.GetDimensionTextPosition(angularDimension);
+              dim.textPosition = PointToSpeckle(dimTextPos, localPlane);
+              var firstPoint = PointToSpeckle(angularDimension.SecondTopPoint, localPlane);
+              var secondPoint = PointToSpeckle(angularDimension.FirstTopPoint, localPlane);
+              Line firstLine = new Line(PointToSpeckle(centerPoint, localPlane), PointToSpeckle(pointFirstDir, localPlane));
+              Line secondLine = new Line(PointToSpeckle(centerPoint, localPlane), PointToSpeckle(pointSecondDir, localPlane));
+              DisplayStyle dimDisplayStyle = new DisplayStyle { linetype = "Continuous", units = "mm", lineweight = 0, color = System.Drawing.Color.Red.ToArgb() };
+              dim["displayStyle"] = dimDisplayStyle;
+              System.Collections.Generic.List<ICurve> displayValue = new System.Collections.Generic.List<ICurve>();
+              System.Collections.Generic.List<G.D2.Curves.CircleCurve> curves = GetDisplayLines(angularDimension);
+              dim.displayValue = curves.Select(l => CircleToSpeckle(l, localPlane) as ICurve).ToList();
+              dim.measured = new System.Collections.Generic.List<Line> { firstLine, secondLine };
+              dim["renderMaterial"] = RenderMaterialToSpeckle(angularDimension);
+              dim["height"] = "11";//ne marche pas
+              dim["IsInternal"] = angularDimension.IsInternal;
+
+              list.Add(dim);
+            }
+            else if (entity is TK.DB.D2.Dimensions.SingleValueDimensionEntity singleValueDimension)
+            {
+
             }
           }
         }
@@ -3006,6 +3147,8 @@ namespace Objects.Converter.TopSolid
       specklepoint["vertexName"] = vertex.VertexName;
       specklepoint["vertexColor"] = ((System.Drawing.Color)vertex.NameColor).ToArgb();
       specklepoint["vertexFont"] = vertex.NameFontName;
+      specklepoint["vertexNameStyle"] = vertex.NameFontStyle;
+      specklepoint["vertexNameSize"] = vertex.NameHeight;
       specklepoint["namePosVector"] = new Vector(vertex.NamePosVector.X, vertex.NamePosVector.Y);
 
 
