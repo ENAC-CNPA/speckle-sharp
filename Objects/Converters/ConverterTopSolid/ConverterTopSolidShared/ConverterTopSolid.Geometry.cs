@@ -973,7 +973,12 @@ namespace Objects.Converter.TopSolid
 
       var haslocalPlane = topSolidSketch.HasPlanarGeometricSection(G.Precision.ModelingLinearTolerance, G.Precision.ModelingAngularTolerance, out TsPlane localPlane);
 
-      if (haslocalPlane)
+      if (!haslocalPlane)
+      {
+        localPlane = TsPlane.OXZ;
+      }
+      
+      
       {
         //AHW test to add profiles dynmaically
         System.Collections.Generic.List<Base> list = new System.Collections.Generic.List<Base>();

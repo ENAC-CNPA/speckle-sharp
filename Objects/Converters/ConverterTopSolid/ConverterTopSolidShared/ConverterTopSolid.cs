@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using Speckle.ConnectorTopSolid.DB.Operations;
 using Speckle.Core.Kits;
 using Speckle.Core.Models;
 using TopSolid.Cad.Design.DB;
+using TopSolid.Kernel.DB.D2.Frames;
+using TopSolid.Kernel.DB.D3.Axes;
 using TopSolid.Kernel.DB.D3.Modeling.Documents;
+using TopSolid.Kernel.DB.D3.Planes;
 using TopSolid.Kernel.DB.D3.PointClouds;
 using TopSolid.Kernel.DB.Elements;
+using TopSolid.Kernel.DB.Sets;
 using TopSolid.Kernel.G.D3.Shapes.Polyhedrons;
 using TopSolid.Kernel.G.D3.Sketches;
 using TopSolid.Kernel.G.D3.Sketches.Planar;
@@ -23,7 +25,6 @@ using D3Geometry = TopSolid.Kernel.G.IGeometry;
 using D3LineCurve = TopSolid.Kernel.G.D3.Curves.LineCurve;
 using D3Plane = TopSolid.Kernel.G.D3.Plane;
 using D3Point = TopSolid.Kernel.G.D3.Point;
-using D2Point = TopSolid.Kernel.G.D2.Point;
 using D3PolylineCurve = TopSolid.Kernel.G.D3.Curves.PolylineCurve;
 using D3Shape = TopSolid.Kernel.G.D3.Shapes.Shape;
 using D3Vector = TopSolid.Kernel.G.D3.Vector;
@@ -37,15 +38,6 @@ using Polyline = Objects.Geometry.Polyline;
 using Surface = Objects.Geometry.Surface;
 using TsEntity = TopSolid.Kernel.DB.Entities.Entity;
 using Vector = Objects.Geometry.Vector;
-using TopSolid.Kernel.SX.Collections.Generic;
-using TopSolid.Kernel.DB.Entities;
-using SX = TopSolid.Kernel.SX;
-using TopSolid.Kernel.DB.Sets;
-using TopSolid.Kernel.GR.Attributes;
-using TopSolid.Kernel.DB.D3.Axes;
-using TopSolid.Kernel.DB.D3.Planes;
-using TopSolid.Kernel.DB.D2.Frames;
-using TopSolid.Kernel.G.D3;
 
 namespace Objects.Converter.TopSolid
 {
@@ -59,6 +51,8 @@ namespace Objects.Converter.TopSolid
     public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v717);
 #elif TOPSOLID718
     public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v718);
+#elif TOPSOLID719
+    public static string TopSolidAppName = HostApplications.TopSolid.GetVersion(HostAppVersion.v719);
 #endif
 
     public SpeckleFolderOperation sfo = null;
