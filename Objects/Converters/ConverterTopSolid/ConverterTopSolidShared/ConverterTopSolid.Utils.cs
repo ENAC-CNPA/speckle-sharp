@@ -267,7 +267,7 @@ namespace Objects.Converter.TopSolid
         if (host is global::TopSolid.Kernel.DB.D3.Axes.AxisEntity axisEntity)
         {
           Base obj = null;
-          obj = ConvertToSpeckle(axisEntity);         
+          obj = ConvertToSpeckle(axisEntity);
 
           if (obj != null)
           {
@@ -280,18 +280,18 @@ namespace Objects.Converter.TopSolid
           Base obj = null;
           obj = ConvertToSpeckle(pointEntity);
         }
-        else if  (host is global::TopSolid.Kernel.DB.D3.Frames.FrameEntity frameEntity)
+        else if (host is global::TopSolid.Kernel.DB.D3.Frames.FrameEntity frameEntity)
+        {
+          Base obj = null;
+          obj = ConvertToSpeckle(frameEntity);
+
+          if (obj != null)
           {
-            Base obj = null;
-            obj = ConvertToSpeckle(frameEntity);
+            //obj["IsAxis"] = true;
 
-            if (obj != null)
-            {
-              //obj["IsAxis"] = true;
-
-            }
           }
-          else if (host is SetDefinitionEntity set)
+        }
+        else if (host is SetDefinitionEntity set)
         {
           //var listofsets = (@base["@elements"] as List<Base>).Where(x => x is Collection collection).ToList();
           //Collection collection;
@@ -521,7 +521,17 @@ namespace Objects.Converter.TopSolid
       }
       else
       {
-        paramElements = ownerDoc.DefinitionDocument.ParametersFolderEntity.DeepParameters;
+        if (ownerDoc.DefinitionDocument != null)
+        {
+          paramElements = ownerDoc.DefinitionDocument.ParametersFolderEntity.DeepParameters;
+        }
+        else
+        {
+          if (ownerDoc.ParametersFolderEntity != null)
+          {
+            paramElements = ownerDoc.ParametersFolderEntity?.DeepParameters;
+          }
+        }
       }
 
       if (paramElements != null)
